@@ -4,6 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 ![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)
 ![Status](https://img.shields.io/badge/status-active-2ea44f)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-1f6feb)](https://greenbird122.github.io/Vuln-scanner/)
 
 Async Playwright-based web vulnerability scanner with AI-assisted payload generation,
 oracle verification, and per-site reports. Crawls a target, runs 24+ detection modules
