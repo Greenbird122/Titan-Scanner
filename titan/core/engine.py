@@ -7,6 +7,7 @@ import hashlib
 import json
 import random
 import re
+import secrets
 import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin, urlencode, urlparse
@@ -14,13 +15,14 @@ from urllib.parse import urljoin, urlencode, urlparse
 from titan.core.models import Finding, ScanResult
 from titan.core.fingerprint import TechFingerprinter
 from titan.ai.payloadsmith import PayloadSmith
-from titan.verify.chain import ChainDetector
 from titan.integrations.dawn import DawnMemory
 from titan.integrations.titan_gov import request_scan_approval
 from titan.integrations.interactsh import InteractshClient
 from titan.core.auth import AuthEngine
+from titan.core.sessions import Identity, SessionPool
 from titan.core.proxy import ProxyRotator
 from titan.core.stealth import StealthEngine
+from titan.verify.flows import apply_flows
 
 
 # Challenge-wall fingerprints strong enough to abort a scan on their own,
@@ -110,8 +112,11 @@ class TitanEngine:
         self.config = config
         self.fingerprinter = TechFingerprinter()
         self.payload_smith = PayloadSmith(config.get("ai", {}))
-        self.chain_detector = ChainDetector()
         self.auth_engine = AuthEngine(config)
+        # Track B (stateful identity testing): holds every authenticated
+        # persona concurrently so BOLA/mass-assignment detectors can do
+        # cross-identity differentials.
+        self.session_pool = SessionPool()
         self.interactsh = InteractshClient()
         self.findings: List[Finding] = []
         self.visited: set = set()
@@ -218,10 +223,16 @@ class TitanEngine:
                     print("[+] Attempting authentication...")
                     logged_in = await self.auth_engine.login(context, page, target)
                     if logged_in:
-                        print(f"[+] Authenticated as {self.auth_engine.get_current_role() or 'user'}")
+                        role_name = self.auth_engine.get_current_role() or "user"
+                        print(f"[+] Authenticated as {role_name}")
                         auth_headers = self.auth_engine.get_auth_headers()
                         if auth_headers:
                             await context.set_extra_http_headers(auth_headers)
+                        self.session_pool.add(Identity(
+                            name=role_name,
+                            headers=dict(auth_headers),
+                            cookies=self.auth_engine.get_cookies(),
+                        ))
                     else:
                         print("[!] Authentication failed, continuing unauthenticated")
 
@@ -276,7 +287,12 @@ class TitanEngine:
                                 auth_headers = self.auth_engine.get_auth_headers()
                                 if auth_headers:
                                     await context.set_extra_http_headers(auth_headers)
-                                
+                                self.session_pool.add(Identity(
+                                    name=role_name,
+                                    headers=dict(auth_headers),
+                                    cookies=self.auth_engine.get_cookies(),
+                                ))
+
                                 for visited_url in list(self.visited)[:10]:
                                     try:
                                         api_findings = await asyncio.wait_for(
@@ -290,6 +306,44 @@ class TitanEngine:
                                         continue
                         except Exception:
                             continue
+
+                # Track B — identity-level testing. BOLA, mass assignment,
+                # JWT and session fixation need >= 2 authenticated identities
+                # held concurrently (request A's object with B's session and
+                # diff). Runs against the discovered API surface only; every
+                # failure degrades quietly.
+                if len(self.session_pool) >= 2 and not self._driver_dead:
+                    print(f"[+] Identity matrix: {len(self.session_pool)} identities; running BOLA/mass-assignment/JWT/session checks")
+                    for visited_url in list(self.visited)[:10]:
+                        try:
+                            identity_findings = await asyncio.wait_for(
+                                self._run_identity_modules(context, target, visited_url, {}),
+                                timeout=20,
+                            )
+                            result.findings.extend(identity_findings)
+                        except Exception:
+                            continue
+
+                # Track A — client-side browser security. DOM XSS, postMessage,
+                # prototype pollution, skimmer heuristic and CSP audit all need
+                # a REAL browser context (the oracle is inside the page's JS,
+                # not the server response). Bounded: max 2 pages, per-detector
+                # timeout, every failure degrades quietly.
+                if self.config.get("clientside", {}).get("enabled", True) and not self._driver_dead:
+                    await self._run_browser_modules(context, page, target, fingerprint, result)
+
+                # Track C — LLM/AI application probing. Conversational probes
+                # against the target's AI endpoints, judged by a deterministic
+                # behavioral contract + consensus oracle. Pure aiohttp, so it
+                # runs even if the Playwright driver died.
+                if self.config.get("llm", {}).get("enabled", True):
+                    await self._run_llm_channel(target, fingerprint, result)
+
+                # Track D — cloud storage exposure. Probes buckets referenced
+                # by the scan's own evidence for public listing; the findings
+                # feed the flow-typed chain analyzer. Pure aiohttp.
+                if self.config.get("cloud", {}).get("storage", {}).get("enabled", True):
+                    await self._run_storage_probe(target, result)
 
                 try:
                     await asyncio.wait_for(browser.close(), timeout=10)
@@ -316,6 +370,32 @@ class TitanEngine:
 
         result.findings = self._dedupe_findings(result.findings)
         result.findings = [f for f in result.findings if self._is_in_scope(f.url)]
+
+        # Track D prerequisite: tag every verified finding with the
+        # capabilities it exposes to an attacker (file_read, creds,
+        # url_fetch, auth_bypass, code_exec, data_leak, oob, client_exec,
+        # model_control). Runs BEFORE the chain analyzer below — the analyzer
+        # joins findings on these flows.
+        apply_flows(result.findings)
+
+        # Track D — flow-typed chain analysis. Joins findings whose
+        # capabilities combine into attack goals (SSRF to metadata + a
+        # hardcoded cloud key = Cloud Credential Exposure). Populates
+        # result.chains and the per-finding ``chain`` URL lists the report
+        # renders. Never fatal — a failure is recorded, not thrown.
+        try:
+            from titan.verify.chain_analyzer import ChainAnalyzer
+            chains = ChainAnalyzer().detect(result.findings)
+            result.chains = [c.to_dict() for c in chains]
+            for chain in chains:
+                for f in chain.hops:
+                    others = [h.url for h in chain.hops if h is not f]
+                    if others:
+                        f.chain = list(dict.fromkeys(others))
+            if chains:
+                print(f"[+] Track D: {len(chains)} attack chains composed")
+        except Exception as exc:
+            result.errors.append(f"Chain analysis failed: {exc}")
 
         # AI escalation: model verdicts for ambiguous high-value findings only.
         # Runs before CVSS/PoC so a verdict can influence scoring. Every failure
@@ -588,12 +668,6 @@ class TitanEngine:
                 print(f"    [!] Error crawling {current}: {e}")
                 continue
 
-        chains = self.chain_detector.detect(result.findings)
-        for chain in chains:
-            for f in chain.findings:
-                if f.url != chain.findings[0].url:
-                    f.chain = [c.url for c in chain.findings if c.url != f.url]
-
         result.findings = self._dedupe_findings(result.findings)
         result.findings = [f for f in result.findings if self._is_in_scope(f.url)]
 
@@ -822,6 +896,18 @@ class TitanEngine:
 
     def _is_spa_shell(self, url: str) -> bool:
         return "#" in url
+
+    @staticmethod
+    def _is_state_changing_path(url: str) -> bool:
+        """True if the URL path names a state-changing endpoint (create /
+        update / delete / register / login) — the only places mass-assignment
+        fields make sense to POST."""
+        path = urlparse(url).path.lower()
+        return any(k in path for k in (
+            "update", "create", "delete", "remove", "edit", "register",
+            "signup", "add", "save", "set", "change", "reset",
+            "upload", "transfer", "send", "approve", "role",
+        ))
 
     async def _discover_all(
         self,
@@ -1668,6 +1754,263 @@ class TitanEngine:
             findings.extend(await self._run_graphql(context, target, api_url, fingerprint))
         else:
             findings.extend(await self._test_rest_api(context, target, api_url, fingerprint))
+        return findings
+
+    async def _run_browser_modules(self, context, page, target: str, fingerprint: Dict[str, Any], result: ScanResult) -> None:
+        """Track A — client-side browser security module matrix.
+
+        Runs inside the real Playwright browser: each detector installs JS
+        hooks / navigates with a marker and treats the page's JS behaviour
+        as the oracle. Bounded like every other phase — max 2 pages, a
+        hard per-detector timeout, and every failure degrades to an empty
+        result so a broken page can never stall the scan.
+        """
+        if self._driver_dead:
+            return
+        # One marker per scan run: the DOM XSS probe uses it so the same
+        # marker is injected regardless of how many pages are probed, and
+        # tests can pin it for deterministic fake-page scripting.
+        if not getattr(self, "_client_marker", None):
+            self._client_marker = "titanmx" + secrets.token_hex(6)
+        targets = [u for u in list(self.visited)[:2] if not self._is_spa_shell(u)]
+        if not targets:
+            targets = [target]
+        modules_cfg = self.config.get("clientside", {})
+
+        for page_url in targets:
+            b_page = None
+            # Bounded-abandon for new_page too: a driver that died mid-scan
+            # can leave this await wedged (neither resolving nor raising),
+            # and wait_for awaits the cancellation — which would hang the
+            # whole scan from inside scan(). Same pattern as the crawl task.
+            np_task = asyncio.ensure_future(context.new_page())
+            np_task.add_done_callback(_consume_task_exception)
+            np_done, _ = await asyncio.wait({np_task}, timeout=10)
+            if np_task not in np_done:
+                np_task.cancel()
+                continue
+            try:
+                b_page = np_task.result()
+            except Exception:
+                continue
+            try:
+                params = {}
+                from urllib.parse import parse_qs
+                qs = parse_qs(urlparse(page_url).query)
+                params = {k: v[0] for k, v in qs.items() if v}
+
+                checks = [
+                    ("domxss", self._run_domxss),
+                    ("postmessage", self._run_postmessage),
+                    ("prototype", self._run_proto_pollution),
+                    ("third_party", self._run_third_party),
+                    ("csp", self._run_csp),
+                ]
+                for name, runner in checks:
+                    if not modules_cfg.get(name, {}).get("enabled", True):
+                        continue
+                    # Bounded-abandon per detector: a detector wedged in a
+                    # dead-driver page.evaluate must time out and be left
+                    # abandoned, NEVER awaited to cancellation (wait_for
+                    # would hang on the wedge).
+                    det_task = asyncio.ensure_future(runner(b_page, target, page_url, params))
+                    det_task.add_done_callback(_consume_task_exception)
+                    det_done, _ = await asyncio.wait({det_task}, timeout=15)
+                    if det_task not in det_done:
+                        det_task.cancel()
+                        continue
+                    try:
+                        findings = det_task.result()
+                    except Exception:
+                        findings = []
+                    result.findings.extend(findings)
+            finally:
+                try:
+                    close_task = asyncio.ensure_future(b_page.close())
+                    close_task.add_done_callback(_consume_task_exception)
+                    close_done, _ = await asyncio.wait({close_task}, timeout=5)
+                    if close_task not in close_done:
+                        close_task.cancel()
+                except Exception:
+                    pass
+
+    async def _run_domxss(self, b_page, target: str, page_url: str, params: Dict[str, str]):
+        from titan.modules.clientside.domxss.detector import DomXSSDetector
+        det = DomXSSDetector(self.payload_smith, {})
+        return await det.scan(b_page, target, page_url, params, marker=getattr(self, "_client_marker", None))
+
+    async def _run_postmessage(self, b_page, target: str, page_url: str, params: Dict[str, str]):
+        from titan.modules.clientside.postmessage.detector import PostMessageDetector
+        det = PostMessageDetector(self.payload_smith, {})
+        return await det.scan(b_page, target, page_url, params)
+
+    async def _run_proto_pollution(self, b_page, target: str, page_url: str, params: Dict[str, str]):
+        from titan.modules.clientside.prototype.detector import PrototypePollutionDetector
+        det = PrototypePollutionDetector(self.payload_smith, {})
+        return await det.scan(b_page, target, page_url, params)
+
+    async def _run_third_party(self, b_page, target: str, page_url: str, params: Dict[str, str]):
+        from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
+        det = ThirdPartyDetector(self.payload_smith, {})
+        return await det.scan(b_page, target, page_url, params)
+
+    async def _run_csp(self, b_page, target: str, page_url: str, params: Dict[str, str]):
+        from titan.modules.clientside.csp.detector import CSPDetector
+        det = CSPDetector(self.payload_smith, {})
+        return await det.scan(b_page, target, page_url, params)
+
+    @staticmethod
+    def _is_llm_endpoint(url: str) -> bool:
+        """True if a discovered URL looks like an AI/chat/completion endpoint
+        (the surface Track C converses with). Conservative: requires an
+        /api/ or /v1/ prefix or an explicit AI path word so plain pages like
+        "/chat" or "/ai" never get probed."""
+        path = urlparse(url).path.lower()
+        markers = (
+            "/api/chat", "/chat/completions", "/v1/chat", "/v1/completions",
+            "/api/assistant", "/api/generate", "/api/completion",
+            "/api/message", "/api/ai", "/api/ask", "/api/answer",
+            "/api/query", "/api/inference", "/api/prompt", "/api/completions",
+        )
+        return any(m in path for m in markers)
+
+    async def _run_llm_channel(self, target: str, fingerprint: Dict[str, Any], result: ScanResult) -> None:
+        """Track C — LLM/AI application probing.
+
+        Converses with the target's AI endpoints (explicit ``llm.endpoints``
+        config first, then discovered /api/chat-style paths) using a
+        deterministic behavioral contract + consensus oracle. Pure aiohttp
+        (driver-independent); max 2 endpoints; per-endpoint hard budget;
+        every failure degrades to nothing. A target without any AI endpoint
+        costs the scan one no-op call.
+        """
+        llm_cfg = self.config.get("llm", {})
+        if not llm_cfg.get("enabled", True):
+            return
+
+        endpoints: List[str] = [e for e in (llm_cfg.get("endpoints") or []) if e]
+        discovered = [u for u in list(self.visited) if self._is_llm_endpoint(u)]
+        for u in discovered:
+            if u not in endpoints:
+                endpoints.append(u)
+        if not endpoints:
+            print("[i] No LLM/AI endpoints found; skipping Track C")
+            return
+
+        endpoints = endpoints[:2]
+        try:
+            from titan.modules.llm.channel import LLMChannel
+            from titan.modules.llm.detector import LLMDetector
+            # Injectable for tests (same pattern as _client_marker): a scripted
+            # channel / interactsh keep the seam deterministic.
+            channel = getattr(self, "_llm_channel", None)
+            if channel is None:
+                channel = LLMChannel(
+                    timeout=float(llm_cfg.get("timeout", 15)),
+                    model=llm_cfg.get("model", "gpt-4o-mini"),
+                )
+            interactsh = getattr(self, "_llm_interactsh", None) or self.interactsh
+            detector = LLMDetector(channel, interactsh, llm_cfg)
+            per_endpoint = float(llm_cfg.get("per_endpoint_timeout", 40))
+            for ep in endpoints:
+                print(f"[+] LLM channel: probing {ep}")
+                try:
+                    findings = await asyncio.wait_for(detector.scan(target, ep), timeout=per_endpoint)
+                    result.findings.extend(findings)
+                    if findings:
+                        print(f"    [+] Track C: {len(findings)} LLM findings on {ep}")
+                except asyncio.TimeoutError:
+                    continue
+                except Exception:
+                    continue
+        except Exception:
+            return
+
+    async def _run_storage_probe(self, target: str, result: ScanResult) -> None:
+        """Track D — cloud storage public-listing probe.
+
+        Extracts bucket references from the scan's OWN findings (leaked URLs,
+        hardcoded-key contexts, echoed bodies) and probes each for public
+        listing. Findings feed the flow-typed chain analyzer. Bounded (max 3
+        buckets, short aiohttp timeouts), every failure degrades to nothing.
+        The config gate lives HERE too so the seam is independently safe to
+        call (and independently testable).
+        """
+        if not self.config.get("cloud", {}).get("storage", {}).get("enabled", True):
+            return
+        try:
+            from titan.modules.cloud.storage import StorageProbe
+            probe = StorageProbe(fetcher=getattr(self, "_storage_fetcher", None))
+            storage_findings = await probe.scan(target, result.findings)
+            result.findings.extend(storage_findings)
+            if storage_findings:
+                print(f"[+] Track D: {len(storage_findings)} publicly listable bucket(s) found")
+        except Exception:
+            return
+
+    async def _run_identity_modules(self, context, target: str, api_url: str, fingerprint: Dict[str, Any]) -> List[Finding]:
+        """Track B identity-level module matrix for one API URL.
+
+        BOLA needs the object-owner's identity and an attacker identity from
+        the SessionPool; mass assignment / JWT / session fixation run on the
+        endpoint with identity headers attached. Every detector degrades
+        quietly — a non-identity endpoint (no id param, no login path, no
+        401 gate) returns no findings.
+        """
+        findings: List[Finding] = []
+        identities = self.session_pool.all()
+        if len(identities) < 2:
+            return findings
+
+        method = "GET"
+        url = api_url.split("?")[0]
+        from urllib.parse import parse_qs
+        qs = parse_qs(urlparse(api_url).query)
+        params = {k: v[0] for k, v in qs.items() if v}
+
+        # BOLA: swap the object id and diff owner vs attacker responses.
+        try:
+            from titan.modules.bola.detector import BOLADetector
+            bola = BOLADetector(self.payload_smith, fingerprint)
+            bola_findings = await bola.scan(context, target, method, url, params, identities)
+            findings.extend(bola_findings)
+        except Exception:
+            pass
+
+        # Mass assignment: inject privilege fields on state-changing calls.
+        # POSTs role=admin etc. — a state-changing probe that must NEVER be
+        # aimed at HTML pages (a login/signup form could be triggered). Only
+        # API-shaped endpoints are eligible.
+        if self._looks_like_api(url) or self._is_state_changing_path(url):
+            try:
+                from titan.modules.massassignment.detector import MassAssignmentDetector
+                ma = MassAssignmentDetector(self.payload_smith, fingerprint)
+                ma_findings = await ma.scan(context, target, "POST", url, params)
+                findings.extend(ma_findings)
+            except Exception:
+                pass
+
+        # JWT: forge alg:none / cracked-secret tokens against protected routes.
+        try:
+            from titan.modules.jwt.detector import JWTDetector
+            jwt_det = JWTDetector(self.payload_smith, fingerprint)
+            jwt_findings = await jwt_det.scan(context, target, method, url, params)
+            findings.extend(jwt_findings)
+        except Exception:
+            pass
+
+        # Session fixation: pre-set a session cookie through login. The
+        # detector already path-filters to login-ish URLs; keep the POST
+        # aimed only at API-shaped endpoints for extra safety.
+        if self._looks_like_api(url):
+            try:
+                from titan.modules.sessionfix.detector import SessionFixationDetector
+                sf = SessionFixationDetector(self.payload_smith, fingerprint)
+                sf_findings = await sf.scan(context, target, "POST", url, params)
+                findings.extend(sf_findings)
+            except Exception:
+                pass
+
         return findings
 
     async def _run_sqli(self, context, target, method, url, params, fingerprint) -> List[Finding]:
