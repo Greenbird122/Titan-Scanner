@@ -1,0 +1,1 @@
+"""CORS detection module."""
