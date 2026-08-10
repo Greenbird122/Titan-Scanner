@@ -1,0 +1,1 @@
+"""SQLi detection module."""
