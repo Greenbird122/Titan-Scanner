@@ -1,0 +1,1 @@
+"""XSS detection module."""

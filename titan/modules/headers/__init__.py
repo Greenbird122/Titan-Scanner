@@ -1,0 +1,1 @@
+"""Security headers detection module."""

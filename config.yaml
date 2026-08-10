@@ -1,0 +1,97 @@
+target: "https://repairai.co.ke"
+aggression: "passive"
+headless: true
+output_dir: "findings"
+crawl:
+  max_pages: 10
+  max_depth: 1
+  # Wall-clock budget for the crawl phase. Findings stream in as they are
+  # verified, so hitting this never loses already-confirmed evidence.
+  timeout: 300
+  # Max concurrent attack modules. The module matrix is the scan's biggest cost
+  # center: lower it (4) for gentler scans, raise it for speed.
+  module_concurrency: 8
+  # Hard per-URL budget (seconds) for the post-crawl SPA/API interaction phase.
+  # A crawl-timeout cancellation can wedge the Playwright driver; this caps how
+  # long a wedged interaction may stall the scan.
+  interaction_timeout: 90
+stealth:
+  # Per-module-probe delays. This is the biggest speed lever: tune down for
+  # faster scans, up for stealthier ones. jitter adds +/- jitter*max_delay.
+  jitter: 0.3
+  min_delay: 0.15
+  max_delay: 0.6
+governance:
+  enabled: false
+auth:
+  url: "https://repairai.co.ke/login"
+  username: "test@example.com"
+  password: "TestPass123!"
+  username_selector: 'input[name="identifier"], input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"]'
+  password_selector: 'input[type="password"], input[name*="pass"]'
+  submit_selector: 'button[type="submit"], input[type="submit"], button'
+  roles: []
+ai:
+  enabled: true
+  model: "deepseek-chat"
+  fallback: "ollama"
+  max_payloads_per_param: 20
+  escalate:
+    enabled: false
+    min_severity: "high"
+    min_confidence: 0.3
+    max_confidence: 0.85
+    unverified_only: true
+    max_per_scan: 5
+    timeout: 10
+    overall_deadline: 45
+modules:
+  # Optional per-module scan budget (seconds). rce/sqli default to 30s because
+  # they run statistical timing oracles (3 samples per delay-capable payload);
+  # all other modules default to 15s.
+  sqli:
+    enabled: true
+    # timeout: 30
+  xss:
+    enabled: true
+  ssrf:
+    enabled: true
+  auth:
+    enabled: true
+  idor:
+    enabled: true
+  lfi:
+    enabled: true
+  rce:
+    enabled: true
+    # timeout: 30
+  nosqli:
+    enabled: true
+  ssti:
+    enabled: true
+  xxe:
+    enabled: true
+  api:
+    enabled: true
+  upload:
+    enabled: true
+  logic:
+    enabled: true
+  crypto:
+    enabled: true
+  deser:
+    enabled: true
+  race:
+    enabled: true
+  cache:
+    enabled: true
+  smuggling:
+    enabled: true
+  cors:
+    enabled: true
+  headers:
+    enabled: true
+dawn:
+  memory: false
+  voice: false
+  gov: false

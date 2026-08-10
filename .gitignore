@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+findings/
+.env
+*.db
+*.sqlite
+.pytest_cache/
+
+# scratch / backups
+*.bak
+*.orig
+tmp_*.py
+tmp_*.sh
+titan/ai/test_write.txt
+multi_agent/state.json
+multi_agent/outbox/
