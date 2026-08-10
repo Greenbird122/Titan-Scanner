@@ -185,6 +185,27 @@ class SiteReportWriter:
                     lines += self._finding_section(ordinal, f)
                     lines += ["---", ""]
 
+        if result.chains:
+            lines += ["## Attack Chains", ""]
+            for i, chain in enumerate(result.chains, 1):
+                sev = chain.get("severity", "unknown")
+                lines += [
+                    f"### Chain {i}: {chain.get('name', 'Unknown')} [{sev.upper()}]",
+                    "",
+                    f"- **Impact** {chain.get('impact', '')}",
+                    f"- **Capabilities** `{'` + `'.join(chain.get('capabilities', []))}`",
+                    "",
+                    "- **Hops**",
+                    "",
+                ]
+                for hop in chain.get("hops", []):
+                    atk = (hop.get("attack_type") or "Unknown").replace("`", "`` `")
+                    lines.append(
+                        f"  - `{atk}` — {hop.get('method', 'GET')} {hop.get('url', '')} "
+                        f"(flows: {', '.join(hop.get('flows', []))})"
+                    )
+                lines += [""]
+
         if result.errors:
             lines += ["## Scan errors", ""]
             for err in result.errors:

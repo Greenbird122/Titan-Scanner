@@ -40,6 +40,19 @@ class AttackType(Enum):
     CRYPTO_WEAKNESS = "Crypto Weakness"
     PRIVILEGE_ESCALATION = "Privilege Escalation"
     IDOR = "IDOR"
+    DOM_XSS = "DOM XSS"
+    POSTMESSAGE = "postMessage"
+    SKIMMER = "Skimmer"
+    CSP_WEAKNESS = "CSP Weakness"
+    BOLA = "BOLA"
+    MASS_ASSIGNMENT = "Mass Assignment"
+    JWT_WEAKNESS = "JWT Weakness"
+    SESSION_FIXATION = "Session Fixation"
+    PROMPT_INJECTION = "Prompt Injection"
+    SYSTEM_LEAK = "System Prompt Leak"
+    LLM_EXFIL = "LLM Data Exfiltration"
+    LLM_AGENCY = "LLM Tool Abuse"
+    PUBLIC_STORAGE = "Public Cloud Storage"
     UPLOAD = "Upload"
     NO_ISSUE = "No Issue"
 
@@ -73,6 +86,11 @@ class Finding:
     metadata: Dict[str, Any] = field(default_factory=dict)
     chain: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
+    # Track D (chain analysis) prerequisite: what this finding EXPOSES to an
+    # attacker ("file_read", "creds", "url_fetch", "auth_bypass",
+    # "code_exec", "data_leak", "oob", "client_exec"). Populated by
+    # titan.verify.flows.apply_flows() at scan end.
+    flows: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -103,6 +121,7 @@ class Finding:
             "metadata": self.metadata,
             "chain": self.chain,
             "tags": self.tags,
+            "flows": self.flows,
         }
 
 
@@ -116,6 +135,9 @@ class ScanResult:
     fingerprint: Dict[str, Any] = field(default_factory=dict)
     config_snapshot: Dict[str, Any] = field(default_factory=dict)
     ai_escalation: Dict[str, Any] = field(default_factory=dict)
+    # Track D — flow-typed attack chains (full path + per-hop evidence), each
+    # an AttackChain.to_dict(). Populated by ChainAnalyzer after apply_flows.
+    chains: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def duration_seconds(self) -> float:
@@ -150,6 +172,7 @@ class ScanResult:
             "fingerprint": self.fingerprint,
             "config_snapshot": self.config_snapshot,
             "ai_escalation": self.ai_escalation,
+            "chains": self.chains,
             "summary": {
                 "total": len(self.findings),
                 "verified": self.verified_count,
