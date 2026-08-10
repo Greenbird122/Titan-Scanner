@@ -1,11 +1,33 @@
 # Titan Scanner
 
+![Tests](https://img.shields.io/badge/tests-303%20passing%20%7C%203%20skipped-2ea44f)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
+![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)
+![Status](https://img.shields.io/badge/status-active-2ea44f)
+
 Async Playwright-based web vulnerability scanner with AI-assisted payload generation,
-oracle verification, and per-site reports. Crawls a target, runs 19 detection modules,
-replays + diffs to confirm every finding, scores with CVSS, and generates PoCs.
+oracle verification, and per-site reports. Crawls a target, runs 24+ detection modules
+across **four attack tracks**, replays + diffs to confirm every finding, scores with CVSS,
+composes multi-hop attack chains, and generates PoCs.
 
 > **Authorization required.** Only scan systems you own or have explicit written
 > permission to test. See [MASTER-PLAN.md](MASTER-PLAN.md) for the project charter.
+
+---
+
+## Attack surface coverage
+
+| Track | What it probes | Evidence model |
+|---|---|---|
+| **Server-side** (20 modules) | SQLi, XSS, SSRF, LFI, RCE, NoSQLi, SSTI, XXE, CORS, headers, crypto, deserialization, race, cache, smuggling, auth, IDOR, upload, API, logic | response differential + verification oracle |
+| **Identity & state** (Track B) | BOLA, mass assignment, JWT confusion/none, session fixation | cross-identity differential (2+ concurrent sessions) |
+| **Client-side browser** (Track A) | DOM XSS, postMessage, prototype pollution, Magecart skimmers, CSP policy | JS sink hooks inside the real browser |
+| **LLM/AI apps** (Track C) | prompt injection, system-prompt leak, data exfiltration, tool abuse | deterministic behavioral judges + consensus oracle |
+| **Cloud-native** (Track D) | public cloud storage exposure, flow-typed multi-hop chains | provider-aware listing probe + capability-join analyzer |
+
+Every finding is **verified before it is reported** — unconfirmed results are flagged, never
+silently trusted. See [EVOLUTION-ROADMAP.md](EVOLUTION-ROADMAP.md) for how the four tracks
+were built (198 → 303 tests, all mutation-checked).
 
 ---
 
@@ -96,9 +118,10 @@ modules:
                             # 3 samples per payload), 15s for everything else.
 ```
 
-Each of the 19 modules (sqli, xss, ssrf, auth, idor, lfi, rce, nosqli, ssti, xxe,
-api, upload, logic, crypto, deser, race, cache, smuggling, cors, headers) can be
-disabled or given its own timeout.
+Each server-side module (sqli, xss, ssrf, auth, idor, lfi, rce, nosqli, ssti, xxe,
+api, upload, logic, crypto, deser, race, cache, smuggling, cors, headers, bola,
+massassignment, jwt, sessionfix) can be disabled or given its own timeout, as can the
+client-side (`clientside`), LLM (`llm`), and cloud-storage (`cloud`) tracks.
 
 ### AI payload generation
 
