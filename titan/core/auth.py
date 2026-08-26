@@ -20,6 +20,28 @@ class AuthEngine:
         if not self.credentials:
             return False
 
+        # SHARPEN-S2: pre-supplied credentials — the operator may hand us a
+        # Bearer token, an API key, or a full session-cookie map directly (the
+        # OAuth/SSO flows many real apps use can't be driven by form-filling).
+        # No browser login is needed: the identity is ready immediately.
+        if self.credentials.get("token"):
+            self.tokens["access"] = str(self.credentials["token"])
+            if self.credentials.get("token_type"):
+                self.tokens["token_type"] = str(self.credentials["token_type"])
+            return True
+        if self.credentials.get("api_key"):
+            self.tokens["api_key"] = str(self.credentials["api_key"])
+            return True
+        if self.credentials.get("cookies"):
+            try:
+                if isinstance(self.credentials["cookies"], dict):
+                    self.session_cookies.update(self.credentials["cookies"])
+                else:
+                    self.session_cookies.update(json.loads(self.credentials["cookies"]))
+                return True
+            except Exception:
+                pass
+
         login_url = self.credentials.get("url") or self._guess_login_url(target)
         if not login_url:
             return False
@@ -173,7 +195,13 @@ class AuthEngine:
     def get_auth_headers(self) -> Dict[str, str]:
         headers = {}
         if "access" in self.tokens:
-            headers["Authorization"] = f"Bearer {self.tokens['access']}"
+            token_type = self.tokens.get("token_type", "Bearer")
+            headers["Authorization"] = f"{token_type} {self.tokens['access']}"
+        if "api_key" in self.tokens:
+            # API keys ride as an X-API-Key header (the de-facto convention);
+            # apps that expect a different header can pass `header_name`.
+            header_name = self.credentials.get("api_key_header", "X-API-Key")
+            headers[header_name] = self.tokens["api_key"]
         return headers
 
     def get_cookies(self) -> Dict[str, str]:

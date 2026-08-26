@@ -1,0 +1,36 @@
+# GitHub Pages / Jekyll site config for Titan Scanner docs.
+# Renders the repo-root markdown (README, QUICKSTART, RUNBOOK, ARCHITECTURE,
+# EVOLUTION-ROADMAP, MASTER-PLAN, LIVE-TESTING-PLAN) as a static docs site.
+title: Titan Scanner
+description: >-
+  AI-assisted web vulnerability scanner with oracle verification - 24+ modules
+  across server-side, identity/state, client-side browser, LLM/AI, cloud-native,
+  consent-gated exploitation and hostile ad-monetized surface tracks. Async
+  Python + Playwright.
+theme: jekyll-theme-cayman
+
+# Keep Jekyll out of tooling, generated reports and vendored code. `venv`
+# alone contains thousands of README.md files from pip packages - without
+# this the site build crawls and the output is a mess.
+exclude:
+  - venv
+  - findings
+  - .pytest_cache
+  - __pycache__
+  - .git
+  - local_lab
+  - titan
+  - tests
+  - dawn_integration
+  - tmp_*
+
+# Turn relative .md links (README.md -> ARCHITECTURE.md) into working site
+# links. Supported natively by GitHub Pages.
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: false
+
+markdown: kramdown

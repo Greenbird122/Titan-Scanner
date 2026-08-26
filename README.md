@@ -1,154 +1,106 @@
-# Titan Scanner
+# Titan Scanner: Project Overview & Master Audit Ledger
 
-Async Playwright-based web vulnerability scanner with AI-assisted payload generation,
-oracle verification, and per-site reports. Crawls a target, runs 19 detection modules,
-replays + diffs to confirm every finding, scores with CVSS, and generates PoCs.
+![Tests](https://img.shields.io/badge/tests-1120%20collected%2C%20343%20passing-2ea44f)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
+![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)
+![Status](https://img.shields.io/badge/engine-37%20modules%20exhausted-blue)
+![Architecture](https://img.shields.io/badge/architecture-zero--whitelisting-purple)
 
-> **Authorization required.** Only scan systems you own or have explicit written
-> permission to test. See [MASTER-PLAN.md](MASTER-PLAN.md) for the project charter.
+**Titan** is an autonomous, high-precision security testing and vulnerability auditing engine engineered to uncover deep technical vulnerabilities across web applications, REST/GraphQL APIs, multi-tenant cloud backends, and AI/LLM interfaces.
+
+> **Technical Specification & Architecture Reference:**  
+> For the comprehensive 37-module specification matrix, verification oracle mechanics, and strategic engineering roadmap, see **[`docs/TITAN_SPECIFICATION.md`](docs/TITAN_SPECIFICATION.md)**.
 
 ---
 
-## Quick start
+## 1. Core Engine Highlights
+
+* **37 Exhausted Detection Engines**: Complete coverage spanning Server-Side Injections, Identity/Access Control (BOLA, IDOR, JWT, Mass Assignment), State & Caching, Advanced API/GraphQL, Cloud Control Plane, LLM/AI Security, and Supply Chain.
+* **Zero Parameter Whitelisting**: Every discovered query parameter, form input, JSON AST node, and ambient HTTP header is evaluated regardless of parameter naming.
+* **Strict Verification Oracles**: Demotes false positives using inert echo suppression, multi-dialect math nonces, statistical timing baseline gates (`BlindDetector`), and out-of-band correlation (`Interactsh`).
+* **Evidence-Graded Findings**: Every finding is tiered `confirmed` / `suspicious` / `none` with CVSS scoring, repro scripts, and PoC commands.
+* **Flow-Typed Chain Analysis**: Multi-hop attack paths (SSRF + creds → Cloud Exposure, XSS + data leak → Session Hijack) with bounded candidate pools.
+* **Interactive REPL**: Post-scan exploration with `ls`, `show`, `filter`, `repro`, `poc`, and `count` commands.
+* **1120 automated regression tests** collected across all detector and oracle test suites.
+
+---
+
+## 2. Project Evolution & Specification Ledger
+
+This ledger tracks the progression of architectural specifications, sprints, and milestones achieved across the project lifecycle:
+
+| Specification / Document | Focus Area | Status | Key Milestones & Outcomes |
+|:---|:---:|:---|:---|
+| **[`docs/TITAN_SPECIFICATION.md`](docs/TITAN_SPECIFICATION.md)** | **Complete Engine Specification & Roadmap** | **ACTIVE / LIVING** | Definitive reference for all 38 modules, verification oracles, AST mechanics, and the strategic engineering roadmap. |
+| **[`WHERE-WE-ARE.md`](WHERE-WE-ARE.md)** | **Project Audit & Health Check** | **HISTORICAL BASELINE** | Documents the baseline transition from early prototype testing to strict consent verification, S5 fail-closed authorization, and evidence gating. |
+| **[`MASTER-PLAN.md`](MASTER-PLAN.md)** | **Charter, Ethics & Safety Gates** | **GOVERNING CHARTER** | Defines the operator keypair crypto consent model (Ed25519), strict authorization boundaries, and safe testing practices. |
+| **[`OPERATORS-MANUAL.md`](OPERATORS-MANUAL.md)** | **CLI & Operation Workflow** | **ACTIVE REFERENCE** | Guide for running scans, managing consent tokens, configuring custom dictionaries, and interpreting tier reports. |
+| **[`EVOLUTION-ROADMAP.md`](EVOLUTION-ROADMAP.md)** | **Strategic Roadmap** | **PHASES 0–5 COMPLETE** | All tracks shipped (A–G). Live in-scope validation per track is the remaining open item. |
+
+---
+
+## 3. Quick Start & Execution
 
 ```bash
-# 1. Install dependencies (Python 3.10+)
-./venv/Scripts/python.exe -m pip install -r requirements.txt
-./venv/Scripts/python.exe -m playwright install chromium
+# 1. Run full unit and detector verification suite
+.\venv\Scripts\python.exe -m pytest tests/test_oracle_detectors.py tests/test_identity.py tests/test_lab_detection.py -v
 
-# 2. Start the vulnerable test lab (optional, for validation)
-./venv/Scripts/python.exe local_lab/app.py
+# 2. Add signed consent for an authorized target
+python titan_exploit_cli.py consent add http://target.local --write --expiry 7d
 
-# 3. Scan a target
-./venv/Scripts/python.exe run.py --target http://localhost:5000
+# 3. Launch an exhaustive scan against an authorized target
+python run.py http://target.local --profile deep
+
+# 4. Explore scan results interactively
+python titan_repl.py findings/<site-slug>
 ```
 
-Every scan writes a site report under `findings/<site-slug>/`:
+---
+
+## 4. Attack Surface & Track Coverage
+
+* **Track A (Client-Side & Browser)**: DOM XSS sink hooking, Prototype Pollution (`__proto__`, `constructor.prototype`), `postMessage` origin audits, CSP policy evaluation.
+* **Track B (Identity & Access Control)**: BOLA 3-way cross-tenant differentials, Mass Assignment in JSON ASTs, JWT secret dictionary & `alg:none` cracking, Session Fixation lifecycle tracking.
+* **Track C (LLM & AI Application Defense)**: Direct/Indirect prompt injection, system prompt extraction, OOB data exfiltration via tools, agent tool-abuse consensus judging.
+* **Track D (Cloud & Control Plane)**: Public S3/GCS/Azure storage bucket discovery, IMDSv1/v2 probing, IAM STS role extraction, privilege escalation path simulation.
+* **Track E (Exploitation Engine - Consent Gated)**: Verified finding → benign PoC validation and interactive session management.
+* **Track G (Hostile & Supply Chain Surface)**: CI/CD Poisoned Pipeline Execution (PPE), npm/PyPI dependency confusion, ad redirect chains, browser cloaking, in-browser cryptominers.
+
+---
+
+## 5. Live Validation
+
+Validated against authorized targets including:
+* **OWASP Juice Shop** (local Docker instance)
+* **Google Gruyere** (`google-gruyere.appspot.com`) — 8 findings in 6.6 min, including critical upload bypass and DOM XSS candidates
+* **Local Lab** (`localhost:5000`) — 100% challenge pass rate
+
+All scans use the evidence-gated verification pipeline: candidates → deterministic oracles → AI-assisted follow-up probes (optional) → confirmed/suspicious/false-positive tiering.
+
+---
+
+## 6. Repository Structure (Core)
 
 ```
-findings/localhost-5000/
-├── report.md          # human-readable findings + PoCs
-├── findings.json      # machine-readable finding records
-└── scan_meta.json     # target, timestamps, config snapshot
+titan-lab/
+├── run.py                      # CLI entry: scan, dashboard (S5)
+├── titan_exploit_cli.py        # Track E/F/G CLI: consent, listener, session
+├── titan_repl.py               # Interactive REPL for scan exploration
+├── config.yaml                 # Scan configuration
+├── titan/                      # Core engine + 37 detection modules
+├── tests/                      # 1120+ regression tests
+├── local_lab/                  # Deliberately vulnerable Flask app
+├── findings/                   # Scan output (gitignored)
+├── consent/                    # Signed authorization files (gitignored)
+├── docs/                       # Specification and deep-dive docs
+├── learn/                      # 12-lesson educational content
+└── bench/                      # Benchmark runner (results gitignored)
 ```
 
-## Run modes
+**Experimental / archived components** live on the `archive` branch: `purple/` (red/blue arena), `fleet/` (GitHub-linked red rounds), `titan-remote/` (phone remote control).
 
-```bash
-# Scan the target configured in config.yaml
-./venv/Scripts/python.exe run.py
+---
 
-# Scan a specific target
-./venv/Scripts/python.exe run.py --target https://example.com
+## 7. License & Ethics
 
-# Use a different config file
-./venv/Scripts/python.exe run.py --target https://example.com --config my-scan.yaml
-
-# Run the test suite
-./venv/Scripts/python.exe -m pytest -q
-```
-
-Other entry points:
-
-| Command | Purpose |
-|---|---|
-| `run.py` | Standard scan (recommended) |
-| `main.py` | Same engine, minimal output |
-| `run_titan.py` | Verbose scan with per-finding diffs |
-
-## Configuration (`config.yaml`)
-
-### Crawl
-
-```yaml
-crawl:
-  max_pages: 10             # page budget per scan
-  max_depth: 1              # link-depth budget
-  timeout: 300              # wall-clock crawl budget (seconds). Findings stream
-                            # in as they're verified, so a timeout never loses
-                            # already-confirmed evidence.
-  module_concurrency: 8     # max parallel attack modules. Lower it (e.g. 4) for
-                            # gentler scans, raise it for speed. The module
-                            # matrix is the biggest cost center of a scan.
-```
-
-### Stealth
-
-```yaml
-stealth:
-  jitter: 0.3               # jitter fraction applied to each delay
-  min_delay: 0.15           # min delay before each module probe (seconds)
-  max_delay: 0.6            # max delay before each module probe (seconds)
-```
-
-Delays apply once per module invocation (~475 invocations on a busy page). Tuning
-them down (e.g. `min_delay: 0.05`, `max_delay: 0.2`) is the single biggest speed
-lever, at the cost of being noisier on the network.
-
-### Modules
-
-```yaml
-modules:
-  sqli:
-    enabled: true
-    timeout: 30             # optional per-module budget (seconds). Defaults:
-                            # 30s for rce/sqli (statistical timing oracles need
-                            # 3 samples per payload), 15s for everything else.
-```
-
-Each of the 19 modules (sqli, xss, ssrf, auth, idor, lfi, rce, nosqli, ssti, xxe,
-api, upload, logic, crypto, deser, race, cache, smuggling, cors, headers) can be
-disabled or given its own timeout.
-
-### AI payload generation
-
-```yaml
-ai:
-  enabled: true
-  model: "deepseek-chat"
-  fallback: "ollama"
-  max_payloads_per_param: 20
-```
-
-If no provider is reachable the scanner **fails fast** and uses the built-in
-payload library — it never hangs waiting on an unreachable model.
-
-### Other keys
-
-```yaml
-target: "https://example.com"   # default scan target
-aggression: "passive"           # passive | active
-headless: true                  # headless browser
-output_dir: "findings"          # site report root
-governance:
-  enabled: false                # Titan Gov approval gate (when true)
-auth:                           # login flow for authenticated scans
-  url: "..."                    # + username/password/selectors, roles: []
-proxy:                          # optional proxy rotation
-  enabled: false
-  list: []
-  rotation: "round-robin"
-```
-
-## Performance
-
-Validated against the local lab (`local_lab/app.py`, 10 seeded vulnerabilities):
-
-| Metric | Before tuning | After tuning |
-|---|---|---|
-| Page 1 processing | ~421s | ~155s |
-| Full scan duration | ~616s | ~324s |
-| Findings | 22 verified | 22 verified |
-| Lab coverage | 10/10 | 10/10 |
-
-Key changes: configurable/lighter stealth delays, concurrent discovery probes
-(forms/links/API/JS/SPA/Swagger/Postman/GraphQL/params/methods run in parallel),
-concurrent GET + POST API discovery (POST-only endpoints like `/api/login` and
-`/hash` are now discovered), higher module concurrency, and — most importantly —
-in-flight work is cancelled when the crawl budget expires (previously orphaned
-tasks kept hammering the target for minutes after the timeout).
-
-## Architecture
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design and
-[LIVE-TESTING-PLAN.md](LIVE-TESTING-PLAN.md) for the live-target test matrix.
+**MIT License.** Use for authorized security testing only. The consent gate is code-enforced, but it cannot give you permission — only your authorization can. Scan only systems you own or have explicit written permission to test.

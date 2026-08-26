@@ -52,7 +52,7 @@ class TestCrawlCancellation:
         engine = _engine()
         cancelled: list = []
 
-        async def fake_attack(context, target, method, url, params, fingerprint):
+        async def fake_attack(context, target, method, url, params, fingerprint, **kwargs):
             try:
                 await asyncio.sleep(60)
             except asyncio.CancelledError:
@@ -78,7 +78,7 @@ class TestCrawlCancellation:
         engine = _engine()
         cancelled: list = []
 
-        async def one_fast_one_slow(context, target, method, url, params, fingerprint):
+        async def one_fast_one_slow(context, target, method, url, params, fingerprint, **kwargs):
             if url.endswith("/0"):
                 return ["kept-finding"]
             try:
@@ -114,7 +114,7 @@ class TestGroupFailureIsolation:
         engine = _engine()
         calls: list = []
 
-        async def flaky_attack(context, target, method, url, params, fingerprint):
+        async def flaky_attack(context, target, method, url, params, fingerprint, **kwargs):
             calls.append(url)
             if url.endswith("/0"):
                 raise RuntimeError("probe exploded")
@@ -129,7 +129,12 @@ class TestGroupFailureIsolation:
 
 
 class TestDiscoveryIsolation:
-    """The concurrent discovery gather must isolate probe failures."""
+    """The concurrent discovery gather must isolate probe failures.
+
+    Runs under the DEEP crawl profile: the isolation contract only matters
+    where all ten probes actually run (the fast default replaces the deep-only
+    probes with no-op empties, which is separately pinned in test_scan_quality).
+    """
 
     PROBE_NAMES = [
         "_extract_forms",
@@ -148,6 +153,7 @@ class TestDiscoveryIsolation:
         """Every probe raising must not propagate; each degrades to its empty
         default ({} for the params dict, [] for everything else)."""
         engine = _engine()
+        engine._deep = True
 
         async def boom(*args, **kwargs):
             raise RuntimeError("probe exploded")
@@ -173,6 +179,7 @@ class TestDiscoveryIsolation:
     async def test_one_failing_probe_keeps_others(self):
         """A single flaky probe must not discard the other nine probes' results."""
         engine = _engine()
+        engine._deep = True
 
         async def boom(*args, **kwargs):
             raise RuntimeError("probe exploded")
@@ -275,7 +282,7 @@ class TestRestApiExistenceGate:
         ctx = _StubRestContext(status, body)
         calls: list = []
 
-        async def fake_attack(context, target, method, url, params, fingerprint):
+        async def fake_attack(context, target, method, url, params, fingerprint, **kwargs):
             calls.append((method, url))
             return [f"finding-{method}"]
 
@@ -313,7 +320,7 @@ class TestRestApiExistenceGate:
         ctx = _StubMethodContext(get_status=404, post_status=200, post_body='{"ok": true}')
         calls: list = []
 
-        async def fake_attack(context, target, method, url, params, fingerprint):
+        async def fake_attack(context, target, method, url, params, fingerprint, **kwargs):
             calls.append((method, url))
             return [f"finding-{method}"]
 
@@ -337,7 +344,7 @@ class TestRestApiExistenceGate:
         )
         calls: list = []
 
-        async def fake_attack(context, target, method, url, params, fingerprint):
+        async def fake_attack(context, target, method, url, params, fingerprint, **kwargs):
             calls.append((method, url))
             return [f"finding-{method}"]
 
@@ -359,7 +366,7 @@ class TestRestApiExistenceGate:
         )
         calls: list = []
 
-        async def fake_attack(context, target, method, url, params, fingerprint):
+        async def fake_attack(context, target, method, url, params, fingerprint, **kwargs):
             calls.append((method, url))
             return [f"finding-{method}"]
 
@@ -498,6 +505,10 @@ class TestInteractionBudget:
 
     async def test_healthy_interaction_still_captures(self):
         engine = _engine()
+        # The M3 SPA gate: interactions only run when the crawl saw client-side
+        # signals (or deep profile). A static site must not be replayed; a
+        # detected SPA still captures — this test pins the latter half.
+        engine._spa_detected = True
         engine.visited = {"http://localhost:5000/a"}
 
         class HealthyContext:
@@ -543,7 +554,7 @@ class TestDriverDeathResilience:
         cancelled: list = []
         calls: list = []
 
-        async def death_then_hang(context, target, method, url, params, fingerprint):
+        async def death_then_hang(context, target, method, url, params, fingerprint, **kwargs):
             calls.append(url)
             if url.endswith("/0"):
                 from playwright._impl._errors import Error as PlaywrightError
@@ -581,7 +592,7 @@ class TestDriverDeathResilience:
         swallow point before the gather sees the exception)."""
         engine = _engine()
 
-        async def dead_runner(context, target, method, url, params, fingerprint):
+        async def dead_runner(context, target, method, url, params, fingerprint, **kwargs):
             from playwright._impl._errors import Error as PlaywrightError
             raise PlaywrightError("Connection closed while reading from the driver")
 

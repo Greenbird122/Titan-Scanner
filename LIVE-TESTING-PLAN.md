@@ -34,8 +34,8 @@ curl http://localhost:8081
 
 ### 1.4 Run scanner against local lab
 ```powershell
-.\venv\Scripts\python run_titan.py --target http://localhost:8080
-.\venv\Scripts\python run_titan.py --target http://localhost:8081
+.\venv\Scripts\python run.py --target http://localhost:8080
+.\venv\Scripts\python run.py --target http://localhost:8081
 ```
 
 **Pass criteria:** Scanner finds known DVWA vulns (SQLi, XSS, LFI, command injection) within 5 minutes.
@@ -71,7 +71,7 @@ curl http://localhost:8081
 
 ### Step 1: Reconnaissance (Passive)
 ```powershell
-.\venv\Scripts\python run_titan.py --target <URL> --passive
+.\venv\Scripts\python run.py --target <URL> --passive
 ```
 - Technology fingerprinting
 - API discovery
@@ -80,14 +80,14 @@ curl http://localhost:8081
 
 ### Step 2: Light Active Scan
 ```powershell
-.\venv\Scripts\python run_titan.py --target <URL> --modules headers,cors,ssl
+.\venv\Scripts\python run.py --target <URL> --modules headers,cors,ssl
 ```
 - Config-level checks only
 - Low noise, low risk
 
 ### Step 3: Full Scan (With Authorization)
 ```powershell
-.\venv\Scripts\python run_titan.py --target <URL> --auth <creds-file>
+.\venv\Scripts\python run.py --target <URL> --auth <creds-file>
 ```
 - All modules enabled
 - Authenticated if credentials provided
@@ -152,16 +152,16 @@ curl http://localhost:8081
 docker run --name dvwa -d -p 8080:80 vulnerables/web-dvwa
 
 # 2. Quick smoke test
-.\venv\Scripts\python run_titan.py --target http://localhost:8080
+.\venv\Scripts\python run.py --target http://localhost:8080
 
 # 3. Full scan with auth
-.\venv\Scripts\python run_titan.py --target http://localhost:8080 --auth configs/dvwa_admin.yaml
+.\venv\Scripts\python run.py --target http://localhost:8080 --auth configs/dvwa_admin.yaml
 
 # 4. Scan specific module only
-.\venv\Scripts\python run_titan.py --target http://localhost:8080 --modules sqli,xss
+.\venv\Scripts\python run.py --target http://localhost:8080 --modules sqli,xss
 
 # 5. Export report
-.\venv\Scripts\python run_titan.py --target http://localhost:8080 --report md
+.\venv\Scripts\python run.py --target http://localhost:8080 --report md
 ```
 
 ---

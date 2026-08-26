@@ -217,15 +217,15 @@
 ```powershell
 # Daily validation against local DVWA
 docker start dvwa
-.\venv\Scripts\python run_titan.py --target http://localhost:8080 --quick
+.\venv\Scripts\python run.py --target http://localhost:8080 --quick
 
 # Weekly validation against WebGoat
 docker start webgoat
-.\venv\Scripts\python run_titan.py --target http://localhost:8081 --quick
+.\venv\Scripts\python run.py --target http://localhost:8081 --quick
 
 # Monthly full validation
-.\venv\Scripts\python run_titan.py --target http://localhost:8080 --full
-.\venv\Scripts\python run_titan.py --target http://localhost:8081 --full
+.\venv\Scripts\python run.py --target http://localhost:8080 --full
+.\venv\Scripts\python run.py --target http://localhost:8081 --full
 ```
 
 ---
@@ -311,9 +311,9 @@ If scanner triggers an alert or block:
 
 2. **Run validation scans:**
    ```powershell
-   .\venv\Scripts\python run_titan.py --target http://localhost:8080
-   .\venv\Scripts\python run_titan.py --target http://localhost:8081
-   .\venv\Scripts\python run_titan.py --target http://localhost:3000
+   .\venv\Scripts\python run.py --target http://localhost:8080
+   .\venv\Scripts\python run.py --target http://localhost:8081
+   .\venv\Scripts\python run.py --target http://localhost:3000
    ```
 
 3. **Compare results against known vulnerability lists:**

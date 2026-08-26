@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "titan-scanner"
+version = "1.1.0"
+description = "Evidence-gated web vulnerability scanner: crawl, verify, chain, and consent-gated exploitation sessions"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["security", "scanner", "pentest", "owasp", "playwright", "vulnerability"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = [
+    "playwright>=1.40",
+    "aiohttp",
+    "pyyaml",
+    "requests",
+    "flask",
+    "PyJWT",
+    "cryptography",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
+
+[project.scripts]
+titan = "run:entrypoint"
+titan-exploit = "titan_exploit_cli:entrypoint"
+
+[tool.setuptools.packages.find]
+include = ["titan*", "local_lab*"]
+
+[tool.setuptools]
+py-modules = ["run", "titan_exploit_cli"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

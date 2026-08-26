@@ -1,0 +1,29 @@
+{
+  "target": "http://127.0.0.1:3000",
+  "challenges": [
+    {
+      "id": "juice-shop-sqli-search",
+      "name": "SQLi — product search UNION",
+      "endpoint": "http://127.0.0.1:3000/rest/products/search",
+      "attack_type": "SQLi",
+      "method": "GET",
+      "param": "q"
+    },
+    {
+      "id": "juice-shop-login-sqli",
+      "name": "SQLi auth bypass — login OR 1=1",
+      "endpoint": "http://127.0.0.1:3000/rest/user/login",
+      "attack_type": "SQLi",
+      "method": "POST",
+      "param": "email"
+    },
+    {
+      "id": "juice-shop-ftp-listing",
+      "name": "Sensitive files — anonymous /ftp listing",
+      "endpoint": "http://127.0.0.1:3000/ftp/",
+      "attack_type": "Info Leak",
+      "method": "GET",
+      "param": ""
+    }
+  ]
+}
