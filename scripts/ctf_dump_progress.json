@@ -1,0 +1,28 @@
+{
+ "tables": [
+  "photos",
+  "albums"
+ ],
+ "str_tbl_0": {
+  "value": "photos",
+  "done": true
+ },
+ "str_tbl_1": {
+  "value": "albums",
+  "done": true
+ },
+ "str_tbl_2": {
+  "value": "",
+  "done": true
+ },
+ "cols_photos": [],
+ "str_col_photos_0": {
+  "value": "",
+  "done": true
+ },
+ "cols_albums": [],
+ "str_col_albums_0": {
+  "value": "",
+  "done": true
+ }
+}

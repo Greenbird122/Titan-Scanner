@@ -1,13 +1,28 @@
-target: "https://repairai.co.ke"
-aggression: "passive"
+target: "https://elearning.kibu.ac.ke"
+aggression: "active"
 headless: true
 output_dir: "findings"
 crawl:
-  max_pages: 10
-  max_depth: 1
+  # Scan depth profile (SCAN-QUALITY M3):
+  #   fast (default) — content-derived discovery only (forms, links,
+  #     JS-referenced APIs, captured requests). ZERO hardcoded path/param/
+  #     route guesses: the scanner never probes another site's vocabulary
+  #     (health-app routes, local-lab endpoints). ~60-90s per page.
+  #   deep — full arsenal: wordlist path fuzzing, swagger/postman/graphql
+  #     spec probing, common-param & HTTP-method brute force, SPA hash-route
+  #     guessing. Slower; the right choice for authorized pentests where
+  #     hidden-API discovery is the goal.
+  #   hostile — the deep arsenal PLUS the Track G hostile & ad-monetized
+  #     surface pass: monetization profile (ad/popunder/push/miner origins
+  #     with TLS+SRI checks), anti-debug cloaks, clickbait index, supply-chain
+  #     findings, and consent-gated active probes (redirect chains, referrer
+  #     gates). Popup/dialog/download handling is on in every profile.
+  profile: hostile
+  max_pages: 40
+  max_depth: 4
   # Wall-clock budget for the crawl phase. Findings stream in as they are
   # verified, so hitting this never loses already-confirmed evidence.
-  timeout: 300
+  timeout: 600
   # Max concurrent attack modules. The module matrix is the scan's biggest cost
   # center: lower it (4) for gentler scans, raise it for speed.
   module_concurrency: 8
@@ -15,21 +30,117 @@ crawl:
   # A crawl-timeout cancellation can wedge the Playwright driver; this caps how
   # long a wedged interaction may stall the scan.
   interaction_timeout: 90
+  # PUSH-TO-100 B1 — SPA/JS-rendered harness. After the crawl+interactions, the
+  # harness hydrates the app's route table (polling up to hydrate_budget for
+  # Angular/React/Vue routers + hash links), walks up to max_routes, and feeds
+  # every runtime XHR/fetch/WebSocket call it captures into the module matrix.
+  # This closes the 0-finding-SPA gap (a JS app's /rest/* surface is only
+  # reachable client-side). network_idle is the per-route idle wait in ms.
+  spa:
+    enabled: true
+    hydrate_budget: 10
+    max_routes: 6
+    per_route_budget: 30
+    network_idle: 2500
+  # PUSH-TO-100 B4 — supply-chain surface in the DEFAULT scan. Third-party
+  # origins (script/img/iframe loads), SRI-missing scripts, cleartext loads
+  # on https pages, and observed redirect chains are read-only analysis that
+  # now runs under EVERY profile (not just hostile). The hostile extras
+  # (monetization score, cloak/miner/push detectors) and consent-gated active
+  # probes remain hostile-profile / consent-gated.
+  supplychain:
+    enabled: true
+  # Response-driven path fuzzer: brute-forces deeper segments off the
+  # discovered API surface with a wordlist. Each seed gets a random-marker 404
+  # control request first; a candidate is kept only when its (status, body)
+  # response differs from that control — so soft-404 HTML and framework
+  # catch-alls are filtered by the server's own answer, not a blocklist.
+  # Hits feed back into the module matrix + crawl queue. Bounded per page;
+  # `budget` is the wall-clock cap for the whole fuzz pass.
+  fuzz:
+    enabled: true
+    budget: 120           # wall-clock cap for the whole pass (seconds)
+    max_seeds: 10         # how many discovered endpoints to fuzz deeper
+    max_depth: 3          # how many extra segments deep to go
+    max_words_per_seed: 100
+    max_requests: 500     # global request cap for the pass
+    concurrency: 8
+    timeout: 5000         # per-probe timeout (ms)
+    delay: false
+    # wordlist: []        # extra words appended to the built-in list
 stealth:
   # Per-module-probe delays. This is the biggest speed lever: tune down for
   # faster scans, up for stealthier ones. jitter adds +/- jitter*max_delay.
+  #
+  # adaptive (SHARPEN-S1): once the scan measures the target's page-load
+  # latency, fast targets (lab, API-heavy apps) automatically collapse these
+  # delays toward a 0.05-0.18s floor — the per-module delay is the scan's
+  # dominant cost (~475 invocations x 0.15-0.6s = 70-280s of pure sleep), and
+  # a 100ms-responding target doesn't need a 600ms gap. Slow/throttled
+  # targets keep the configured range. Set false to force the exact values
+  # below on every target.
+  adaptive: true
   jitter: 0.3
   min_delay: 0.15
   max_delay: 0.6
+  # Omega Phase 8 — Anti-forensics: evasion and noise injection.
+  # Generates decoy traffic, polymorphic payloads, and shaped timing
+  # to blur the scanner's fingerprint in target logs.
+  anti_forensics:
+    enabled: true
+    profile: browser       # browser | stealth | aggressive
+    decoy_count: 3         # decoy requests per scan
+    polymorphic_count: 3   # payload variants per high-value finding
 governance:
   enabled: false
+# Omega Phase 5 — Brain Loop: autonomous payload mutation and bypass discovery.
+# After the main scan finds vulnerabilities, the brain mutates payloads,
+# re-tests variants, and discovers WAF-bypasses / filter evasion.
+brain:
+  enabled: true
+  budget: 90              # wall-clock cap for brain mutations (seconds)
+  variants_per_finding: 5  # how many polymorphic variants per finding
+  evolution:
+    enabled: true
+    persist: true          # write generated detectors to disk
+# Omega — Deep Audit: automated exploitation-grade cloud service probing.
+# Parses JavaScript for Firebase/Supabase configs, probes cloud services
+# directly, enumerates Firestore collections, and tests Security Rules.
+deep_audit:
+  enabled: true
+  budget: 60              # wall-clock cap for deep audit (seconds)
+# S5 — hard authorization gate on the read-only scan path. The engine refuses
+# to send ANY request to a host that is not (a) loopback (the operator's own
+# machine / local lab), (b) covered by a signed consent file in `consent_dir`,
+# or (c) listed on the authorized-practice manifest. This closes the hole that
+# let the autonomous arena crawl arbitrary third-party hosts. Fail-closed:
+# a missing/malformed manifest authorizes nothing.
+authorization:
+  practice_manifest: "findings/AUTHORIZED-PRACTICE.json"
 auth:
-  url: "https://repairai.co.ke/login"
-  username: "test@example.com"
-  password: "TestPass123!"
+  # SHARPEN-S2: pre-supplied credentials (preferred over form-filling for
+  # OAuth/SSO/Bearer-protected apps). Provide ONE of these and the engine
+  # authenticates without any browser login:
+  #   token: "<bearer or oauth access token>"      -> Authorization: Bearer <token>
+  #   token_type: "Bearer"                          # optional scheme (default Bearer)
+  #   api_key: "<key>"                              -> X-API-Key: <key>
+  #   api_key_header: "X-API-Key"                   # optional custom header name
+  #   cookies: "{\"sessionid\": \"...\"}"           # JSON string or map of cookies
+  # token: ""
+  # api_key: ""
+  cookies: '{"MoodleSession": "jud87dthkbdm47ajghuanai45k"}'
+  # Form-filling login (used when no token/api_key/cookies are supplied):
+  url: "https://elearning.kibu.ac.ke/login/index.php"
+  username: "bit/0055/24"
+  password: "12345678"
   username_selector: 'input[name="identifier"], input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"]'
   password_selector: 'input[type="password"], input[name*="pass"]'
   submit_selector: 'button[type="submit"], input[type="submit"], button'
+  # Additional identities for Track B (stateful identity testing): each entry
+  # is logged in via login_as_role and held CONCURRENTLY in the SessionPool so
+  # BOLA / mass-assignment / JWT / session-fixation detectors can do
+  # cross-identity differentials (request A's object with B's session).
+  # Requires >= 1 role plus the main login above (2 identities total).
   roles: []
 ai:
   enabled: true
@@ -51,46 +162,176 @@ modules:
   # all other modules default to 15s.
   sqli:
     enabled: true
-    # timeout: 30
+    timeout: 60
   xss:
     enabled: true
+    timeout: 45
   ssrf:
     enabled: true
+    timeout: 45
   auth:
     enabled: true
+    timeout: 45
   idor:
     enabled: true
+    timeout: 45
   lfi:
     enabled: true
+    timeout: 45
   rce:
     enabled: true
-    # timeout: 30
+    timeout: 60
   nosqli:
     enabled: true
+    timeout: 45
   ssti:
     enabled: true
+    timeout: 45
   xxe:
     enabled: true
+    timeout: 45
   api:
     enabled: true
+    timeout: 45
   upload:
     enabled: true
+    timeout: 45
   logic:
     enabled: true
+    timeout: 45
   crypto:
     enabled: true
+    timeout: 45
   deser:
     enabled: true
+    timeout: 45
   race:
     enabled: true
+    timeout: 45
   cache:
     enabled: true
+    timeout: 45
   smuggling:
     enabled: true
+    timeout: 45
   cors:
     enabled: true
+    timeout: 45
   headers:
     enabled: true
+    timeout: 45
+  # Source/bundle floor: hardcoded credentials in served HTML/JS.
+  sourcesecret:
+    enabled: true
+  # API-fed DOM-sink analysis (git-vizor F6 class): static taint pass over
+  # served JS for innerHTML/outerHTML/document.write/eval sinks fed by
+  # fetch/user-input/storage data. Candidates (tier=suspicious) until the
+  # browser hook confirms.
+  apixss:
+    enabled: true
+  # PUSH-TO-100 B3 — novel-class detectors: dictionary input fuzzing
+  # (behavioral differentials per discovered param) + parser-differential
+  # (same bytes through two parsers — the WAF-bypass shape). Both produce
+  # tiered findings under the A1 discipline.
+  fuzzer:
+    enabled: true
+    # max_mutations_per_param: 8
+  parserdiff:
+    enabled: true
+  bola:
+    enabled: true
+  massassignment:
+    enabled: true
+  jwt:
+    enabled: true
+  sessionfix:
+    enabled: true
+# Track A — client-side browser security. Each check runs inside the real
+# Playwright browser (the oracle is the page's JS behaviour, not the HTTP
+# response). Requires the crawl to have driven pages; degrades quietly.
+clientside:
+  enabled: true
+  domxss:
+    enabled: true
+  postmessage:
+    enabled: true
+  prototype:
+    enabled: true
+  third_party:
+    enabled: true
+  csp:
+    enabled: true
+# Track C — LLM/AI application probing. Conversational probes against the
+# target's AI endpoints, judged by a deterministic behavioral contract:
+# verified = the model complied with an attacker instruction in >= min_agree
+# of `trials` calls (LLM output is non-deterministic, so consensus is the
+# evidence). Probes are non-destructive; the exfil check targets our own
+# interactsh callback (OOB-confirmed). Pure aiohttp — driver-independent.
+llm:
+  enabled: true
+  # Explicit AI endpoints to probe. When empty, /api/chat-style paths
+  # discovered during the crawl are used automatically.
+  endpoints: []
+  trials: 3
+  min_agree: 2
+  timeout: 15
+  per_endpoint_timeout: 40
+  checks:
+    prompt_injection:
+      enabled: true
+    system_leak:
+      enabled: true
+    data_exfil:
+      enabled: true
+    agency:
+      enabled: true
+# Track D — cloud-native exposure + flow-typed chain analysis. The chain
+# analyzer joins findings whose capabilities combine (SSRF to metadata +
+# hardcoded cloud key = Cloud Credential Exposure); chains appear in
+# findings.json (chains array) and report.md (Attack Chains section).
+cloud:
+  storage:
+    # Probe buckets REFERENCED by the scan's own evidence for public listing
+    # (never guesses names). Max 3 buckets, non-destructive GET-only.
+    enabled: true
+    max_buckets: 3
+  # Omega Phase 2 — Cloud IMDS probing. When SSRF findings exist, probe
+  # cloud Instance Metadata Services through the SSRF sink to extract
+  # IAM credentials (AWS), service account tokens (GCP), and managed
+  # identity tokens (Azure). Supports IMDSv1 and IMDSv2.
+  imds:
+    enabled: true
+# Omega Phase 7 — Fleet multi-agent scanning. After the main scan discovers
+# the surface, specialized agents run deep dives on discovered endpoints.
+# Recon/identity/learning agents are read-only; exploit/post-exploit agents
+# require signed consent.
+fleet:
+  enabled: false
+  agents: [recon, identity, learning]   # agent types to run
+  max_targets: 5                        # max endpoints to send to fleet
+  max_concurrent: 5                     # simultaneous agent instances
+  budget: 120                           # wall-clock cap (seconds)
+# Track E — consent-gated exploitation. When enabled, a scan auto-stages its
+# verified RCE / upload / SQLi findings into live sessions. The consent gate
+# is CODE-ENFORCED inside the planners: no signed, unexpired consent file for
+# the target in `consent_dir` -> that technique is skipped (recorded as a
+# scan error note), never run. Read the Track E section of the README before
+# turning this on — you must hold explicit authorization for the target.
+exploit:
+  enabled: true
+  consent_dir: "consent"      # consent/<host>.json files (see: titan_exploit_cli.py consent add)
+  output_dir: "findings"      # sessions land under findings/<site>/sessions/
+  max_per_type: 2             # max findings auto-staged per technique (RCE/upload/SQLi)
+  budget: 120                 # wall-clock cap for the whole exploit phase (seconds)
+  listener:
+    # The C2 listener the staged agents/webshells poll. When `start` is true
+    # the scan runs its own listener (binds host:port; port 0 = ephemeral) and
+    # tears it down after the phase. When false, the operator's CLI listener
+    # (titan_exploit_cli.py listener) must be running at host:port — the
+    # planners health-check it before staging anything.
+    host: "127.0.0.1"
+    port: 8770
+    start: false
 dawn:
   memory: false
   voice: false

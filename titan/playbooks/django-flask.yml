@@ -1,0 +1,191 @@
+name: django-flask
+version: 1.0
+description: |
+  Django and Flask playbook. Covers debug mode detection, admin panel
+  enumeration, DRF API discovery, SECRET_KEY exposure, debug traceback
+  information leak, and known CVE vectors for both frameworks.
+
+fingerprint:
+  body:
+    - "csrfmiddlewaretoken|django|DRF|djangorestframework"
+    - "werkzeug|flask|Werkzeug"
+  headers:
+    server: "Python|gunicorn|Werkzeug|Django"
+  url: []
+
+auth:
+  login_url: "/admin/login/"
+  username_field: "username"
+  password_field: "password"
+  token_field: "csrfmiddlewaretoken"
+  session_cookie: "sessionid"
+  # DRF token auth
+  drf_token_header: "Authorization"
+  drf_token_scheme: "Token"
+
+# ─── HTTP Probes ────────────────────────────────────────────────────────
+http_probes:
+  # Django admin
+  - path: "/admin/"
+    method: GET
+    finding: "Django admin panel exposed"
+    severity: medium
+    verify: "200 or 302 with Django admin login page"
+  - path: "/admin/login/"
+    method: GET
+    finding: "Django admin login page exposed — brute force vector"
+    severity: low
+    verify: "200 with login form"
+
+  # Django debug mode
+  - path: "/nonexistent_page_404/"
+    method: GET
+    finding: "Django debug mode enabled — full traceback with source code on 404/500"
+    severity: critical
+    verify: "200 or 404 with Django traceback page showing settings, paths, variables"
+    extract:
+      - pattern: "ROOT_URLCONF.*?'([^']+)'"
+        field: root_urlconf
+      - pattern: "SECRET_KEY.*?='([^']+)'"
+        field: secret_key
+
+  - path: "/__debug__/"
+    method: GET
+    finding: "Django debug toolbar exposed"
+    severity: high
+    verify: "200 with debug toolbar"
+
+  # DRF API
+  - path: "/api/"
+    method: GET
+    finding: "DRF API root accessible — lists all endpoints"
+    severity: medium
+    verify: "200 with API endpoint list"
+  - path: "/api-auth/"
+    method: GET
+    finding: "DRF browsable API auth page exposed"
+    severity: low
+    verify: "200 with login form"
+  - path: "/api/schema/"
+    method: GET
+    finding: "DRF OpenAPI schema exposed"
+    severity: medium
+    verify: "200 with YAML/JSON schema"
+  - path: "/api/swagger/"
+    method: GET
+    finding: "DRF Swagger UI exposed"
+    severity: medium
+    verify: "200 with HTML docs"
+  - path: "/api/redoc/"
+    method: GET
+    finding: "DRF ReDoc UI exposed"
+    severity: medium
+    verify: "200 with HTML docs"
+
+  # Flask debug
+  - path: "/console"
+    method: GET
+    finding: "Werkzeug debug console exposed — RCE via interactive debugger"
+    severity: critical
+    verify: "200 with Werkzeug console (PIN may be bypassable)"
+  - path: "/__debugger__/"
+    method: GET
+    finding: "Werkzeug debugger endpoint exposed"
+    severity: critical
+    verify: "200 with debugger response"
+
+  # Common Django/Flask paths
+  - path: "/static/"
+    method: GET
+    finding: "Static files directory listing"
+    severity: low
+    verify: "200 with directory index"
+  - path: "/media/"
+    method: GET
+    finding: "Media files directory listing"
+    severity: low
+    verify: "200 with directory index"
+  - path: "/.env"
+    method: GET
+    finding: ".env file exposed"
+    severity: critical
+    verify: "200 with env vars"
+  - path: "/settings.py"
+    method: GET
+    finding: "Django settings.py exposed"
+    severity: critical
+    verify: "200 with Python code"
+  - path: "/local_settings.py"
+    method: GET
+    finding: "Django local_settings.py exposed"
+    severity: critical
+    verify: "200 with Python code"
+  - path: "/requirements.txt"
+    method: GET
+    finding: "Python requirements.txt exposed — dependency enumeration"
+    severity: medium
+    verify: "200 with pip requirements"
+
+  # Django SECRET_KEY exposure
+  - path: "/static/secret_key.txt"
+    method: GET
+    finding: "Django SECRET_KEY file exposed"
+    severity: critical
+    verify: "200 with key content"
+
+# ─── Version Fingerprinting ─────────────────────────────────────────────
+version_fingerprint:
+  django_patterns:
+    - 'csrfmiddlewaretoken.*?value="([^"]+)"'
+    - "django.*?version.*?([\\d.]+)"
+  flask_patterns:
+    - "werkzeug.*?([\\d.]+)"
+  cves:
+    "django-4.2.x":
+      - id: "CVE-2024-XXXX"
+        name: "Check Django security releases for current version"
+        severity: variable
+    "django-3.2.x":
+      - id: "CVE-2023-23969"
+        name: "Denial of service via large file uploads"
+        severity: medium
+    "flask-2.x":
+      - id: "CVE-2023-XXXX"
+        name: "Check Flask security advisories"
+        severity: variable
+
+discovery_seeds:
+  - "/admin/"
+  - "/admin/login/"
+  - "/api/"
+  - "/api-auth/"
+  - "/api/schema/"
+  - "/api/swagger/"
+  - "/api/redoc/"
+  - "/static/"
+  - "/media/"
+  - "/.env"
+  - "/console"
+  - "/__debugger__/"
+  - "/__debug__/"
+  - "/requirements.txt"
+
+expected_findings:
+  - type: "Info Leak"
+    description: "Django debug mode enabled — traceback leaks source, settings, SECRET_KEY"
+    severity: critical
+  - type: "RCE"
+    description: "Werkzeug debug console exposed — interactive debugger RCE"
+    severity: critical
+  - type: "Info Leak"
+    description: "DRF API schema/swagger exposed"
+    severity: medium
+  - type: "Info Leak"
+    description: "Django admin panel exposed"
+    severity: medium
+  - type: "Hardcoded Secret"
+    description: "Django SECRET_KEY or .env exposed"
+    severity: critical
+  - type: "Info Leak"
+    description: "requirements.txt exposed — dependency enumeration"
+    severity: medium

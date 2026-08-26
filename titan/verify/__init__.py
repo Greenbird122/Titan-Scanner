@@ -154,11 +154,22 @@ class BlindDetector:
         r"(?:sleep\s*\(|pg_sleep\s*\(|waitfor\s+delay\s+['\"]0:0:)(\d+)",
         re.IGNORECASE,
     )
+    _DECLARED_PING_DELAY = re.compile(
+        r"ping\s+-[cn]\s+(\d+)",
+        re.IGNORECASE,
+    )
 
     @staticmethod
     def _declared_delay(payload: str) -> float:
         m = BlindDetector._DECLARED_DELAY.search(payload or "")
-        return float(m.group(1)) if m else 0.0
+        if m:
+            return float(m.group(1))
+        mp = BlindDetector._DECLARED_PING_DELAY.search(payload or "")
+        if mp:
+            # N pings corresponds to N-1 second intervals (e.g. ping -n 3 takes ~2.0s)
+            count = float(mp.group(1))
+            return max(1.0, count - 1.0)
+        return 0.0
 
     def __init__(self, samples: int = 5, confidence: float = 0.95):
         self.samples = samples
@@ -231,6 +242,18 @@ class BlindDetector:
         declared = self._declared_delay(payload)
         delta = injected_mean - baseline_mean
         if declared and delta < declared * 0.75:
+            return False, injected_mean
+
+        # Multi-sample agreement gate (SCAN-QUALITY M1): a genuine injected
+        # delay must be CONSISTENT across the sample set, not just on
+        # average. One slow request out of three (a GC pause, a CDN blip)
+        # must not confirm an injection. Require a strict majority of the
+        # samples to individually clear a modest floor above the baseline
+        # mean; a unanimous-ish set is what a real SLEEP produces.
+        floor = baseline_mean + max(0.15, 0.5 * baseline_stdev)
+        agreeing = sum(1 for t in injected_times if t > floor)
+        required = max(2, (len(injected_times) + 1) // 2)
+        if agreeing < required:
             return False, injected_mean
 
         if injected_mean > threshold and injected_mean > baseline_mean * 2:

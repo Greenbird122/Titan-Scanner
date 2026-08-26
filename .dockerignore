@@ -1,0 +1,21 @@
+# VCS / CI
+.git/
+.github/
+
+# Local Python envs + caches (keep the build context lean — venv is GBs)
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Runtime state — mounted as bind volumes in docker-compose.yml, never baked
+findings/
+consent/
+local_lab/uploads/
+
+# Local scratch
+*.log
+.env
+tmp_*.py
+tmp_write.py

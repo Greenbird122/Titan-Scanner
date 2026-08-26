@@ -86,6 +86,40 @@ def extract_error_classes(body: str) -> List[str]:
     return found
 
 
+def extract_new_error_classes(baseline_body: str, test_body: str) -> List[str]:
+    """Return error classes that appear in the test response but NOT in the
+    baseline response. This is the baseline-diffing oracle: if the page's own
+    JavaScript contains "exception" or "java" (Moodle YUI, React, Angular),
+    those are baseline noise and must never confirm an injection.
+
+    The absolute matcher above is kept for backward compatibility with tests
+    that call it directly, but detectors should use this diffing version when
+    a baseline is available.
+    """
+    if not test_body:
+        return []
+    # If the response is byte-identical to the baseline, the payload had no
+    # effect — no error class signal should fire, even if the baseline itself
+    # contains error-like strings (Moodle YUI "exception", React "java",
+    # Angular "error"). This is the single fix that kills the baseline-
+    # contamination false positive class.
+    if baseline_body and test_body == baseline_body:
+        return []
+    baseline_classes = set(extract_error_classes(baseline_body)) if baseline_body else set()
+    test_classes = set(extract_error_classes(test_body)) if test_body else set()
+    return list(test_classes - baseline_classes)
+
+
+def is_baseline_identical(baseline_body: str, test_body: str) -> bool:
+    """Return True if the test response is byte-identical to the baseline.
+
+    Detectors should check this BEFORE generating any signal: a payload that
+    produces the exact same response as the benign baseline had no effect on
+    the server and cannot be a finding.
+    """
+    return bool(baseline_body) and bool(test_body) and baseline_body == test_body
+
+
 # ─── Structural JSON differential ────────────────────────────────────────────
 
 def json_differential(baseline_body: str, test_body: str) -> List[str]:
@@ -350,3 +384,117 @@ def score_signals(signals: Iterable[str]) -> Tuple[float, bool, List[str]]:
     confidence = round(1.0 - p, 3)
     verified = any(s in STRONG_SIGNALS for s in matched)
     return confidence, verified, matched
+
+
+# ─── Evidence grading (SCAN-QUALITY M1) ──────────────────────────────────────
+# A finding's ``verified`` flag is only as honest as the diff strings that
+# back it. The injection-family detectors verify exclusively through a small
+# set of strong oracle signals (content leak, boolean sanity pair, timing
+# delay, unique-marker reflection, parser error), each of which appends a diff
+# carrying the marker below. When a finding is marked verified but its diffs
+# name NONE of them, it was verified off reflection/echo alone — the exact
+# failure that produced 21 identical "CRITICAL LFI" findings on a Next.js
+# catch-all that echoed the query string.
+
+# Attack classes that must carry a named strong oracle marker before the
+# "verified" label is trusted. Every other class (headers, crypto, idor,
+# cors, ...) verifies through its own typed evidence and is graded but never
+# auto-demoted.
+INJECTION_ATTACK_TYPES = frozenset({
+    "LFI", "SQLi", "NoSQLi", "SSRF", "XSS", "RCE", "SSTI", "XXE",
+    "Request Smuggling", "Open Redirect", "OOB", "Deserialization",
+})
+
+# Substrings that identify a strong oracle marker inside a finding's diff
+# list. Verified but missing all of these = weak evidence.
+STRONG_DIFF_MARKERS = (
+    "content_leak", "content:", "sanity_pair", "boolean_confirmed",
+    "time_delay", "marker_reflected", "math_eval", "xss_unescaped",
+    "error:sql", "error:filesystem", "error:xml", "error_class:sql",
+    "error_class:filesystem", "error_class:xml", "oob",
+)
+
+
+def grade_finding(finding) -> str:
+    """Evidence grade for a single finding (does not mutate it).
+
+    ``confirmed`` — a named strong oracle marker sits in the diffs AND the
+    finding is verified (the only way the injection detectors are allowed to
+    verify). Non-injection classes (headers, crypto, idor, ...) verify
+    through their own typed evidence, so a verified flag is ``confirmed`` by
+    construction for them.
+    ``corroborated`` — injection-family, marked verified but no strong marker
+    named; the label outran its evidence.
+    ``indicative`` — weak signals only (reflection, content change, status),
+    or a strong marker present on an UNVERIFIED finding (a detector
+    inconsistency — a strong oracle that did not verify must never read as
+    ``confirmed`` in the report).
+    ``none`` — no scored evidence.
+    """
+    joined = " ".join(finding.diffs or []).lower()
+    strong = any(m in joined for m in STRONG_DIFF_MARKERS)
+    is_injection = (
+        finding.attack_type is not None
+        and finding.attack_type.value in INJECTION_ATTACK_TYPES
+    )
+    if not is_injection:
+        # Non-injection classes have their own typed evidence standard — the
+        # verified flag is ``confirmed`` by construction, never "corroborated"
+        # (which would read as weak/demoted in the report's evidence column).
+        if finding.verified:
+            return "confirmed"
+        if finding.confidence and finding.confidence >= 0.3:
+            return "indicative"
+        return "none"
+    if finding.verified:
+        return "confirmed" if strong else "corroborated"
+    if strong:
+        return "indicative"
+    if finding.confidence and finding.confidence >= 0.3:
+        return "indicative"
+    return "none"
+
+
+def enforce_evidence(findings: list) -> Dict[str, int]:
+    """Attach an evidence grade to every finding and auto-demote weak ones.
+
+    Demotion rule (SCAN-QUALITY spec D9): an injection-family finding marked
+    ``verified`` whose diffs name no strong oracle marker is demoted to
+    unverified and its severity capped at MEDIUM — reflection alone never
+    verifies. Returns ``{"graded": n, "demoted": n, "capped": n}``.
+    """
+    from titan.core.models import Severity
+    stats: Dict[str, int] = {"graded": 0, "demoted": 0, "capped": 0, "suspicious": 0}
+    for f in findings:
+        grade = grade_finding(f)
+        f.evidence = grade
+        stats["graded"] += 1
+        demoted = False
+        if (
+            f.verified
+            and f.attack_type is not None
+            and f.attack_type.value in INJECTION_ATTACK_TYPES
+            and grade != "confirmed"
+        ):
+            f.verified = False
+            f.metadata["evidence_demotion"] = (
+                f"verified but diffs name no strong oracle marker (grade={grade})"
+            )
+            stats["demoted"] += 1
+            demoted = True
+            if f.severity in (Severity.CRITICAL, Severity.HIGH):
+                f.severity = Severity.MEDIUM
+                stats["capped"] += 1
+        # PUSH-TO-100 A1 tier: confirmed = verified AND not demoted AND the
+        # grade is genuinely strong (for injection classes, a named strong
+        # marker; for non-injection classes, the verified flag itself is the
+        # typed-evidence standard). Everything with a weak/behavioral signal
+        # is `suspicious`; nothing else is `none`.
+        if grade == "confirmed" and f.verified and not demoted:
+            f.tier = "confirmed"
+        elif grade in ("corroborated", "indicative"):
+            f.tier = "suspicious"
+            stats["suspicious"] += 1
+        else:
+            f.tier = ""
+    return stats
