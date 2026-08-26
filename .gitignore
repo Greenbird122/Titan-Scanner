@@ -4,7 +4,11 @@ __pycache__/
 .venv/
 venv/
 findings/
-.env
+# Track E — signed authorization documents + operator keypair: NEVER commit.
+consent/
+.titan/
+# lab runtime uploads (webshell channel validation)
+local_lab/uploads/
 *.db
 *.sqlite
 .pytest_cache/
@@ -17,3 +21,45 @@ tmp_*.sh
 titan/ai/test_write.txt
 multi_agent/state.json
 multi_agent/outbox/
+
+# arena runtime (fight record regenerates each run)
+purple/arena/state.json
+purple/arena/arena-batch-findings.json
+purple/blue_drafts/
+
+# regenerating fight artifacts (blue homework + batch lifecycle)
+purple/inbox/
+purple/batch-progress.json
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+arena_lab.log
+arena.log
+titan/exploit/vault.b64
+
+# PUSH-TO-100 benchmark target installs (heavy deps, regenerable)
+bench/targets/
+
+# Benchmark results (stale data — regenerate with bench/benchmark.py)
+bench/results/
+
+# Learning notes (proprietary — not for distribution)
+learn/
+
+# Scratch / temp
+.tmp_pp/
+.tmp_*/
+venv_linux/
+.agents/
+.kilo/
+
+# OS / editor junk
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

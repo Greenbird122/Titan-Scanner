@@ -1,0 +1,834 @@
+{
+  "manifest": "estate-corpus",
+  "generated_at": "2026-08-17T14:02:55",
+  "policy": "Benchmark corpus generated from the findings ledger. estate=true sites are the owned estate (deep-audited or reverified); the estate scan path is consent-gated like any other scan.",
+  "sites": [
+    {
+      "slug": "127-0-0-1-5000",
+      "target": "http://127.0.0.1:5000",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "127-0-0-1-5000-info-leak",
+          "name": "Info Leak (2 records: 2 scan + 0 mined)",
+          "endpoint": "http://127.0.0.1:5000",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "127-0-0-1-5000-crypto-weakness",
+          "name": "Crypto Weakness (2 records: 2 scan + 0 mined)",
+          "endpoint": "http://127.0.0.1:5000",
+          "attack_type": "Crypto Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "127-0-0-1-5000-lfi",
+          "name": "LFI (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://127.0.0.1:5000",
+          "attack_type": "LFI",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 19,
+        "verified": 10,
+        "critical": 2,
+        "high": 9,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "austine-tech-innovation-hub-vercel-app",
+      "target": "https://austine-tech-innovation-hub.vercel.app/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "austine-tech-innovation-hub-vercel-app-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://austine-tech-innovation-hub.vercel.app/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 1,
+        "verified": 1,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "blink-app-ten-vercel-app",
+      "target": "https://blink-app-ten.vercel.app",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "blink-app-ten-vercel-app-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://blink-app-ten.vercel.app",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "blink-app-ten-vercel-app-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://blink-app-ten.vercel.app",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 2,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "coast-palmresort-lovable-app",
+      "target": "https://coast-palmresort.lovable.app",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "coast-palmresort-lovable-app-csp-weakness",
+          "name": "CSP Weakness (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://coast-palmresort.lovable.app",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "coast-palmresort-lovable-app-info-leak",
+          "name": "Info Leak (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://coast-palmresort.lovable.app",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        }
+      ],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": true,
+        "mined_findings": 2
+      }
+    },
+    {
+      "slug": "database-tulia-vercel-app",
+      "target": "https://database-tulia.vercel.app",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "database-tulia-vercel-app-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://database-tulia.vercel.app",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "database-tulia-vercel-app-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://database-tulia.vercel.app",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 3,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "demo-owasp-juice-shop",
+      "target": "https://demo.owasp-juice.shop",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "demo-owasp-juice-shop-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://demo.owasp-juice.shop",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 1,
+        "verified": 1,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "genohealth-co-uk",
+      "target": "https://genohealth.co.uk/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "genohealth-co-uk-sqli",
+          "name": "SQLi (87 records: 87 scan + 0 mined)",
+          "endpoint": "https://genohealth.co.uk/",
+          "attack_type": "SQLi",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "genohealth-co-uk-nosqli",
+          "name": "NoSQLi (45 records: 45 scan + 0 mined)",
+          "endpoint": "https://genohealth.co.uk/",
+          "attack_type": "NoSQLi",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "genohealth-co-uk-info-leak",
+          "name": "Info Leak (22 records: 22 scan + 0 mined)",
+          "endpoint": "https://genohealth.co.uk/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 192,
+        "verified": 192,
+        "critical": 82,
+        "high": 87,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "genomentalhealthhub-co-ke",
+      "target": "https://genomentalhealthhub.co.ke/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "genomentalhealthhub-co-ke-sqli",
+          "name": "SQLi (11 records: 11 scan + 0 mined)",
+          "endpoint": "https://genomentalhealthhub.co.ke/",
+          "attack_type": "SQLi",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "genomentalhealthhub-co-ke-nosqli",
+          "name": "NoSQLi (4 records: 4 scan + 0 mined)",
+          "endpoint": "https://genomentalhealthhub.co.ke/",
+          "attack_type": "NoSQLi",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "genomentalhealthhub-co-ke-info-leak",
+          "name": "Info Leak (3 records: 3 scan + 0 mined)",
+          "endpoint": "https://genomentalhealthhub.co.ke/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 21,
+        "verified": 21,
+        "critical": 5,
+        "high": 13,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "git-vizor-vercel-app",
+      "target": "https://git-vizor.vercel.app",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "git-vizor-vercel-app-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://git-vizor.vercel.app",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "git-vizor-vercel-app-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://git-vizor.vercel.app",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 2,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "kibu-ac-ke",
+      "target": "https://kibu.ac.ke",
+      "estate": true,
+      "challenges": [],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "localhost-5000",
+      "target": "http://localhost:5000/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "localhost-5000-info-leak",
+          "name": "Info Leak (2 records: 2 scan + 0 mined)",
+          "endpoint": "http://localhost:5000/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "localhost-5000-sqli",
+          "name": "SQLi (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://localhost:5000/",
+          "attack_type": "SQLi",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "localhost-5000-rce",
+          "name": "RCE (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://localhost:5000/",
+          "attack_type": "RCE",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 8,
+        "verified": 8,
+        "critical": 2,
+        "high": 4,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "localhost-5001",
+      "target": "http://localhost:5001",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "localhost-5001-xss",
+          "name": "XSS (2 records: 2 scan + 0 mined)",
+          "endpoint": "http://localhost:5001",
+          "attack_type": "XSS",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "localhost-5001-sqli",
+          "name": "SQLi (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://localhost:5001",
+          "attack_type": "SQLi",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "localhost-5001-lfi",
+          "name": "LFI (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://localhost:5001",
+          "attack_type": "LFI",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 6,
+        "verified": 6,
+        "critical": 2,
+        "high": 4,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "meet-peak-co-ke",
+      "target": "https://meet.peak.co.ke (Jitsi Meet, estate of peak.co.ke)",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "meet-peak-co-ke-info-leak",
+          "name": "Info Leak (4 records: 0 scan + 4 mined)",
+          "endpoint": "https://meet.peak.co.ke (Jitsi Meet, estate of peak.co.ke)",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        }
+      ],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": true,
+        "mined_findings": 1
+      }
+    },
+    {
+      "slug": "mkulima-alert-1x96-vercel-app",
+      "target": "https://mkulima-alert-1x96.vercel.app/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "mkulima-alert-1x96-vercel-app-info-leak",
+          "name": "Info Leak (3 records: 0 scan + 3 mined)",
+          "endpoint": "https://mkulima-alert-1x96.vercel.app/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "mkulima-alert-1x96-vercel-app-auth-bypass",
+          "name": "Auth Bypass (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://mkulima-alert-1x96.vercel.app/",
+          "attack_type": "Auth Bypass",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "mkulima-alert-1x96-vercel-app-public-cloud-storage",
+          "name": "Public Cloud Storage (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://mkulima-alert-1x96.vercel.app/",
+          "attack_type": "Public Cloud Storage",
+          "method": "GET",
+          "mined": true
+        }
+      ],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": true,
+        "mined_findings": 3
+      }
+    },
+    {
+      "slug": "nectorpos-com",
+      "target": "https://nectorpos.com",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "nectorpos-com-info-leak",
+          "name": "Info Leak (3 records: 1 scan + 2 mined)",
+          "endpoint": "https://nectorpos.com",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "nectorpos-com-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://nectorpos.com",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "nectorpos-com-public-cloud-storage",
+          "name": "Public Cloud Storage (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://nectorpos.com",
+          "attack_type": "Public Cloud Storage",
+          "method": "GET",
+          "mined": true
+        }
+      ],
+      "source": {
+        "findings": 2,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 2
+      }
+    },
+    {
+      "slug": "peak-co-ke",
+      "target": "https://peak.co.ke",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "peak-co-ke-info-leak",
+          "name": "Info Leak (9 records: 1 scan + 8 mined)",
+          "endpoint": "https://peak.co.ke",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "peak-co-ke-auth-bypass",
+          "name": "Auth Bypass (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://peak.co.ke",
+          "attack_type": "Auth Bypass",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "peak-co-ke-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://peak.co.ke",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 7,
+        "verified": 2,
+        "critical": 0,
+        "high": 5,
+        "deep_audit": true,
+        "mined_findings": 2
+      }
+    },
+    {
+      "slug": "portal-kibu-ac-ke",
+      "target": "https://portal.kibu.ac.ke",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "portal-kibu-ac-ke-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://portal.kibu.ac.ke",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "portal-kibu-ac-ke-ssti",
+          "name": "SSTI (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://portal.kibu.ac.ke",
+          "attack_type": "SSTI",
+          "method": "POST",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 3,
+        "verified": 2,
+        "critical": 1,
+        "high": 1,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "pphub-app",
+      "target": "http://pphub.app",
+      "estate": true,
+      "challenges": [],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "repair-co-ke",
+      "target": "http://repair.co.ke",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "repair-co-ke-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://repair.co.ke",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "repair-co-ke-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "http://repair.co.ke",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 2,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "repairai-co-ke",
+      "target": "https://repairai.co.ke",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "repairai-co-ke-info-leak",
+          "name": "Info Leak (9 records: 0 scan + 9 mined)",
+          "endpoint": "https://repairai.co.ke",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "repairai-co-ke-idor",
+          "name": "IDOR (2 records: 0 scan + 2 mined)",
+          "endpoint": "https://repairai.co.ke",
+          "attack_type": "IDOR",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "repairai-co-ke-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://repairai.co.ke",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 1,
+        "verified": 1,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 2
+      }
+    },
+    {
+      "slug": "sales-ten-xi-vercel-app",
+      "target": "https://sales-ten-xi.vercel.app/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "sales-ten-xi-vercel-app-info-leak",
+          "name": "Info Leak (7 records: 0 scan + 7 mined)",
+          "endpoint": "https://sales-ten-xi.vercel.app/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "sales-ten-xi-vercel-app-idor",
+          "name": "IDOR (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://sales-ten-xi.vercel.app/",
+          "attack_type": "IDOR",
+          "method": "GET",
+          "mined": true
+        },
+        {
+          "id": "sales-ten-xi-vercel-app-auth-bypass",
+          "name": "Auth Bypass (1 records: 0 scan + 1 mined)",
+          "endpoint": "https://sales-ten-xi.vercel.app/",
+          "attack_type": "Auth Bypass",
+          "method": "GET",
+          "mined": true
+        }
+      ],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": true,
+        "mined_findings": 4
+      }
+    },
+    {
+      "slug": "snakebiteprize-challenges-org",
+      "target": "https://snakebiteprize.challenges.org/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "snakebiteprize-challenges-org-cache-poisoning",
+          "name": "Cache Poisoning (3 records: 3 scan + 0 mined)",
+          "endpoint": "https://snakebiteprize.challenges.org/",
+          "attack_type": "Cache Poisoning",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "snakebiteprize-challenges-org-lfi",
+          "name": "LFI (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://snakebiteprize.challenges.org/",
+          "attack_type": "LFI",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "snakebiteprize-challenges-org-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://snakebiteprize.challenges.org/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 5,
+        "verified": 5,
+        "critical": 1,
+        "high": 3,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "tulia-admin-vercel-app",
+      "target": "https://tulia-admin.vercel.app",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "tulia-admin-vercel-app-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://tulia-admin.vercel.app",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "tulia-admin-vercel-app-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://tulia-admin.vercel.app",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 2,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "weather-co-ke",
+      "target": "https://weather.co.ke/",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "weather-co-ke-info-leak",
+          "name": "Info Leak (2 records: 2 scan + 0 mined)",
+          "endpoint": "https://weather.co.ke/",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "weather-co-ke-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://weather.co.ke/",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "weather-co-ke-xss",
+          "name": "XSS (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://weather.co.ke/",
+          "attack_type": "XSS",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 5,
+        "verified": 4,
+        "critical": 0,
+        "high": 1,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "www-myportifolio-com",
+      "target": "https://www.myportifolio.com",
+      "estate": true,
+      "challenges": [],
+      "source": {
+        "findings": 0,
+        "verified": 0,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    },
+    {
+      "slug": "zairaku-rest",
+      "target": "https://zairaku.rest",
+      "estate": true,
+      "challenges": [
+        {
+          "id": "zairaku-rest-csp-weakness",
+          "name": "CSP Weakness (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://zairaku.rest",
+          "attack_type": "CSP Weakness",
+          "method": "GET",
+          "mined": false
+        },
+        {
+          "id": "zairaku-rest-info-leak",
+          "name": "Info Leak (1 records: 1 scan + 0 mined)",
+          "endpoint": "https://zairaku.rest",
+          "attack_type": "Info Leak",
+          "method": "GET",
+          "mined": false
+        }
+      ],
+      "source": {
+        "findings": 2,
+        "verified": 2,
+        "critical": 0,
+        "high": 0,
+        "deep_audit": false,
+        "mined_findings": 0
+      }
+    }
+  ]
+}

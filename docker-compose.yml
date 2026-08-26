@@ -1,0 +1,28 @@
+# Titan Scanner — one-command start.
+#
+#   docker compose up -d --build
+#   docker compose exec titan python run.py --target http://127.0.0.1:5000
+#
+# The container runs the vulnerable lab (:5000) AND the C2 listener (:8770)
+# together, so the full Track E exploitation flow works inside it unchanged
+# (agents poll 127.0.0.1:8770 — same container). Scan output and consent
+# files persist on the host; the operator signing keypair persists in a
+# named volume.
+services:
+  titan:
+    build: .
+    image: titan-scanner:local
+    container_name: titan-scanner
+    ports:
+      - "5000:5000"                 # vulnerable lab (validation target)
+      - "127.0.0.1:8770:8770"       # C2 listener (host loopback only)
+    volumes:
+      - ./findings:/app/findings    # scan reports + exploit sessions persist
+      - ./consent:/app/consent      # signed consent files persist
+      - titan-keys:/root/.titan     # operator signing keypair (~/.titan) persists
+    environment:
+      PYTHONUNBUFFERED: "1"
+    restart: unless-stopped
+
+volumes:
+  titan-keys:

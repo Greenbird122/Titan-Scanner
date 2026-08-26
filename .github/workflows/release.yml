@@ -1,0 +1,101 @@
+name: release-draft
+
+# Every push to main proposes a fresh release DRAFT with a changelog.
+# Publishing stays a human decision — drafts are never auto-published.
+#
+# Semantics:
+# - Version bumps from the highest PUBLISHED tag (v1.0 -> v1.1, v1.0.1 ->
+#   v1.0.2). Drafts do not create git tags, so while a draft is open, every
+#   push refreshes the same proposed version.
+# - A stale draft for the computed version is DELETED first, then a fresh
+#   draft is created. Only drafts are ever deleted — published releases are
+#   never touched (they own the tag, which bumps the version past them).
+# - Changelog comes from real `git log` between the last tag and HEAD, so it
+#   always lists the actual commits (GitHub's auto-generated notes are
+#   PR-centric and would be empty here — all commits are direct pushes).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-draft-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    name: Draft release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version + changelog + clear stale draft
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Highest existing vX.Y / vX.Y.Z tag; default to v0.0.0 when none.
+          latest=$(git tag -l 'v*' | sort -V | tail -1 || true)
+          latest=${latest:-v0.0.0}
+          base=${latest#v}
+          IFS='.' read -r major minor patch <<< "$base"
+          major=${major:-0}
+          minor=${minor:-0}
+          patch=${patch:-0}
+          if [ "$patch" -gt 0 ]; then
+            next="v${major}.${minor}.$((patch + 1))"
+          else
+            next="v${major}.$((minor + 1))"
+          fi
+          echo "latest=${latest}"
+          echo "next=${next}"
+          echo "next=${next}" >> "$GITHUB_OUTPUT"
+
+          # Changelog from real commits since the last tag (or all commits).
+          if [ "${latest}" != "v0.0.0" ] && git rev-parse -q --verify "refs/tags/${latest}" >/dev/null 2>&1; then
+            changelog=$(git log --oneline --no-merges "${latest}..HEAD")
+          else
+            changelog=$(git log --oneline --no-merges)
+          fi
+          if [ -z "${changelog}" ]; then
+            changelog="No commits since ${latest}."
+          fi
+          {
+            echo "# ${next}"
+            echo ""
+            echo "Auto-drafted on every push to main. Review and publish when ready."
+            echo ""
+            echo "## Changes since ${latest}"
+            echo ""
+            echo "${changelog}"
+          } > "$RUNNER_TEMP/release_body.md"
+          echo "changelog lines: $(echo "${changelog}" | wc -l)"
+
+          # Delete any stale DRAFT for this version (drafts only — a
+          # published release with this tag cannot exist, because it would
+          # own the tag and have bumped `next` past it).
+          stale_id=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq ".[] | select(.tag_name == \"${next}\" and .draft == true) | .id" | head -1)
+          if [ -n "${stale_id}" ]; then
+            echo "deleting stale draft release ${stale_id} for ${next}"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/releases/${stale_id}"
+          else
+            echo "no stale draft for ${next}"
+          fi
+
+      - name: Draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.next }}
+          name: ${{ steps.release.outputs.next }}
+          body_path: ${{ runner.temp }}/release_body.md
+          draft: true

@@ -1,0 +1,195 @@
+name: nextjs-vercel
+version: 1.0
+description: |
+  Next.js / Vercel playbook. Covers __NEXT_DATA__ leak, build manifest
+  extraction, API route enumeration, middleware exposure, ISR cache
+  poisoning, and Vercel-specific deployment config leaks.
+
+fingerprint:
+  body:
+    - "__NEXT_DATA__|_next/static|_buildManifest|_ssgManifest"
+  headers:
+    server: "Vercel|Next.js"
+    x-powered-by: "Next.js|Vercel"
+  url: []
+
+auth:
+  login_url: null
+  # NextAuth.js (most common auth for Next.js)
+  nextauth:
+    session_endpoint: "/api/auth/session"
+    providers_endpoint: "/api/auth/providers"
+    csrf_endpoint: "/api/auth/csrf"
+    signin_endpoint: "/api/auth/signin"
+    signout_endpoint: "/api/auth/signout"
+
+# ─── Next.js-Specific Probes ───────────────────────────────────────────
+http_probes:
+  # __NEXT_DATA__ leak
+  - path: "/"
+    method: GET
+    finding: "__NEXT_DATA__ leak — server-side props exposed in page source"
+    severity: medium
+    verify: "response contains __NEXT_DATA__ JSON with props"
+    extract:
+      - pattern: '__NEXT_DATA__\s*=\s*({[^<]+})'
+        field: next_data
+
+  # Build manifests
+  - path: "/_next/static/chunks/webpack-{hash}.js"
+    method: GET
+    finding: "Webpack chunk exposed — may contain API routes, env vars"
+    severity: medium
+    verify: "200 with JS"
+
+  # API routes
+  - path: "/api/"
+    method: GET
+    finding: "API root accessible"
+    severity: low
+    verify: "200 or 404"
+
+  - path: "/api/auth/session"
+    method: GET
+    finding: "NextAuth session endpoint — may leak user data without auth"
+    severity: medium
+    verify: "200 with JSON session object"
+    extract:
+      - pattern: '"user":\s*\{([^}]+)\}'
+        field: user_data
+
+  - path: "/api/auth/providers"
+    method: GET
+    finding: "NextAuth providers — reveals auth configuration"
+    severity: low
+    verify: "200 with providers object"
+
+  - path: "/api/auth/csrf"
+    method: GET
+    finding: "NextAuth CSRF token endpoint"
+    severity: low
+    verify: "200 with csrfToken"
+
+  # Vercel-specific
+  - path: "/vercel.json"
+    method: GET
+    finding: "Vercel config exposed — routing, redirects, rewrites, headers"
+    severity: high
+    verify: "200 with JSON config"
+
+  - path: "/.vercel/"
+    method: GET
+    finding: "Vercel internal directory exposed"
+    severity: high
+    verify: "200 or 403"
+
+  # Next.js middleware
+  - path: "/_next/static/chunks/pages/_middleware-{hash}.js"
+    method: GET
+    finding: "Next.js middleware chunk — may reveal auth logic, API keys"
+    severity: medium
+    verify: "200 with JS"
+
+  # ISR cache
+  - path: "/_next/data/{build_id}/index.json"
+    method: GET
+    finding: "ISR data endpoint — cached page data"
+    severity: low
+    verify: "200 with JSON"
+
+  # Environment
+  - path: "/.env"
+    method: GET
+    finding: ".env file exposed"
+    severity: critical
+    verify: "200 with env vars"
+  - path: "/.env.local"
+    method: GET
+    finding: ".env.local exposed"
+    severity: critical
+    verify: "200 with env vars"
+  - path: "/.env.production"
+    method: GET
+    finding: ".env.production exposed"
+    severity: critical
+    verify: "200 with env vars"
+
+  # Next.js config
+  - path: "/next.config.js"
+    method: GET
+    finding: "next.config.js exposed — may reveal env var mappings, redirects"
+    severity: medium
+    verify: "200 with JS"
+
+  # Source maps
+  - path: "/_next/static/chunks/{chunk}.map"
+    method: GET
+    finding: "Source map exposed — full source code"
+    severity: high
+    verify: "200 with JSON source map"
+
+  # Common Next.js API routes
+  - path: "/api/users"
+    method: GET
+    finding: "Users API route accessible"
+    severity: medium
+    verify: "200 with user data"
+  - path: "/api/upload"
+    method: POST
+    finding: "Upload API route accessible"
+    severity: medium
+    verify: "200 or 400 (route exists)"
+  - path: "/api/webhook"
+    method: POST
+    finding: "Webhook endpoint accessible"
+    severity: low
+    verify: "200 or 400"
+
+# ─── Build ID Extraction ───────────────────────────────────────────────
+build_id_extraction:
+  patterns:
+    - "buildId[\"\\']?\\s*[:=]\\s*[\"\\']([^\"\\']+)"
+    - '/_next/static/([a-zA-Z0-9_-]+)/'
+  # Once build ID is known, probe all data routes
+  data_routes:
+    - "/_next/data/{build_id}/index.json"
+    - "/_next/data/{build_id}/about.json"
+    - "/_next/data/{build_id}/dashboard.json"
+    - "/_next/data/{build_id}/admin.json"
+    - "/_next/data/{build_id}/settings.json"
+    - "/_next/data/{build_id}/profile.json"
+    - "/_next/data/{build_id}/api.json"
+
+discovery_seeds:
+  - "/api/auth/session"
+  - "/api/auth/providers"
+  - "/api/auth/csrf"
+  - "/vercel.json"
+  - "/.env"
+  - "/.env.local"
+  - "/next.config.js"
+  - "/_next/data/"
+  - "/api/"
+
+expected_findings:
+  - type: "Info Leak"
+    description: "__NEXT_DATA__ leak — server-side props in page source"
+    severity: medium
+  - type: "Info Leak"
+    description: "Vercel config (vercel.json) exposed"
+    severity: high
+  - type: "Info Leak"
+    description: "NextAuth session endpoint leaks user data"
+    severity: medium
+  - type: "Hardcoded Secret"
+    description: ".env file exposed"
+    severity: critical
+  - type: "Info Leak"
+    description: "Source map exposed — full source code"
+    severity: high
+  - type: "Info Leak"
+    description: "next.config.js exposed — env var mappings"
+    severity: medium
+  - type: "Info Leak"
+    description: "Build manifest reveals all page routes"
+    severity: medium

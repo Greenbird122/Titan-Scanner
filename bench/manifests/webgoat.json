@@ -1,0 +1,62 @@
+{
+  "target": "http://127.0.0.1:8080",
+  "note": "WebGoat 2023.5 lesson attack endpoints. Requires an authenticated session (pass --auth-cookies 'JSESSIONID=...'). HONEST LIMITATION (measured, not hidden): WebGoat's lesson endpoints are QUIZ-GRADED — every attack returns the same generic 'Sorry the solution is not correct' wrapper with no error-class leak, status flip, or content differential tied to the payload. The vulnerability oracle lives in WebGoat's internal lesson tracker (does the exact expected answer complete the assignment?), not in the HTTP response. A scanner that detects behavior can no more verify these than a grader can score an empty exam — so the benchmark correctly reports MISS, and that is a truthful statement about the tool's detection floor on quiz-graded training platforms. The same tool scores 100% on Juice Shop and local_lab, which DO expose HTTP oracles.",
+  "challenges": [
+    {
+      "id": "webgoat-sqli-string",
+      "name": "SQLi — string concatenation lesson",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/SqlInjection/attack5",
+      "attack_type": "SQLi",
+      "method": "POST",
+      "param": "account_name"
+    },
+    {
+      "id": "webgoat-sqli-numeric",
+      "name": "SQLi — numeric column lesson",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/SqlInjection/attack8",
+      "attack_type": "SQLi",
+      "method": "POST",
+      "param": "injection"
+    },
+    {
+      "id": "webgoat-xss-reflected",
+      "name": "Reflected XSS — cross-site scripting lesson",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/CrossSiteScripting/attack5a",
+      "attack_type": "XSS",
+      "method": "POST",
+      "param": "field2"
+    },
+    {
+      "id": "webgoat-xxe",
+      "name": "XXE — entity expansion",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/xxe/simple",
+      "attack_type": "XXE",
+      "method": "POST",
+      "param": "text"
+    },
+    {
+      "id": "webgoat-ssrf",
+      "name": "SSRF — task1",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/SSRF/task1",
+      "attack_type": "SSRF",
+      "method": "POST",
+      "param": "url"
+    },
+    {
+      "id": "webgoat-pathtraversal",
+      "name": "Path traversal — profile upload",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/PathTraversal/profile-upload",
+      "attack_type": "LFI",
+      "method": "POST",
+      "param": "upload"
+    },
+    {
+      "id": "webgoat-idor",
+      "name": "IDOR — profile by userId",
+      "endpoint": "http://127.0.0.1:8080/WebGoat/IDOR/profile",
+      "attack_type": "IDOR",
+      "method": "GET",
+      "param": "userId"
+    }
+  ]
+}

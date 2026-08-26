@@ -1,0 +1,45 @@
+{
+  "target": "http://127.0.0.1:5000",
+  "challenges": [
+    {
+      "id": "local-lab-sqli",
+      "name": "SQLi — boolean extractor",
+      "endpoint": "http://127.0.0.1:5000/sqli",
+      "attack_type": "SQLi",
+      "method": "GET",
+      "param": "id"
+    },
+    {
+      "id": "local-lab-xss",
+      "name": "Reflected XSS",
+      "endpoint": "http://127.0.0.1:5000/xss",
+      "attack_type": "XSS",
+      "method": "GET",
+      "param": "name"
+    },
+    {
+      "id": "local-lab-lfi",
+      "name": "Path traversal",
+      "endpoint": "http://127.0.0.1:5000/lfi",
+      "attack_type": "LFI",
+      "method": "GET",
+      "param": "file"
+    },
+    {
+      "id": "local-lab-ssrf",
+      "name": "SSRF + cloud metadata",
+      "endpoint": "http://127.0.0.1:5000/ssrf",
+      "attack_type": "SSRF",
+      "method": "GET",
+      "param": "url"
+    },
+    {
+      "id": "local-lab-cmd",
+      "name": "Command injection",
+      "endpoint": "http://127.0.0.1:5000/cmd",
+      "attack_type": "RCE",
+      "method": "GET",
+      "param": "host"
+    }
+  ]
+}

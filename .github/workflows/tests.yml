@@ -1,0 +1,70 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: pytest (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    # Hard ceiling so a hang fails loudly instead of burning the default 6h.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # CI-only: per-test timeout so a wedged test is killed and NAMED in
+          # the log instead of hanging the whole job. Not a project dependency.
+          pip install pytest-timeout
+
+      # No `playwright install chromium`: the only Playwright import is lazy
+      # (inside TitanEngine.scan), and no unit test launches a browser — all
+      # tests use fakes/stubs. Installing the browser would add minutes and
+      # 500MB+ per run for nothing.
+      - name: Run test suite
+        # 120s per test: far above any normal test; a genuine hang is killed
+        # here and reported by name. -p no:cacheprovider keeps the run hermetic.
+        run: python -m pytest -q --timeout=120 -p no:cacheprovider --junitxml=test-results.xml
+
+      - name: Summarize results
+        if: always()
+        run: |
+          python - <<'EOF'
+          import re
+          try:
+              text = open("test-results.xml", encoding="utf-8").read()
+              m = re.search(r'tests="(\d+)".*?failures="(\d+)".*?errors="(\d+)".*?skipped="(\d+)"', text)
+              if m:
+                  t, f, e, s = m.groups()
+                  print(f"tests={t} failures={f} errors={e} skipped={s}")
+          except FileNotFoundError:
+              pass
+          EOF
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: test-results.xml

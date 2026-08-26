@@ -1,0 +1,230 @@
+name: spa-generic
+version: 1.0
+description: |
+  Generic SPA playbook for React, Angular, Vue, Svelte, and Next.js apps.
+  Covers JS bundle extraction for API routes, XHR/fetch capture for
+  runtime-discovered endpoints, hash-route hydration, source map
+  exposure, and __NEXT_DATA__ leak. This is the playbook that closes
+  the 0-finding-SPA gap.
+
+fingerprint:
+  body:
+    - "__NEXT_DATA__|__nuxt__|ng-app|data-reactroot|data-v-app|svelte"
+  headers: {}
+  url: []
+
+auth:
+  # SPAs typically use JWT or session cookies. No standard login form.
+  login_url: null
+  # Token may be in localStorage, cookies, or Authorization header
+  token_sources:
+    - "localStorage.getItem('token')"
+    - "localStorage.getItem('access_token')"
+    - "localStorage.getItem('auth')"
+    - "document.cookie"
+    - "Authorization header in captured XHR"
+
+# ─── JS Bundle Extraction ──────────────────────────────────────────────
+bundle_extraction:
+  # Patterns to find API endpoints in JS bundles
+  api_patterns:
+    - pattern: "[\"']/(api|rest|v1|v2|graphql)/[^\"']+[\"']"
+      extract: endpoint
+    - pattern: "fetch\\s*\\(\\s*[\"']([^\"']+)[\"']"
+      extract: fetch_url
+    - pattern: "axios\\.\\w+\\s*\\(\\s*[\"']([^\"']+)[\"']"
+      extract: axios_url
+    - pattern: "process\\.env\\.(NEXT_PUBLIC_[A-Z_]+|VITE_[A-Z_]+|REACT_APP_[A-Z_]+)"
+      extract: env_var
+    - pattern: "[\"']sk_live_[0-9a-zA-Z]+[\"']"
+      extract: stripe_key
+    - pattern: "[\"']pk_live_[0-9a-zA-Z]+[\"']"
+      extract: stripe_publishable
+    - pattern: "[\"']AIza[0-9A-Za-z_-]{35}[\"']"
+      extract: google_api_key
+
+# ─── Framework-Specific Probes ─────────────────────────────────────────
+http_probes:
+  # Next.js
+  - path: "/_next/data/{build_id}/index.json"
+    method: GET
+    finding: "Next.js data endpoint — may leak server-side props"
+    severity: medium
+    verify: "200 with JSON containing pageProps"
+
+  - path: "/_next/static/chunks/"
+    method: GET
+    finding: "Next.js chunk directory listing"
+    severity: low
+    verify: "200 with directory index"
+
+  - path: "/_next/static/{build_id}/_buildManifest.js"
+    method: GET
+    finding: "Next.js build manifest — reveals all page routes"
+    severity: medium
+    verify: "200 with JS containing route map"
+
+  - path: "/_next/static/{build_id}/_ssgManifest.js"
+    method: GET
+    finding: "Next.js SSG manifest — reveals static generation paths"
+    severity: low
+    verify: "200 with JS"
+
+  # Nuxt
+  - path: "/_nuxt/"
+    method: GET
+    finding: "Nuxt static assets directory listing"
+    severity: low
+    verify: "200 with directory index"
+
+  # Source maps (any framework)
+  - path: "/{js_bundle}.map"
+    method: GET
+    finding: "Source map exposed — full source code leak"
+    severity: high
+    verify: "200 with JSON source map"
+
+  # GraphQL (common in SPAs)
+  - path: "/graphql"
+    method: POST
+    body: '{"query":"{__schema{types{name fields{name type{name}}}}"}'
+    content_type: "application/json"
+    finding: "GraphQL introspection enabled — full schema leak"
+    severity: high
+    verify: "200 with schema data"
+
+  - path: "/graphql"
+    method: POST
+    body: '{"query":"{__typename}"}'
+    content_type: "application/json"
+    finding: "GraphQL endpoint confirmed"
+    severity: low
+    verify: "200 with __typename"
+
+  - path: "/api/graphql"
+    method: POST
+    body: '{"query":"{__typename}"}'
+    content_type: "application/json"
+    finding: "GraphQL at /api/graphql"
+    severity: low
+    verify: "200 with __typename"
+
+  # Common SPA API paths
+  - path: "/api/"
+    method: GET
+    finding: "API root accessible — may list endpoints"
+    severity: low
+    verify: "200 with endpoint list or OpenAPI spec"
+
+  - path: "/api/v1/"
+    method: GET
+    finding: "API v1 root accessible"
+    severity: low
+    verify: "200 with endpoint list"
+
+  - path: "/api/swagger.json"
+    method: GET
+    finding: "Swagger/OpenAPI spec exposed"
+    severity: medium
+    verify: "200 with JSON spec"
+
+  - path: "/api/openapi.json"
+    method: GET
+    finding: "OpenAPI spec exposed"
+    severity: medium
+    verify: "200 with JSON spec"
+
+  - path: "/api/docs"
+    method: GET
+    finding: "API documentation exposed (Swagger UI)"
+    severity: medium
+    verify: "200 with HTML docs"
+
+  # Next.js API routes
+  - path: "/api/auth/session"
+    method: GET
+    finding: "NextAuth session endpoint — may leak user data"
+    severity: medium
+    verify: "200 with JSON session"
+
+  - path: "/api/auth/providers"
+    method: GET
+    finding: "NextAuth providers list — reveals auth configuration"
+    severity: low
+    verify: "200 with providers array"
+
+  # Environment files
+  - path: "/.env"
+    method: GET
+    finding: ".env file exposed"
+    severity: critical
+    verify: "200 with env vars"
+
+  - path: "/.env.local"
+    method: GET
+    finding: ".env.local exposed"
+    severity: critical
+    verify: "200 with env vars"
+
+  - path: "/.env.production"
+    method: GET
+    finding: ".env.production exposed"
+    severity: critical
+    verify: "200 with env vars"
+
+# ─── SPA Route Hydration ────────────────────────────────────────────────
+route_hydration:
+  # Hash routes to probe after page load
+  hash_routes:
+    - "#/admin"
+    - "#/dashboard"
+    - "#/settings"
+    - "#/profile"
+    - "#/users"
+    - "#/api"
+    - "#/debug"
+  # Browser router paths (pushState)
+  browser_routes:
+    - "/admin"
+    - "/dashboard"
+    - "/settings"
+    - "/api"
+    - "/debug"
+    - "/_debug"
+    - "/status"
+
+discovery_seeds:
+  - "/_next/data/"
+  - "/api/"
+  - "/graphql"
+  - "/api/graphql"
+  - "/api/auth/session"
+  - "/api/auth/providers"
+  - "/api/swagger.json"
+  - "/api/openapi.json"
+  - "/api/docs"
+  - "/.env"
+  - "/.env.local"
+
+expected_findings:
+  - type: "Info Leak"
+    description: "API endpoints discovered in JS bundle"
+    severity: medium
+  - type: "Info Leak"
+    description: "Source map exposed — full source code"
+    severity: high
+  - type: "Info Leak"
+    description: "GraphQL introspection enabled"
+    severity: high
+  - type: "Info Leak"
+    description: "OpenAPI/Swagger spec exposed"
+    severity: medium
+  - type: "Hardcoded Secret"
+    description: "Environment variables or API keys in JS bundle"
+    severity: critical
+  - type: "Info Leak"
+    description: ".env file exposed on web root"
+    severity: critical
+  - type: "Info Leak"
+    description: "NextAuth session/providers endpoint accessible"
+    severity: medium

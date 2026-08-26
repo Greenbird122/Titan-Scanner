@@ -190,9 +190,13 @@ def xss_escaped():
 
 @mini.route("/xss_attr")
 def xss_attr():
-    # Reflects input raw but INSIDE a quoted attribute value: the marker
-    # renders as inert text and can never execute.
-    return f'<input value="{request.args.get("name", "")}">'
+    # Reflects input INSIDE a quoted attribute value with HTML entity escaping
+    # for < > " so no payload can break out of the attribute.
+    # The marker renders as plain text and can never execute — this tests the
+    # attribute-context inert echo guard.
+    from markupsafe import escape as _e
+    val = str(_e(request.args.get("name", "")))
+    return f'<input value="{val}">'
 
 
 @mini.route("/xss_json")
@@ -217,6 +221,58 @@ def lfi_stub():
     if fn:
         return f"[Errno 2] No such file or directory: '{fn}'"
     return "OK"
+
+
+@mini.route("/lfi_real")
+def lfi_real():
+    # Genuinely vulnerable: a traversal value reads /etc/passwd content.
+    fn = request.args.get("file", "")
+    if "etc/passwd" in fn:
+        return PASSWD_SNIPPET
+    return "ok"
+
+
+@mini.route("/lfi_errno")
+def lfi_errno():
+    # Vulnerable open() sink: a traversal value reaches the filesystem and
+    # errors; a benign value returns cleanly (baseline is error-free).
+    fn = request.args.get("file", "")
+    if ".." in fn:
+        return f"[Errno 2] No such file or directory: '{fn}'"
+    return "ok"
+
+
+@mini.route("/lfi_soft404")
+def lfi_soft404():
+    # Soft-404 shape: EVERY value (including the baseline) produces the same
+    # filesystem error — a catch-all that always says "no such file". The
+    # baseline differential must exclude it (the zairaku.rest storm).
+    fn = request.args.get("file", "")
+    return f"No such file or directory: '{fn}'"
+
+
+@mini.route("/lfi_echo")
+def lfi_echo():
+    # Benign catch-all: echoes the file param verbatim, no filesystem sink.
+    return f"Echo: {request.args.get('file', '')}"
+
+
+@mini.route("/lfi_encoded_echo")
+def lfi_encoded_echo():
+    # GitHub-branded-404 shape: reflects the RAW (still URL-encoded) query
+    # string. A traversal probe comes back URL-encoded, and the OLD detector
+    # self-verified because "etc/passwd" (a path marker inside the payload)
+    # survived the raw-only strip.
+    raw = request.query_string.decode("utf-8", "replace")
+    return f"<html><title>Page not found</title>404 - {quote(raw, safe='')} was not found</html>"
+
+
+@mini.route("/lfi_double_encoded_echo")
+def lfi_double_encoded_echo():
+    # SPA-JS-state shape: the request URL is re-encoded (% -> %25).
+    raw = request.query_string.decode("utf-8", "replace")
+    encoded = quote(quote(raw, safe=""), safe="")
+    return f"<html><body><script>window.__STATE__={{path:'{encoded}'}}</script></body></html>"
 
 
 @mini.route("/sqli_echo")
@@ -795,6 +851,110 @@ class TestCrossModuleFPs:
         assert findings == [], f"dynamic non-reflecting page must not confirm SQLi, got {findings}"
 
 
+class TestLFIStrictOracle:
+    """SCAN-QUALITY M1: LFI must verify ONLY on file-content leaks or a
+    baseline-differential filesystem error. Payload reflection — raw,
+    URL-encoded, or double-encoded — is never LFI evidence (the zairaku.rest
+    storm: 21 identical "CRITICAL LFI" on a Next.js catch-all that echoed the
+    query string)."""
+
+    async def test_content_leak_verifies(self, context):
+        from titan.modules.lfi.detector import LFIDetector
+        findings = await _scan(LFIDetector(StubSmith(), {}), context, "/lfi_real", {"file": "report.txt"})
+        assert findings, "real passwd content leak must be found"
+        f = findings[0]
+        assert f.attack_type == AttackType.LFI
+        assert f.verified is True, f"content leak must verify, got diffs={f.diffs}"
+        assert f.confidence >= 0.8
+
+    async def test_errno_differential_verifies(self, context):
+        """The lab /lfi shape: baseline is clean, the traversal payload hits
+        the open() sink and errors -> error:filesystem (strong)."""
+        from titan.modules.lfi.detector import LFIDetector
+        findings = await _scan(LFIDetector(StubSmith(), {}), context, "/lfi_errno", {"file": "report.txt"})
+        assert findings, "errno differential must be found"
+        f = findings[0]
+        assert f.verified is True, f"filesystem-sink error must verify, got diffs={f.diffs}"
+        assert any("error_class:filesystem" in d for d in f.diffs), f"got {f.diffs}"
+
+    async def test_soft404_always_error_is_not_lfi(self, context):
+        """A page that ALWAYS emits the filesystem error (baseline included)
+        is a catch-all, not a sink — the baseline differential excludes it.
+        This is the exact shape that produced the 21-strong zairaku storm."""
+        from titan.modules.lfi.detector import LFIDetector
+        findings = await _scan(LFIDetector(StubSmith(), {}), context, "/lfi_soft404", {"file": "report.txt"})
+        assert findings == [], f"always-error catch-all must not be LFI, got {findings}"
+
+    async def test_raw_echo_is_not_lfi(self, context):
+        from titan.modules.lfi.detector import LFIDetector
+        findings = await _scan(LFIDetector(StubSmith(), {}), context, "/lfi_echo", {"file": "report.txt"})
+        assert findings == [], f"payload reflection must not be flagged LFI, got {findings}"
+
+    async def test_encoded_echo_is_not_lfi(self, context):
+        """Regression: the OLD detector self-verified URL-encoded echoes because
+        the path marker "etc/passwd" lives INSIDE the payload — a raw-only
+        strip left it alive in the echo. Path markers are banned now."""
+        from titan.modules.lfi.detector import LFIDetector
+        findings = await _scan(LFIDetector(StubSmith(), {}), context, "/lfi_encoded_echo", {"file": "report.txt"})
+        assert findings == [], f"encoded echo must not be flagged LFI, got {findings}"
+
+    async def test_double_encoded_echo_is_not_lfi(self, context):
+        from titan.modules.lfi.detector import LFIDetector
+        findings = await _scan(LFIDetector(StubSmith(), {}), context, "/lfi_double_encoded_echo", {"file": "report.txt"})
+        assert findings == [], f"double-encoded echo must not be flagged LFI, got {findings}"
+
+
+class TestEvidenceGrading:
+    """SCAN-QUALITY M1: enforce_evidence grades every finding and auto-demotes
+    injection-family findings marked verified without a named strong oracle
+    marker (reflection-verifies storms)."""
+
+    @staticmethod
+    def _finding(diffs, verified=True, severity="critical", attack="LFI", confidence=0.9):
+        from titan.core.models import Finding, Severity, AttackType
+        return Finding(
+            target="http://x", url="http://x/a", method="GET",
+            param="page", location="query", payload="../../etc/passwd",
+            attack_type=AttackType(attack), severity=Severity(severity),
+            verified=verified, confidence=confidence, diffs=diffs,
+        )
+
+    def test_confirmed_stays_verified(self):
+        from titan.verify.oracles import enforce_evidence
+        f = self._finding(["lfi:content:root:x:0:0:"])
+        stats = enforce_evidence([f])
+        assert f.verified is True and f.evidence == "confirmed"
+        assert stats["demoted"] == 0
+
+    def test_verified_without_strong_marker_is_demoted(self):
+        """The zairaku shape: verified=True with only reflection/noise diffs
+        -> demoted to unverified and severity capped at MEDIUM."""
+        from titan.core.models import Severity
+        from titan.verify.oracles import enforce_evidence
+        f = self._finding(["payload_reflected", "content_hash_changed"], severity="critical")
+        stats = enforce_evidence([f])
+        assert f.verified is False, "reflection-verified LFI must be demoted"
+        assert f.evidence == "corroborated"
+        assert f.severity == Severity.MEDIUM
+        assert stats["demoted"] == 1 and stats["capped"] == 1
+        assert "evidence_demotion" in f.metadata
+
+    def test_non_injection_family_is_graded_but_never_demoted(self):
+        """Headers/crypto/IDOR verify through their own typed evidence; the
+        demotion rule is scoped to the audited injection family."""
+        from titan.core.models import Severity
+        from titan.verify.oracles import enforce_evidence
+        f = self._finding([], attack="Info Leak", severity="critical")
+        enforce_evidence([f])
+        assert f.verified is True and f.severity == Severity.CRITICAL
+
+    def test_indicative_grade_for_weak_unverified(self):
+        from titan.verify.oracles import enforce_evidence
+        f = self._finding([], verified=False, confidence=0.4)
+        enforce_evidence([f])
+        assert f.evidence == "indicative"
+
+
 class TestBlindTimingGate:
     """The declared-sleep gate: SLEEP(3) must delay by ~3s, not just be
     slower than baseline — server load variance otherwise "confirms" timing
@@ -837,6 +997,55 @@ class TestBlindTimingGate:
             "' AND SLEEP(3)--", "query", [0.8, 0.8, 0.8], param_name="id",
         )
         assert ok is False, f"1.2s load variance must NOT confirm SLEEP(3), delay={delay}"
+
+    class _VariableDelayedContext:
+        """Serves a per-request delay from a list (round-robin), so a test can
+        hand out one slow sample and two fast ones."""
+
+        def __init__(self, delays):
+            self._delays = list(delays)
+            self._i = 0
+
+        @property
+        def request(self):
+            return self
+
+        async def get(self, *a, **kw):
+            d = self._delays[self._i % len(self._delays)]
+            self._i += 1
+            await asyncio.sleep(d)
+
+            class _R:
+                status = 200
+            return _R()
+
+        async def post(self, *a, **kw):
+            return await self.get()
+
+    async def test_majority_agreement_confirms(self):
+        """A consistent injected delay (all 3 samples slow) confirms."""
+        from titan.verify import BlindDetector
+        detector = BlindDetector(samples=3, confidence=0.95)
+        ok, delay = await detector.detect_time_based(
+            self._VariableDelayedContext([2.0, 2.1, 2.05]), "http://x", "GET",
+            {"id": "1"}, {}, {}, "' AND 1=1--", "query",
+            [0.4, 0.5, 0.45], param_name="id",
+        )
+        assert ok is True, f"consistent delay must confirm, delay={delay}"
+
+    async def test_single_slow_outlier_does_not_confirm(self):
+        """SCAN-QUALITY M1 agreement gate: a mean dragged up by ONE slow
+        request (GC pause / CDN blip) must NOT confirm — the delay must be
+        consistent across the sample set. Mean 1.05s vs a 0.48s baseline
+        would pass the old mean-only check."""
+        from titan.verify import BlindDetector
+        detector = BlindDetector(samples=3, confidence=0.95)
+        ok, delay = await detector.detect_time_based(
+            self._VariableDelayedContext([0.5, 0.55, 2.1]), "http://x", "GET",
+            {"id": "1"}, {}, {}, "' AND 1=1--", "query",
+            [0.4, 0.5, 0.45], param_name="id",
+        )
+        assert ok is False, f"one slow outlier must not confirm, delay={delay}"
 
 
 class TestEchoDifferentialOracle:

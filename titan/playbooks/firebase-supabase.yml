@@ -1,0 +1,227 @@
+name: firebase-supabase
+version: 1.0
+description: |
+  Firebase and Supabase playbook. Covers JS bundle extraction for cloud
+  configs, Firestore/RTDB enumeration, Security Rules testing, Storage
+  bucket access, Supabase REST API enumeration, and service-role key
+  exposure. These are the most common cloud misconfigurations in
+  Vercel/Netlify-deployed apps.
+
+fingerprint:
+  body:
+    - "firebaseConfig|firebase\\.initializeApp|firebaseio\\.com|firebasestorage"
+    - "supabase\\.createClient|NEXT_PUBLIC_SUPABASE|supabase\\.co"
+  headers: {}
+  url: []
+
+auth:
+  # Firebase and Supabase use client-side API keys embedded in JS.
+  # No login form — the "auth" is extracting the config from the bundle.
+  login_url: null
+  # Firebase: anonymous auth may be enabled
+  firebase_anon: true
+  # Supabase: anon key is in the JS bundle
+  supabase_anon: true
+
+# ─── Config Extraction ──────────────────────────────────────────────────
+config_extraction:
+  # Patterns to search for in JS bundles
+  firebase:
+    - pattern: 'firebaseConfig\s*=\s*\{([^}]+)\}'
+      extract:
+        apiKey: "apiKey[\"']?\\s*:\\s*[\"']([^\"']+)"
+        authDomain: "authDomain[\"']?\\s*:\\s*[\"']([^\"']+)"
+        projectId: "projectId[\"']?\\s*:\\s*[\"']([^\"']+)"
+        storageBucket: "storageBucket[\"']?\\s*:\\s*[\"']([^\"']+)"
+        messagingSenderId: "messagingSenderId[\"']?\\s*:\\s*[\"']([^\"']+)"
+        appId: "appId[\"']?\\s*:\\s*[\"']([^\"']+)"
+    - pattern: 'firebaseio\.com'
+      extract:
+        projectId: "([\\w-]+)\\.firebaseio\\.com"
+  supabase:
+    - pattern: "supabase\\.createClient\\s*\\(\\s*[\"']([^\"']+)[\"']\\s*,\\s*[\"']([^\"']+)"
+      extract:
+        url: group_1
+        anon_key: group_2
+    - pattern: "NEXT_PUBLIC_SUPABASE_URL[\"']?\\s*[:=]\\s*[\"']([^\"']+)"
+      extract:
+        url: group_1
+    - pattern: "NEXT_PUBLIC_SUPABASE_ANON_KEY[\"']?\\s*[:=]\\s*[\"']([^\"']+)"
+      extract:
+        anon_key: group_1
+  # Service-role keys (critical if exposed)
+  service_role:
+    - pattern: "service_role[\"']?\\s*[:=]\\s*[\"']([^\"']+)"
+      finding: "Supabase service-role key exposed — full admin access to database"
+      severity: critical
+    - pattern: 'sk_live_[0-9a-zA-Z]+'
+      finding: "Stripe secret key exposed"
+      severity: critical
+    - pattern: 'AKIA[0-9A-Z]{16}'
+      finding: "AWS access key ID exposed"
+      severity: critical
+
+# ─── Firebase Probes ────────────────────────────────────────────────────
+firebase_probes:
+  - name: "RTDB read — root path"
+    url: "https://{project_id}.firebaseio.com/.json"
+    method: GET
+    finding: "Firebase RTDB publicly readable — entire database accessible"
+    severity: critical
+    verify: "200 with JSON data (not null or permission denied)"
+
+  - name: "RTDB read — users path"
+    url: "https://{project_id}.firebaseio.com/users.json"
+    method: GET
+    finding: "Firebase RTDB users path publicly readable — PII leak"
+    severity: critical
+    verify: "200 with JSON data"
+
+  - name: "Firestore list collections"
+    url: "https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents"
+    method: GET
+    finding: "Firestore collections listable — schema enumeration"
+    severity: high
+    verify: "200 with document list"
+
+  - name: "Firestore read — users collection"
+    url: "https://firestore.googleapis.com/v1/projects/{project_id}/databases/(default)/documents/users"
+    method: GET
+    finding: "Firestore users collection publicly readable — PII leak"
+    severity: critical
+    verify: "200 with documents array"
+
+  - name: "Storage bucket list"
+    url: "https://firebasestorage.googleapis.com/v0/b/{storage_bucket}/o"
+    method: GET
+    finding: "Firebase Storage bucket listable — file enumeration"
+    severity: high
+    verify: "200 with items array"
+
+  - name: "Storage bucket download"
+    url: "https://firebasestorage.googleapis.com/v0/b/{storage_bucket}/o?alt=media"
+    method: GET
+    finding: "Firebase Storage bucket publicly downloadable"
+    severity: critical
+    verify: "200 with file data"
+
+  - name: "Anonymous auth"
+    url: "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={api_key}"
+    method: POST
+    body: '{"returnSecureToken": true}'
+    content_type: "application/json"
+    finding: "Firebase anonymous auth enabled — can create accounts and access auth-gated data"
+    severity: medium
+    verify: "200 with idToken"
+
+# ─── Supabase Probes ─────────────────────────────────────────────────────
+supabase_probes:
+  - name: "REST API — root"
+    url: "{supabase_url}/rest/v1/"
+    method: GET
+    headers:
+      apikey: "{anon_key}"
+      Authorization: "Bearer {anon_key}"
+    finding: "Supabase REST API accessible — schema enumeration"
+    severity: medium
+    verify: "200 with OpenAPI spec"
+
+  - name: "REST API — users table"
+    url: "{supabase_url}/rest/v1/users?select=*&limit=10"
+    method: GET
+    headers:
+      apikey: "{anon_key}"
+      Authorization: "Bearer {anon_key}"
+    finding: "Supabase users table publicly readable — PII leak"
+    severity: critical
+    verify: "200 with array of user records"
+
+  - name: "REST API — auth.users table"
+    url: "{supabase_url}/rest/v1/auth.users?select=*&limit=10"
+    method: GET
+    headers:
+      apikey: "{anon_key}"
+      Authorization: "Bearer {anon_key}"
+    finding: "Supabase auth.users table accessible — credential leak"
+    severity: critical
+    verify: "200 with array of auth records"
+
+  - name: "Storage — list buckets"
+    url: "{supabase_url}/storage/v1/bucket"
+    method: GET
+    headers:
+      apikey: "{anon_key}"
+      Authorization: "Bearer {anon_key}"
+    finding: "Supabase storage buckets listable"
+    severity: high
+    verify: "200 with buckets array"
+
+  - name: "Auth — anonymous signup"
+    url: "{supabase_url}/auth/v1/signup"
+    method: POST
+    headers:
+      apikey: "{anon_key}"
+      Content-Type: "application/json"
+    body: '{"email": "test@test.com", "password": "test123456"}'
+    finding: "Supabase anonymous signup enabled — can create accounts"
+    severity: medium
+    verify: "200 or 201 with user object"
+
+# ─── Common Collection Names to Brute ───────────────────────────────────
+collection_brute:
+  - users
+  - profiles
+  - admins
+  - messages
+  - orders
+  - payments
+  - tokens
+  - sessions
+  - settings
+  - logs
+  - notifications
+  - feedback
+  - posts
+  - comments
+  - files
+  - uploads
+  - secrets
+  - api_keys
+  - config
+  - waitlist
+  - subscriptions
+
+discovery_seeds:
+  - "/.env"
+  - "/.env.local"
+  - "/.env.production"
+  - "/.firebaserc"
+  - "/firebase.json"
+  - "/firestore.rules"
+  - "/storage.rules"
+  - "/supabase/config.toml"
+  - "/package.json"
+  - "/vercel.json"
+
+expected_findings:
+  - type: "Public Storage"
+    description: "Firebase RTDB or Firestore publicly readable"
+    severity: critical
+  - type: "Public Storage"
+    description: "Firebase Storage bucket listable/downloadable"
+    severity: high
+  - type: "Hardcoded Secret"
+    description: "Firebase API key in JS bundle (expected, but check for service-role)"
+    severity: low
+  - type: "Hardcoded Secret"
+    description: "Supabase service-role key exposed in JS bundle"
+    severity: critical
+  - type: "Public Storage"
+    description: "Supabase REST API tables accessible with anon key"
+    severity: critical
+  - type: "Info Leak"
+    description: "Supabase auth.users table accessible"
+    severity: critical
+  - type: "Auth Weakness"
+    description: "Anonymous signup enabled (Firebase or Supabase)"
+    severity: medium

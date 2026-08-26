@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>TITAN // PHOSPHOR GREEN CRT TUBE & LUMA-MAPPED ASCII SHADER</title>
+    <meta name="description" content="Pure monochrome phosphor green CRT tube, luma-mapped ASCII hacker silhouette shader, CRT power physics, and ed25519 consent gates."/>
+    
+    <!-- Google Fonts: Press Start 2P, VT323, Share Tech Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+
+    <style>
+        /* -------------------------------------------------------------
+           PURE PHOSPHOR GREEN & MONOCHROME CRT ARCHITECTURE
+        ------------------------------------------------------------- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-void: #000000;
+            --crt-green: #00ff66;
+            --crt-green-glow: rgba(0, 255, 102, 0.6);
+            --crt-green-dim: #005522;
+            --crt-cyan: #00f0ff;
+            --white-stark: #ffffff;
+            --amber-warn: #ffb700;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-void);
+            color: var(--white-stark);
+            font-family: 'Press Start 2P', monospace;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            
+            /* Anti-Aliasing Assassination: Raw pixel edges */
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: unset;
+            font-smooth: never;
+            image-rendering: pixelated;
+        }
+
+        ::selection {
+            background: var(--crt-green);
+            color: #000;
+        }
+
+        /* AWGE CRT Tube Frame & Bezel */
+        .awge-tube-border {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            border: 24px solid #000;
+            border-radius: 44px;
+            pointer-events: none;
+            z-index: 999;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.98);
+        }
+
+        /* Scanlines Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 998;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.45) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(0, 255, 102, 0.04),
+                rgba(0, 240, 255, 0.02),
+                rgba(0, 255, 102, 0.04)
+            );
+            background-size: 100% 3px, 6px 100%;
+            opacity: 0.95;
+        }
+
+        .tube-vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 997;
+            background: radial-gradient(circle at center, transparent 50%, rgba(0, 0, 0, 0.9) 100%);
+        }
+
+        /* CRT Screen Content Wrapper (Turn-on & Turn-off Keyframes) */
+        .awge-content {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #000502;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 3rem 2rem;
+            animation: 3.4s linear 0s 1 normal none running turn-on;
+            overflow-y: auto;
+        }
+
+        .awge-content.turning-off {
+            animation: 0.75s cubic-bezier(0.755, 0.05, 0.855, 0.06) 0s 1 normal forwards running turn-off !important;
+        }
+
+        @keyframes turn-on {
+            0% {
+                transform: scale(1, 0.8) translate3d(0, 0, 0);
+                filter: brightness(30);
+                opacity: 1;
+            }
+            3.5% {
+                transform: scale(1, 0.8) translate3d(0, 100%, 0);
+            }
+            3.6% {
+                transform: scale(1, 0.8) translate3d(0, -100%, 0);
+                opacity: 1;
+            }
+            9% {
+                transform: scale(1.3, 0.6) translate3d(0, 100%, 0);
+                filter: brightness(30);
+                opacity: 0;
+            }
+            11% {
+                transform: scale(1, 1) translate3d(0, 0, 0);
+                filter: contrast(0) brightness(0) saturate(1);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1, 1) translate3d(0, 0, 0);
+                filter: contrast(1.075) brightness(1.14) saturate(1.3);
+                opacity: 1;
+            }
+        }
+
+        @keyframes turn-off {
+            0% {
+                transform: scale(1, 1.3) translate3d(0, 0, 0);
+                filter: brightness(1);
+                opacity: 1;
+            }
+            60% {
+                transform: scale(1.3, 0.001) translate3d(0, 0, 0);
+                filter: brightness(10);
+            }
+            100% {
+                transform: scale(0, 0.0001) translate3d(0, 0, 0);
+                filter: brightness(50);
+                opacity: 0;
+            }
+        }
+
+        /* -------------------------------------------------------------
+           LUMA-MAPPED ASCII SILHOUETTE CANVAS SHADER (PHOSPHOR GREEN)
+        ------------------------------------------------------------- */
+        #luma-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            opacity: 0.85;
+            pointer-events: none;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 102, 0.6)) drop-shadow(0 0 45px rgba(0, 255, 102, 0.3));
+        }
+
+        /* -------------------------------------------------------------
+           M7 LANDING HERO VIEW
+        ------------------------------------------------------------- */
+        .landing-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .landing-title {
+            margin-bottom: 2rem;
+            cursor: pointer;
+        }
+
+        .heading {
+            font-family: 'Press Start 2P', monospace;
+            font-size: clamp(2.5rem, 8.5vw, 6.8rem);
+            color: #ffffff;
+            letter-spacing: 4px;
+            line-height: 1.1;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 35px rgba(0, 255, 102, 0.6);
+            transition: color 0.15s ease;
+        }
+
+        .landing-subtitle {
+            font-family: 'VT323', monospace;
+            font-size: 1.6rem;
+            color: var(--amber-warn);
+            letter-spacing: 2px;
+            margin-bottom: 3.5rem;
+            text-shadow: 0 0 12px rgba(255, 183, 0, 0.6);
+        }
+
+        .landing-start {
+            margin-top: 1rem;
+        }
+
+        .landing-start-container {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: #ffffff;
+            cursor: pointer;
+            padding: 0.85rem 1.8rem;
+            border: 2px solid transparent;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+        }
+
+        .landing-start-container:hover {
+            border-color: var(--crt-green);
+            background: rgba(0, 255, 102, 0.15);
+            box-shadow: 0 0 35px rgba(0, 255, 102, 0.5);
+        }
+
+        .landing-start-text {
+            font-family: 'Press Start 2P', monospace;
+            font-size: clamp(1rem, 2.2vw, 1.6rem);
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .landing-start-arrow {
+            display: inline-block;
+            color: var(--crt-green);
+            animation: arrowFlicker 0.8s infinite alternate;
+        }
+
+        @keyframes arrowFlicker {
+            0% { opacity: 0.2; transform: translateX(-4px); }
+            100% { opacity: 1; transform: translateX(4px); }
+        }
+
+        .landing-copyright {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--crt-green-dim);
+            letter-spacing: 1px;
+            margin-top: auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* -------------------------------------------------------------
+           TITAN UNDERGROUND CONSOLE (UNLOCKED)
+        ------------------------------------------------------------- */
+        .system-console {
+            display: none;
+            width: 100%;
+            max-width: 1250px;
+            margin: 0 auto;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--crt-green);
+            position: relative;
+            z-index: 10;
+        }
+
+        .system-console.active {
+            display: block;
+        }
+
+        .top-hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--crt-green);
+            padding-bottom: 0.75rem;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
+            color: var(--crt-green);
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+        }
+
+        .hud-btn {
+            background: var(--amber-warn);
+            color: #000;
+            border: none;
+            padding: 0.35rem 0.85rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 183, 0, 0.4);
+        }
+
+        .console-box {
+            border: 2px solid var(--crt-green);
+            background: rgba(0, 15, 6, 0.92);
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.25);
+        }
+
+        .console-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.8rem;
+            color: var(--amber-warn);
+            margin-bottom: 1.25rem;
+        }
+
+        .hex-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .hex-table th {
+            color: var(--amber-warn);
+            border-bottom: 1px solid var(--crt-green-dim);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .hex-table td {
+            padding: 0.4rem 0.5rem;
+            border-bottom: 1px dashed rgba(0, 255, 102, 0.25);
+        }
+
+        .hex-table tr:hover {
+            background: rgba(0, 255, 102, 0.2);
+            color: #fff;
+        }
+
+        .track-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .track-card {
+            border: 1px solid var(--crt-green-dim);
+            background: rgba(0, 20, 8, 0.88);
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .track-card:hover {
+            border-color: var(--crt-green);
+            box-shadow: 0 0 25px rgba(0, 255, 102, 0.3);
+        }
+
+        .cli-container {
+            border: 2px solid var(--crt-green);
+            background: #000;
+        }
+
+        .cli-header {
+            background: var(--crt-green);
+            color: #000;
+            padding: 0.4rem 1rem;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .cli-log {
+            padding: 1.5rem;
+            height: 240px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .cli-input-bar {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 1.25rem;
+            border-top: 1px solid var(--crt-green-dim);
+            background: rgba(0, 25, 10, 0.9);
+        }
+
+        .cli-input-bar input {
+            width: 100%;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--crt-green);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- AWGE Tube Screen Bezel, Vignette & Scanlines -->
+    <div class="awge-tube-border"></div>
+    <div class="scanlines"></div>
+    <div class="tube-vignette"></div>
+
+    <!-- Main CRT Tube Content -->
+    <main class="awge-content" id="awge-content">
+
+        <!-- Top Tube Header Data -->
+        <div style="width: 100%; display: flex; justify-content: space-between; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: #008833; position: relative; z-index: 10;">
+            <div>[TITAN // DIGITAL BRUTALISM]</div>
+            <div>[TRANSMISSION: ENCRYPTED]</div>
+        </div>
+
+        <!-- M7 EXACT HERO LANDING VIEW -->
+        <div class="landing-content" id="landing-content">
+            
+            <!-- Canvas: Luma-Mapped Phosphor Green ASCII Ghost / Operative Silhouette -->
+            <canvas id="luma-canvas" width="760" height="580"></canvas>
+
+            <div class="landing-title" id="scramble-parent">
+                <h1 id="scramble-text" class="heading" data-original="IYKYK" data-hover="TITAN">IYKYK</h1>
+            </div>
+
+            <div class="landing-subtitle">
+                [ ZERO FABRICATED FINDINGS. GUARANTEED BY PROOF. ]
+            </div>
+
+            <div class="landing-start">
+                <a href="#" class="landing-start-container" id="enter-btn">
+                    <h2 class="landing-start-text">
+                        <span class="landing-start-arrow">›</span>
+                        <span id="btn-text">INVITE ONLY</span>
+                    </h2>
+                </a>
+            </div>
+
+            <div class="landing-copyright">
+                <div class="landing-copyright-text">© 2026 TITAN LABS</div>
+            </div>
+
+        </div>
+
+        <!-- TITAN UNDERGROUND SYSTEM CONSOLE -->
+        <div class="system-console" id="system-console">
+            
+            <div class="top-hud">
+                <div>[SYSTEM: TITAN DAST v2.4.0]</div>
+                <div>[GATE: ED25519 PINNED (~/.titan/consent.key)]</div>
+                <div><button class="hud-btn" id="lock-btn">← POWER DOWN TUBE</button></div>
+            </div>
+
+            <!-- HEX MEMORY DUMP -->
+            <div class="console-box">
+                <div class="console-title">[0x01] HEX MEMORY DUMP INSPECTOR</div>
+                <table class="hex-table">
+                    <thead>
+                        <tr>
+                            <th>ADDR</th>
+                            <th>HEX BYTES (16-BYTE BLOCK)</th>
+                            <th>ASCII DECODE</th>
+                            <th>EVIDENCE ORACLE VERDICT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color: #55aa77;">0x0000</td>
+                            <td>27 20 4F 52 20 31 3D 31 2D 2D 00 53 51 4C 69 21</td>
+                            <td style="color: #fff;">' OR 1=1--.SQLi!</td>
+                            <td style="color: var(--amber-warn);">SQLi Mutated • w = 0.90 (error:sql)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #55aa77;">0x0010</td>
+                            <td>3C 73 63 72 69 70 74 3E 61 6C 65 72 74 28 31 29</td>
+                            <td style="color: #fff;">&lt;script&gt;alert(1)</td>
+                            <td style="color: var(--amber-warn);">DOM XSS • w = 0.90 (xss_unescaped)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #55aa77;">0x0020</td>
+                            <td>68 74 74 70 3A 2F 2F 31 36 39 2E 32 35 34 2E 31</td>
+                            <td style="color: #fff;">http://169.254.1</td>
+                            <td style="color: var(--amber-warn);">AWS IMDS SSRF • w = 1.00 (oob_confirmed)</td>
+                        </tr>
+                        <tr>
+                            <td style="color: #55aa77;">0x0030</td>
+                            <td>65 64 32 35 35 31 39 5F 70 6B 5F 37 46 39 61 42</td>
+                            <td style="color: #fff;">ed25519_pk_7F9aB</td>
+                            <td style="color: var(--amber-warn);">Consent Gate Active • ed25519</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 7 ATTACK TRACKS MATRIX -->
+            <div class="console-title">[0x02] 7 ATTACK SURFACE TRACKS</div>
+            <div class="track-grid">
+                <div class="track-card">
+                    <div style="font-family: 'Press Start 2P', monospace; font-size: 0.75rem; color: var(--amber-warn); margin-bottom: 0.5rem;">TRACK 00: SERVER</div>
+                    <p style="font-size: 0.85rem; color: #a0d0b0;">20 server modules: SQLi, XSS, SSRF, LFI, RCE, SSTI, XXE, NoSQLi, Smuggling, Race Conditions.</p>
+                </div>
+                <div class="track-card">
+                    <div style="font-family: 'Press Start 2P', monospace; font-size: 0.75rem; color: var(--amber-warn); margin-bottom: 0.5rem;">TRACK A: CLIENT DOM</div>
+                    <p style="font-size: 0.85rem; color: #a0d0b0;">Hooks real JS execution sinks in Playwright Chromium for DOM XSS and prototype pollution.</p>
+                </div>
+                <div class="track-card">
+                    <div style="font-family: 'Press Start 2P', monospace; font-size: 0.75rem; color: var(--amber-warn); margin-bottom: 0.5rem;">TRACK B: BOLA IDENTITY</div>
+                    <p style="font-size: 0.85rem; color: #a0d0b0;">Concurrent multi-session differential testing for BOLA and JWT confusion.</p>
+                </div>
+                <div class="track-card">
+                    <div style="font-family: 'Press Start 2P', monospace; font-size: 0.75rem; color: var(--amber-warn); margin-bottom: 0.5rem;">TRACK E: CONSENT C2</div>
+                    <p style="font-size: 0.85rem; color: #a0d0b0;">POSIX polling agents & webshells behind signed ed25519 cryptographic authorization.</p>
+                </div>
+            </div>
+
+            <!-- OPERATOR CLI TERMINAL -->
+            <div class="cli-container">
+                <div class="cli-header">OPERATOR SHELL [titan_exploit_cli.py]</div>
+                <div class="cli-log" id="cli-log">
+                    <div style="color: #60c080;">Titan DAST Engine Console v2.4.0 [Python 3.10+ Playwright]</div>
+                    <div>Type <span style="color: #fff;">help</span> for available commands or execute <span style="color: #fff;">scan http://localhost:5000</span>.</div>
+                    <br>
+                </div>
+                <div class="cli-input-bar">
+                    <span style="color: var(--crt-green); font-weight: 700;">operator@titan:~#</span>
+                    <input type="text" id="cli-in" placeholder="Type command (scan, consent, clear, help)..." autofocus>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- LUMA-MAPPED ASCII SHADER ENGINE (PURE PHOSPHOR GREEN) -->
+    <script>
+        /* -------------------------------------------------------------
+           1. LUMA-MAPPED PHOSPHOR GREEN ASCII GHOST / OPERATIVE SHADER
+        ------------------------------------------------------------- */
+        const canvas = document.getElementById('luma-canvas');
+        const ctx = canvas.getContext('2d');
+        const charRamp = " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+
+        let frame = 0;
+        let glitchIntensity = 0;
+        let glitchBandY = 0;
+        let mouseX = 0, mouseY = 0;
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = (e.clientX - rect.left) / rect.width * 2 - 1;
+            mouseY = (e.clientY - rect.top) / rect.height * 2 - 1;
+        });
+
+        function renderLumaAsciiGhost() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frame++;
+
+            const cols = 72;
+            const rows = 48;
+            const cellW = canvas.width / cols;
+            const cellH = canvas.height / rows;
+
+            ctx.font = '10px "Share Tech Mono", monospace';
+
+            // Random horizontal glitch tearing
+            if (Math.random() > 0.92) {
+                glitchIntensity = (Math.random() - 0.5) * 24;
+                glitchBandY = Math.floor(Math.random() * rows);
+            } else {
+                glitchIntensity *= 0.82;
+            }
+
+            for (let r = 0; r < rows; r++) {
+                const isGlitchRow = Math.abs(r - glitchBandY) < 3;
+                const shiftX = isGlitchRow ? glitchIntensity : 0;
+                const ny = (r / rows) * 2 - 1; // -1 to 1
+
+                for (let c = 0; c < cols; c++) {
+                    const nx = (c / cols) * 2 - 1; // -1 to 1
+
+                    // Morphological Luma Silhouette Formula (Cyber Operative Ghost / Girl Profile)
+                    // Head shape + visor band + flowing cyber hair + tactical collar & shoulders
+                    const headX = nx - mouseX * 0.05;
+                    const headY = ny + 0.12 - mouseY * 0.05;
+                    const headDist = Math.sqrt(headX * headX * 1.35 + headY * headY);
+                    
+                    const hairL = Math.pow(nx + 0.38 + Math.sin(r * 0.15 + frame * 0.04) * 0.04, 2) + Math.pow(ny - 0.1, 2) * 0.7;
+                    const hairR = Math.pow(nx - 0.38 + Math.cos(r * 0.15 + frame * 0.04) * 0.04, 2) + Math.pow(ny - 0.1, 2) * 0.7;
+                    const shoulders = (ny > 0.42) && (Math.abs(nx) < 0.78 + (ny - 0.42) * 0.9);
+                    const visor = (ny > -0.20 && ny < -0.06) && (Math.abs(nx) < 0.44);
+
+                    let luma = 0;
+
+                    if (visor) {
+                        // Radiant Visor Core
+                        luma = 0.98 + Math.sin(nx * 14 + frame * 0.12) * 0.02;
+                    } else if (headDist < 0.44) {
+                        // Face & Head Contours
+                        luma = 0.82 - headDist * 0.9 + Math.sin(c * 0.4 + r * 0.3) * 0.08;
+                    } else if (hairL < 0.26 || hairR < 0.26) {
+                        // Flowing Cyber Hair
+                        luma = 0.65 + Math.sin(r * 0.5 + frame * 0.06) * 0.15;
+                    } else if (shoulders) {
+                        // Tactical Chassis / Hood
+                        luma = 0.48 + (1 - Math.abs(nx)) * 0.35 + Math.cos(c * 0.3 + frame * 0.05) * 0.06;
+                    } else {
+                        // Ambient Ghost Matrix Particles
+                        const noise = Math.sin(c * 0.28 + frame * 0.05) * Math.cos(r * 0.22 + frame * 0.04);
+                        luma = noise > 0.65 ? (noise - 0.65) * 0.8 : 0;
+                    }
+
+                    if (luma > 0.04) {
+                        const charIdx = Math.min(charRamp.length - 1, Math.floor(luma * charRamp.length));
+                        const char = charRamp[charIdx];
+
+                        const px = c * cellW + shiftX;
+                        const py = r * cellH;
+
+                        if (visor) {
+                            ctx.fillStyle = '#00f0ff';
+                            ctx.shadowColor = '#00f0ff';
+                            ctx.shadowBlur = 10;
+                        } else if (luma > 0.7) {
+                            ctx.fillStyle = '#00ff66';
+                            ctx.shadowColor = '#00ff66';
+                            ctx.shadowBlur = 8;
+                        } else if (luma > 0.35) {
+                            ctx.fillStyle = '#00cc55';
+                            ctx.shadowColor = '#00cc55';
+                            ctx.shadowBlur = 4;
+                        } else {
+                            ctx.fillStyle = 'rgba(0, 120, 50, 0.45)';
+                            ctx.shadowBlur = 0;
+                        }
+
+                        ctx.fillText(char, px, py);
+                    }
+                }
+            }
+
+            requestAnimationFrame(renderLumaAsciiGhost);
+        }
+        renderLumaAsciiGhost();
+
+        /* -------------------------------------------------------------
+           2. M7 EXACT CHARACTER SCRAMBLE ENGINE
+        ------------------------------------------------------------- */
+        (function() {
+            var C = '!<>-_\\/[]{}=+*^?#ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var el = document.getElementById('scramble-text');
+            var par = document.getElementById('scramble-parent');
+            if (!el || !par) return;
+
+            var O = el.dataset.original || 'IYKYK';
+            var T = el.dataset.hover || 'TITAN';
+            var raf = null;
+
+            function rc() {
+                return C[Math.floor(Math.random() * C.length)];
+            }
+
+            function mk(c, cl, cur) {
+                var s = '<span style="display:inline-block;position:relative"><span style="transition:color 75ms;' + cl + '">' + c + '</span>';
+                if (cur) s += '<span style="position:absolute;inset:0;background:rgba(255,255,255,.28);pointer-events:none"></span>';
+                return s + '</span>';
+            }
+
+            function rn(s) {
+                var h = '';
+                for (var i = 0; i < s.length; i++) h += mk(s[i], '', false);
+                el.innerHTML = h;
+            }
+
+            rn(O);
+
+            function go(fromText, toText) {
+                if (raf) cancelAnimationFrame(raf);
+                var maxLen = Math.max(fromText.length, toText.length);
+                var resolved = 0;
+                var frame = 0;
+
+                function tick() {
+                    frame++;
+                    if (frame % 2 === 0) {
+                        resolved++;
+                    }
+
+                    var html = '';
+                    for (var i = 0; i < maxLen; i++) {
+                        if (i < resolved) {
+                            var char = i < toText.length ? toText[i] : '';
+                            html += mk(char, 'color:#ffffff;', false);
+                        } else {
+                            var isCursor = (i === resolved);
+                            html += mk(rc(), 'color:#00ff66;', isCursor);
+                        }
+                    }
+
+                    el.innerHTML = html;
+
+                    if (resolved < maxLen) {
+                        raf = requestAnimationFrame(tick);
+                    } else {
+                        rn(toText);
+                    }
+                }
+
+                tick();
+            }
+
+            par.addEventListener('mouseenter', function() {
+                go(O, T);
+                glitchIntensity = 25;
+            });
+
+            par.addEventListener('mouseleave', function() {
+                go(T, O);
+            });
+
+            // Scramble Button Text on Hover
+            var btnText = document.getElementById('btn-text');
+            var btnPar = document.getElementById('enter-btn');
+            var btnO = 'INVITE ONLY';
+            var btnT = 'ENTER TERMINAL';
+
+            btnPar.addEventListener('mouseenter', function() {
+                var count = 0;
+                var interval = setInterval(function() {
+                    count++;
+                    btnText.textContent = btnT.split('').map(function(ch, idx) {
+                        if (idx < count) return btnT[idx];
+                        return rc();
+                    }).join('');
+                    if (count >= btnT.length) clearInterval(interval);
+                }, 35);
+            });
+
+            btnPar.addEventListener('mouseleave', function() {
+                btnText.textContent = btnO;
+            });
+        })();
+
+        /* -------------------------------------------------------------
+           3. M7 CRT POWER COLLAPSE & EXPANSION
+        ------------------------------------------------------------- */
+        var awgeContent = document.getElementById('awge-content');
+        var landingContent = document.getElementById('landing-content');
+        var systemConsole = document.getElementById('system-console');
+        var enterBtn = document.getElementById('enter-btn');
+        var lockBtn = document.getElementById('lock-btn');
+
+        enterBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Trigger turn-off CRT collapse
+            awgeContent.classList.add('turning-off');
+
+            setTimeout(function() {
+                landingContent.style.display = 'none';
+                systemConsole.classList.add('active');
+                awgeContent.classList.remove('turning-off');
+
+                // Re-trigger turn-on animation
+                awgeContent.style.animation = 'none';
+                awgeContent.offsetHeight;
+                awgeContent.style.animation = '3.4s linear 0s 1 normal none running turn-on';
+            }, 750);
+        });
+
+        lockBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            awgeContent.classList.add('turning-off');
+
+            setTimeout(function() {
+                systemConsole.classList.remove('active');
+                landingContent.style.display = 'flex';
+                awgeContent.classList.remove('turning-off');
+
+                awgeContent.style.animation = 'none';
+                awgeContent.offsetHeight;
+                awgeContent.style.animation = '3.4s linear 0s 1 normal none running turn-on';
+            }, 750);
+        });
+
+        /* -------------------------------------------------------------
+           4. OPERATOR CLI PROMPT ENGINE
+        ------------------------------------------------------------- */
+        var cliIn = document.getElementById('cli-in');
+        var cliLog = document.getElementById('cli-log');
+
+        function appendLog(msg, color) {
+            var div = document.createElement('div');
+            div.style.color = color || '#00ff66';
+            div.textContent = msg;
+            cliLog.appendChild(div);
+            cliLog.scrollTop = cliLog.scrollHeight;
+        }
+
+        cliIn.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                var cmd = cliIn.value.trim();
+                if (!cmd) return;
+                appendLog('operator@titan:~# ' + cmd, '#fff');
+
+                if (cmd === 'clear') {
+                    cliLog.innerHTML = '';
+                } else if (cmd === 'help') {
+                    appendLog('AVAILABLE COMMANDS:', '#ffb700');
+                    appendLog('  scan <url>          : Run multi-track DAST scan');
+                    appendLog('  consent add <target>: Sign ed25519 consent certificate');
+                    appendLog('  clear               : Clear console');
+                } else if (cmd.startsWith('scan')) {
+                    appendLog('[+] Initializing Playwright engine & PayloadSmith...', '#60c080');
+                    appendLog('[+] Target Stack: PostgreSQL 14, Node.js Express, React SPA', '#60c080');
+                    appendLog('[✔] Finding Confirmed: SQL Injection in /api/v1/search (param=q)', '#00ff66');
+                    appendLog('[★] ORACLE MATCH: error:sql (DBMS PostgreSQL syntax error)', '#ffb700');
+                } else if (cmd.startsWith('consent')) {
+                    appendLog('[+] Certifying domain scope with ed25519 keypair (~/.titan/consent.key)...', '#60c080');
+                    appendLog('[✔] Certificate generated: consent/lab-local.json (Flags: --shells, --write)', '#00ff66');
+                } else {
+                    appendLog('Command unhandled: ' + cmd + ". Type 'help' for usage.", '#ff2255');
+                }
+                cliIn.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

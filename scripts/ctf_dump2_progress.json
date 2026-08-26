@@ -1,0 +1,60 @@
+{
+ "tables": [
+  "photos",
+  "albums"
+ ],
+ "str_tbl_0": {
+  "value": "photos",
+  "done": true
+ },
+ "str_tbl_1": {
+  "value": "albums",
+  "done": true
+ },
+ "str_tbl_2": {
+  "value": "",
+  "done": true
+ },
+ "cols_photos": [
+  "title",
+  "parent",
+  "id",
+  "filename"
+ ],
+ "str_col_photos_0": {
+  "value": "title",
+  "done": true
+ },
+ "str_col_photos_1": {
+  "value": "parent",
+  "done": true
+ },
+ "str_col_photos_2": {
+  "value": "id",
+  "done": true
+ },
+ "str_col_photos_3": {
+  "value": "filename",
+  "done": true
+ },
+ "str_col_photos_4": {
+  "value": "",
+  "done": true
+ },
+ "str_cell_photos.title.0": {
+  "value": "Utterly adorable",
+  "done": true
+ },
+ "str_cell_photos.parent.0": {
+  "value": "1",
+  "done": true
+ },
+ "str_cell_photos.id.0": {
+  "value": "1",
+  "done": true
+ },
+ "str_cell_photos.filename.0": {
+  "value": ";en",
+  "done": false
+ }
+}

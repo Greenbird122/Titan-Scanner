@@ -142,9 +142,12 @@ class TestLabIDOR:
 class TestLabLFI:
     async def test_finds_lfi_via_error_class(self, context):
         detector = LFIDetector(StubSmith(), {})
+        # The lab resolves ``file`` relative to its own directory (so the
+        # advertised baseline ``file=app.py`` works from any cwd); passing
+        # ``local_lab/app.py`` would double the prefix and error.
         findings = await detector.scan(
             context, "http://localhost:5000", "GET",
-            "http://localhost:5000/lfi", {"file": "local_lab/app.py"},
+            "http://localhost:5000/lfi", {"file": "app.py"},
         )
         assert findings, "LFI detector should find the lab's /lfi endpoint"
         f = findings[0]
@@ -154,6 +157,20 @@ class TestLabLFI:
 
 
 class TestLabRCE:
+    def test_delay_payloads_carry_both_os_flavours(self):
+        """Cross-platform pin: the blind timing payload set must include BOTH
+        Windows (`ping -n 3`) and POSIX (`ping -c 3`) delay probes. A
+        Windows-only set made time-based RCE verification near-useless on
+        Linux/macOS targets (e.g. the Docker lab, whose /cmd runs GNU ping)."""
+        delays = RCEDetector.DELAY_PAYLOADS
+        assert any("ping -n 3" in p for p in delays), "Windows ping variant missing"
+        assert any("ping -c 3" in p for p in delays), "POSIX ping variant missing"
+        assert any("sleep 4" in p for p in delays), "portable sleep variant missing"
+        # The engine cap must never trim the delay payloads: they are appended
+        # AFTER the [:8] output-probe cap, so a WAF-heavy base can't starve
+        # the blind evidence path.
+        assert len([p for p in delays]) >= 5
+
     async def test_no_false_positive_on_blind_pong(self, context):
         # The lab's /cmd never reflects command output — the detector must
         # NOT invent an RCE finding from an unchanged {"status": "pong"} body.
@@ -164,12 +181,15 @@ class TestLabRCE:
         )
         assert findings == [], f"blind non-reflective endpoint must not false-positive, got {findings}"
 
+    @pytest.mark.skipif(sys.platform != "win32", reason="real timing path pins the Windows lab delay (ping -n); CI runs Linux")
     async def test_blind_timing_confirms_cmd(self, context):
         """Regression: /cmd delays ~2.4s on `| ping -n 3` but the historical
         `cookies=` TypeError made detect_time_based swallow the exception and
         return elapsed=0.0 — killing the timing oracle entirely. Run the REAL
         timing path (no _fast_blind) and require the delay to be measured and
-        confirmed."""
+        confirmed. Windows-only: the lab's delay comes from Windows ping
+        syntax, so on Linux the oracle would measure no delay and this test
+        (and CI) would burn the module's full timing budget."""
         detector = RCEDetector(StubSmith(), {})  # real BlindDetector, real timing
         findings = await detector.scan(
             context, "http://localhost:5000", "GET",
