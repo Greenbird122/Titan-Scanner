@@ -63,3 +63,7 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# Config files (regenerable)
+config.*.yaml
+regen_report.py
