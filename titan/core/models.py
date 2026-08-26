@@ -234,6 +234,7 @@ class ScanResult:
             "chains": self.chains,
             "exploit_sessions": self.exploit_sessions,
             "hostile": self.hostile,
+            "manual_verification": self.manual_verification,
             "coverage": self.coverage,
             "summary": {
                 "total": len(self.findings),

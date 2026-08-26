@@ -128,3 +128,118 @@ gantt
 ### Phase 4: Distributed Estate & Cloud Asset Mapping
 - [ ] **Continuous Asset Graph**:
   - Aggregate subdomain permutations, Certificate Transparency log monitoring, and cloud asset resolution to map full attack surfaces before launching active scanners.
+
+---
+
+## Appendix: Evolution Roadmap — Beyond the Textbook
+
+> **Status:** Phases 0–5 DONE (built + mutation-proven) — **all surface tracks shipped** (A–D + Track E exploitation + Track G hostile surface). Live in-scope validation per track is the remaining open item.
+
+### Why the current architecture is the constraint
+
+The engine's core loop (`_run_modules` → `_run_attack_modules` → per-attack runner → verifier) treats every target as:
+
+```
+request(param=payload)  →  response_A
+request(param=baseline) →  response_B
+diff(A, B)  →  finding?
+```
+
+That model is rigorous but structurally blind to four things:
+
+| Surface | Why the diff model can't see it |
+|---|---|
+| **Client-side** | The sink lives in browser JS — no server response changes, nothing to diff |
+| **LLM/AI apps** | An LLM endpoint is not a response-diff target; you must *converse* with it and judge behavior |
+| **Stateful API/identity** | BOLA/BFLA/OAuth need **two identities and a held session** — one stateless request can't prove cross-tenant access |
+| **Cloud-native chains** | A lone SSRF finding is medium; SSRF→metadata→credentials→storage is critical. The engine reports isolated findings, not paths |
+
+### The four surface tracks
+
+#### Track A — Client-side browser security — ✅ Phase 2 DONE
+
+**Engine capability:** a module runner that executes inside the real browser and treats **JS sinks as the oracle** — a DOM XSS finding is "sink fired with attacker-controlled data," which is stronger evidence than any server reflection.
+
+**Modules:** `clientside/domxss`, `clientside/postmessage`, `clientside/prototype`, `clientside/thirdparty`, `clientside/csp`
+
+| Module | Checks | Evidence (oracle) |
+|---|---|---|
+| `clientside/domxss` | sink hooks for `innerHTML`, `outerHTML`, `document.write`, `eval`, `Function`, `setTimeout(string)` | attacker marker reaches a hooked sink → **verified DOM XSS** |
+| `clientside/postmessage` | capture registered handlers, probe with attacker-controlled origin | handler ran for attacker origin WITHOUT origin check → **verified** |
+| `clientside/prototype` | inject `__proto__[marker]` via query + JSON body | marker present in a fresh `{}` after probe → **verified pollution** |
+| `clientside/thirdparty` | enumerate external scripts + sensitive-input collection | external + unlisted origin + card/password fields → unverified MEDIUM |
+| `clientside/csp` | parse CSP directive semantics | `unsafe-inline` in script-src → HIGH; missing CSP → MEDIUM |
+
+#### Track B — Stateful API & identity testing — ✅ Phase 1 DONE
+
+**Engine capability:** a `SessionPool` that holds N authenticated identities concurrently, plus a **cross-identity differential verifier** — request A's object as identity B, diff the response.
+
+**Modules:** `bola`, `massassignment`, `jwt`, `sessionfix`, `auth`
+
+| Capability | Checks | Evidence (oracle) |
+|---|---|---|
+| `api/bola` | A/B tenant comparison: object owned by user A requested with user B's session | B receives A's object data → **verified BOLA** |
+| `api/mass_assignment` | add `role=admin`, `is_admin=true` to JSON bodies | response reflects the injected privilege field |
+| `api/jwt` | alg confusion, `kid`/`jku` injection, `none`, weak-secret cracking | forged token accepted on protected endpoint |
+| `api/session` | fixation (server accepts pre-set session ID), prediction | attacker-chosen session ID becomes authenticated session |
+
+#### Track C — LLM/AI application testing — ✅ Phase 3 DONE
+
+**Engine capability:** a probe channel that *talks* to AI endpoints and judges responses with a **behavioral contract**. "Verified" means **consensus**: the model complied in >= `min_agree` (default 2) of N trials (default 3), judged by DETERMINISTIC judges.
+
+**Modules:** `llm/prompt_injection`, `llm/system_leak`, `llm/data_exfil`, `llm/agency`
+
+| Module | Checks | Evidence (oracle) |
+|---|---|---|
+| `llm/prompt_injection` | direct goal-hijack + indirect context-poison | model echoes attacker marker in >= 2/3 trials → **verified** |
+| `llm/system_leak` | "repeat your system prompt" family | reply has system-prompt structure → **verified MEDIUM** |
+| `llm/data_exfil` | orders model to FETCH an interactsh callback | callback fires → **verified CRITICAL** |
+| `llm/agency` | orders model to invoke tool with attacker args | tool-call block in reply → **verified HIGH** |
+
+#### Track D — Cloud-native chain analysis — ✅ Phase 4 DONE
+
+**Engine capability:** findings become **flow-typed** — each declares what it *exposes* and what it *consumes*. A graph pass joins them into multi-hop paths.
+
+**New module:** `titan/modules/cloud/storage.py` — extracts bucket references from scan's own evidence, provider-tagged (S3/GCS/Azure/R2), probes at provider's listing endpoint.
+
+**Output:** `chains` array in `findings.json` + Chain section in report.md.
+
+#### Track G — Hostile & ad-monetized surface — ✅ Phase 5 DONE
+
+**Engine capability:** a profile-and-probe pass over the **monetization stack** of ad-heavy / clickbait / cloaked sites. Ad origins are **scored metadata, never fake findings**.
+
+**Package:** `titan/hostile/` — `origins.json`, `intel.py`, `profiler.py`, `detectors.py`, `offense.py`
+
+| Signal | Detected by | Evidence (oracle) |
+|---|---|---|
+| ad_network / popunder / miner origins | intel DB classification | metadata + risk score |
+| anti-debug cloak | static JS signatures | `cloak:*` oracle → verified LOW/INFO |
+| browser miner | known miner hosts + WASM-loop JS | `miner:host:*` → verified HIGH |
+| cleartext ad script | http:// ad load on https page | `adtech:tls` → verified MEDIUM |
+| redirect chain → phishing | follow ad chain, classify terminal | `adtech:redirect_chain:<category>` → verified |
+
+### Sequencing — why this order
+
+```
+Phase 0:  Foundation — Finding.flows typing + evidence taxonomy + lab fixtures   ✅ DONE
+Phase 1:  Track B (Stateful identity)                                          ✅ DONE
+Phase 2:  Track A (Client-side)          — reuses Playwright; strongest evidence    ✅ DONE
+Phase 3:  Track C (LLM probing)          — consensus oracle; deterministic judges   ✅ DONE
+Phase 4:  Track D (Chain analyzer)       — flow-typed graph pass + provider-aware   ✅ DONE
+Phase 5:  Track G (Hostile surface)      — monetization profile + hostile detectors  ✅ DONE
+```
+
+### What we deliberately do NOT build
+
+- **Brute-forcing** — noise with no differential evidence
+- **DoS / resource-exhaustion** — against guardrails
+- **Random novel-class research** — found by hand, not shipped by scanners
+- **Exploit payloads that write data** — evidence stops at proof-of-impact
+
+### Definition of done for the roadmap
+
+1. All tracks shipped as engine capabilities with dedicated runner seams
+2. `Findings.flows` populated by every existing module
+3. `chains` output real: full multi-hop paths
+4. Suite grows to ~1120+ tests, all mutation-checked, all green
+5. One live in-scope validation per track with FP discipline held

@@ -103,4 +103,38 @@ titan-lab/
 
 ## 7. License & Ethics
 
-**MIT License.** Use for authorized security testing only. The consent gate is code-enforced, but it cannot give you permission — only your authorization can. Scan only systems you own or have explicit written permission to test.
+**MIT License.** Use for authorized security testing only.
+
+### Authorization Requirements
+
+| Target Type | Authorization | Documentation |
+|-------------|--------------|---------------|
+| Own systems | None (owner) | System inventory |
+| Client systems | Written contract | Signed agreement |
+| Bug bounty | Platform terms | Program policy |
+| CTF platforms | Implicit (designed for testing) | Platform rules |
+| Public websites | **NONE** | **Do NOT scan** |
+
+### Prohibited Actions
+
+- Scanning targets without authorization
+- Exfiltrating data beyond proof-of-concept
+- Modifying/deleting data on target systems
+- Disrupting service (DoS/DDoS)
+- Bypassing security controls aggressively (stop on first block)
+
+### Grey Hat Principles
+
+| Principle | Application |
+|-----------|-------------|
+| **Own the systems** | Only test infrastructure you own or control |
+| **Find everything** | Probe every parameter, every endpoint, every state |
+| **Document everything** | Every finding, every PoC, every false positive |
+| **Harden everything** | Every vulnerability found gets remediated |
+| **Share knowledge** | Report to vendors, contribute to community |
+| **Stay legal** | Written authorization before any scan |
+| **Stay ethical** | No exfiltration, no destruction, no harm |
+
+> **The goal is not to break things. The goal is to prove they can be broken — and then fix them.**
+>
+> The consent gate is code-enforced, but it cannot give you permission — only your authorization can. Scan only systems you own or have explicit written permission to test.
