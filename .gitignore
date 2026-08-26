@@ -67,3 +67,9 @@ Thumbs.db
 # Config files (regenerable)
 config.*.yaml
 regen_report.py
+
+# Consent scope files (per-target, not for distribution)
+consent/*.SCOPE.md
+
+# Historical documentation (archived, not for distribution)
+docs/archive/
