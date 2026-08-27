@@ -34,8 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # CI-only: per-test timeout so a wedged test is killed and NAMED in
-          # the log instead of hanging the whole job. Not a project dependency.
+          pip install -e .
           pip install pytest-timeout
 
       # No `playwright install chromium`: the only Playwright import is lazy
