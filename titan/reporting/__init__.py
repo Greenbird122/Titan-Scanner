@@ -359,6 +359,9 @@ class SiteReportWriter:
                 )
             lines += [""]
 
+        # Business logic impact section: translate technical findings into
+        # business consequences for non-technical stakeholders.
+        lines += self._business_logic_section(result)
         if result.chains:
             lines += ["## Attack Chains", ""]
             for i, chain in enumerate(result.chains, 1):
@@ -447,6 +450,18 @@ class SiteReportWriter:
                 lines += [f"- {err}"]
             lines += [""]
 
+        if getattr(result, "manual_verification", None):
+            lines += ["## Manual verification", ""]
+            for mv in result.manual_verification:
+                status = mv.get("status", "info")
+                icon = {"confirmed": "[CONFIRMED]", "debunked": "[DEBUNKED]", "info": "[INFO]"}.get(status, "[INFO]")
+                lines += [
+                    f"- {icon} **{mv.get('check', 'Unknown check')}**",
+                    f"  - Result: {mv.get('result', '')}",
+                    f"  - Status: {status}",
+                ]
+            lines += [""]
+
         if result.ai_escalation:
             esc = result.ai_escalation
             lines += [
@@ -512,6 +527,61 @@ class SiteReportWriter:
             lines += ["- **PoC (curl)**", "", "```bash", f.poc_curl, "```", ""]
         if f.poc_python:
             lines += ["- **PoC (python)**", "", "```python", f.poc_python, "```", ""]
+        return lines
+
+    def _business_logic_section(self, result: ScanResult) -> List[str]:
+        """Translate technical findings into business-impact language."""
+        from titan.core.models import Severity as _Sev
+        findings = result.findings
+        if not findings:
+            return []
+
+        impact_groups: Dict[str, List[Any]] = {
+            "Data breach / privacy": [],
+            "Account takeover / auth": [],
+            "Financial fraud": [],
+            "Service disruption": [],
+            "Reputation damage": [],
+            "Compliance violation": [],
+            "Infrastructure compromise": [],
+        }
+
+        for f in findings:
+            atk = (f.attack_type.value if f.attack_type else "").lower()
+            tags = [t.lower() for t in (f.tags or [])]
+            if any(k in atk for k in ("sql", "nosql", "idor", "bola", "lfi", "xxe", "deser")):
+                impact_groups["Data breach / privacy"].append(f)
+            if any(k in atk for k in ("xss", "auth", "jwt", "session", "redirect")):
+                impact_groups["Account takeover / auth"].append(f)
+            if any(k in atk for k in ("ssrf", "rce", "upload", "smuggling")):
+                impact_groups["Infrastructure compromise"].append(f)
+            if any(k in atk for k in ("race", "cache", "logic")):
+                impact_groups["Financial fraud"].append(f)
+            if "platform:moodle" in tags:
+                impact_groups["Compliance violation"].append(f)
+            if any(k in atk for k in ("headers", "cors", "csp")):
+                impact_groups["Reputation damage"].append(f)
+
+        lines = ["## Business Logic Impact", ""]
+        has_impact = False
+        for group, group_findings in impact_groups.items():
+            if not group_findings:
+                continue
+            has_impact = True
+            lines += [f"### {group}", ""]
+            for f in group_findings[:5]:
+                label = f.attack_type.value if f.attack_type else "Unknown"
+                lines.append(
+                    f"- [{f.severity.value.upper()}] {label} — "
+                    f"`{f.method} {f.url}` param=`{f.param}` (conf {f.confidence:.2f})"
+                )
+            if len(group_findings) > 5:
+                lines.append(f"- ... and {len(group_findings) - 5} more")
+            lines += [""]
+
+        if not has_impact:
+            lines += ["No significant business-impact findings identified.", ""]
+
         return lines
 
     # ------------------------------------------------------------ estate avg
