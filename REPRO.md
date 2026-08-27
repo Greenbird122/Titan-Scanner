@@ -1,17 +1,16 @@
-# Titan Scanner
+# TITAN Scanner — Evidence-First Vulnerability Scanner
 
-![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
-![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)
-![Status](https://img.shields.io/badge/status-v0.1.0%20alpha-green)
+Titan crawls a web application like a real user and a real browser would, but instead of reporting every suspicious pattern it finds, it runs **negative controls** and **evidence grading** to produce findings with actual proof.
 
-**Titan** is an evidence-first vulnerability scanner for modern web applications. Instead of reporting every suspicious pattern, it runs negative controls and evidence grading to produce findings with actual proof.
+**One command:**
+```bash
+python -m titan scan http://localhost:3000
+```
 
-## What makes it different
-
+**What makes it different:**
 - **Auto-verification:** Sends benign payloads alongside attack payloads. If both produce the same response, the finding is demoted. No more reflection-echo false positives.
 - **BaaS-aware:** Detects Supabase/Firebase/AppWrite backends and audits RLS policies, auth settings, and anonymous access. Every other major scanner misses this entirely.
 - **Evidence grading:** Every finding gets a tier (`confirmed`/`suspicious`/`none`) and an evidence grade. Only `confirmed` findings get CVSS scores and repro scripts.
-- **Business logic testing:** Domain-specific detectors for price tampering, order manipulation, card exposure, review XSS, and more.
 
 ## Proof of concept
 
@@ -24,15 +23,12 @@ Scanned a plain Python HTTP server on `localhost:3000` with zero intentional vul
 
 A scanner that finds real configuration issues against a vanilla server, with no fabricated findings.
 
-See [REPRO.md](REPRO.md) for the full scan output.
-
 ## Quick start
 
 ```bash
 git clone https://github.com/Greenbird122/titan-lab.git
 cd titan-lab
 pip install -r requirements.txt
-playwright install chromium
 cp config.example.yaml config.yaml
 python -m titan scan http://localhost:3000
 ```
@@ -46,10 +42,14 @@ target: "http://localhost:3000"
 crawl:
   profile: fast    # fast | deep | hostile
   max_pages: 40
+  timeout: 600
 modules:
   sqli:
     enabled: true
     timeout: 60
+  xss:
+    enabled: true
+    timeout: 45
   baas:
     enabled: true
 ```
