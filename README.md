@@ -13,28 +13,42 @@
 - **Evidence grading:** Every finding gets a tier (`confirmed`/`suspicious`/`none`) and an evidence grade. Only `confirmed` findings get CVSS scores and repro scripts.
 - **Business logic testing:** Domain-specific detectors for price tampering, order manipulation, card exposure, review XSS, and more.
 
-## Proof of concept
-
-Scanned a plain Python HTTP server on `localhost:3000` with zero intentional vulnerabilities. Result:
-
-| Finding | Severity | Verified | Evidence |
-|---------|----------|----------|----------|
-| Missing security headers (HSTS, X-Frame-Options, X-Content-Type-Options, CSP, Referrer-Policy, Permissions-Policy) | HIGH | No | indicative |
-| Content-Security-Policy weakness | MEDIUM | Yes | confirmed + repro script |
-
-A scanner that finds real configuration issues against a vanilla server, with no fabricated findings.
-
-See [REPRO.md](REPRO.md) for the full scan output.
-
 ## Quick start
 
 ```bash
+# 1. Clone
 git clone https://github.com/Greenbird122/titan-lab.git
 cd titan-lab
+
+# 2. Install dependencies
 pip install -r requirements.txt
+
+# 3. Install Playwright browsers
 playwright install chromium
+
+# 4. Copy config template
 cp config.example.yaml config.yaml
-python -m titan scan http://localhost:3000
+
+# 5. Start the local test lab (optional, but recommended for first run)
+python -m titan lab start
+
+# 6. In another terminal, scan the lab
+python -m titan scan http://localhost:5000
+```
+
+## Local lab
+
+Titan ships with a deliberately vulnerable Flask app for testing. Start it with:
+
+```bash
+python -m titan lab start
+```
+
+Then scan `http://localhost:5000`. The lab contains SQL injection, XSS, SSRF, upload, and business-logic flaws.
+
+Check if the lab is already running:
+```bash
+python -m titan lab status
 ```
 
 ## Configuration
@@ -67,7 +81,21 @@ Findings are written to `findings/<site-slug>/`:
 
 - Python 3.10+
 - Playwright browsers (`playwright install chromium`)
+- **Windows users:** Install [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) before `pip install -r requirements.txt` (required for `greenlet` dependency)
 - Optional: Ollama for AI payload mutation
+
+## Proof of concept
+
+Scanned a plain Python HTTP server on `localhost:3000` with zero intentional vulnerabilities. Result:
+
+| Finding | Severity | Verified | Evidence |
+|---------|----------|----------|----------|
+| Missing security headers (HSTS, X-Frame-Options, X-Content-Type-Options, CSP, Referrer-Policy, Permissions-Policy) | HIGH | No | indicative |
+| Content-Security-Policy weakness | MEDIUM | Yes | confirmed + repro script |
+
+A scanner that finds real configuration issues against a vanilla server, with no fabricated findings.
+
+See [REPRO.md](REPRO.md) for the full scan output.
 
 ## License
 

@@ -102,6 +102,13 @@ Examples:
     transport_check.add_argument("name", help="Transport name (http, tor, grpc, etc.)")
     transport_check.add_argument("target", help="Target URL to check against")
 
+    # --- lab ---
+    lab = subparsers.add_parser("lab", help="Local vulnerable test lab")
+    lab_sub = lab.add_subparsers(dest="lab_command")
+    lab_start = lab_sub.add_parser("start", help="Start the local lab on http://localhost:5000")
+    lab_start.add_argument("--port", type=int, default=5000, help="Port to bind (default: 5000)")
+    lab_sub.add_parser("status", help="Check if local lab is running")
+
     # --- report ---
     report = subparsers.add_parser("report", help="Generate reports")
     report.add_argument("--estate", action="store_true", help="Estate-wide rollup")
@@ -146,6 +153,21 @@ async def _handle_scan(args):
     if not args.quiet:
         print(f"[+] Titan scan: {args.target}")
         print(f"    Profile: {args.profile} | Transport: {args.transport} | Fleet: {'on' if args.fleet else 'off'}")
+
+    # Pre-scan connectivity check
+    import urllib.request
+    try:
+        req = urllib.request.Request(args.target, method="HEAD")
+        urllib.request.urlopen(req, timeout=5)
+    except urllib.error.URLError as exc:
+        print(f"[!] Target unreachable: {args.target}")
+        print(f"    Error: {exc}")
+        if "localhost" in args.target or "127.0.0.1" in args.target:
+            print(f"    Hint: Start the local lab with: python -m titan lab start")
+        return 0
+    except Exception as exc:
+        print(f"[!] Cannot reach target: {exc}")
+        return 0
 
     from titan.core.engine import TitanEngine
     engine = TitanEngine(config)
@@ -371,6 +393,46 @@ async def _handle_report(args):
     return 0
 
 
+async def _handle_lab(args):
+    """Handle lab subcommands."""
+    if args.lab_command == "start":
+        port = getattr(args, "port", 5000)
+        print(f"[+] Starting local lab on http://localhost:{port}")
+        print(f"    Press Ctrl+C to stop")
+        try:
+            import os
+            env = os.environ.copy()
+            env["TITAN_LAB_PORT"] = str(port)
+            import subprocess
+            import sys
+            cmd = [sys.executable, "local_lab/app.py"]
+            proc = subprocess.Popen(cmd, env=env)
+            try:
+                proc.wait()
+            except KeyboardInterrupt:
+                print("\n[+] Stopping lab...")
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                    proc.wait()
+        except FileNotFoundError:
+            print("[!] local_lab/app.py not found. Are you running from the repo root?")
+        except Exception as exc:
+            print(f"[!] Lab failed to start: {exc}")
+    elif args.lab_command == "status":
+        import urllib.request
+        try:
+            req = urllib.request.Request("http://localhost:5000", method="HEAD")
+            urllib.request.urlopen(req, timeout=2)
+            print("[+] Local lab is running on http://localhost:5000")
+        except Exception:
+            print("[!] Local lab is NOT running on http://localhost:5000")
+            print("    Start it with: python -m titan lab start")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -391,6 +453,7 @@ def main(argv: list[str] | None = None):
         "consent": _handle_consent,
         "transport": _handle_transport,
         "report": _handle_report,
+        "lab": _handle_lab,
     }
 
     handler = handlers.get(args.command)
