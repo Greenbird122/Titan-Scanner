@@ -64,7 +64,8 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Config files (regenerable)
+# Config files (regenerable) — never commit real credentials
+config.yaml
 config.*.yaml
 regen_report.py
 
