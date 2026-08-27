@@ -172,6 +172,9 @@ class ScanResult:
     # Track D — flow-typed attack chains (full path + per-hop evidence), each
     # an AttackChain.to_dict(). Populated by ChainAnalyzer after apply_flows.
     chains: List[Dict[str, Any]] = field(default_factory=list)
+    # Cross-data inferences: higher-confidence chained findings produced by
+    # CrossDataInferenceEngine after chain analysis.
+    inferences: List[Dict[str, Any]] = field(default_factory=list)
     # Track E — sessions auto-staged during the scan (rce-agent, webshell,
     # sqli-extraction channels). Each entry carries channel, session_id and the
     # session dir for attribution. Populated by _run_exploit_modules; empty
@@ -189,6 +192,7 @@ class ScanResult:
     # driver death, API cap). Carries the raw counters so the operator can
     # audit the claim.
     coverage: Dict[str, Any] = field(default_factory=dict)
+    manual_verification: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def duration_seconds(self) -> float:
