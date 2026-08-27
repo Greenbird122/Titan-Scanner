@@ -10,6 +10,7 @@ These test files reference modules that were planned but never implemented. They
 | `tests/test_arena_grounding.py` | `purple/arena/` modules | Feature never built |
 | `tests/test_arena_ui.py` | `purple/arena/` modules | Feature never built |
 | `tests/test_batch.py` | `purple/batch.py` | Feature never built |
+| `tests/test_live.py` | `purple/batch.py` | Feature never built |
 | `tests/test_scoreboard.py` | `purple/scoreboard.py` | Feature never built |
 | `tests/test_warroom.py` | `purple/warroom.py` | Feature never built |
 
