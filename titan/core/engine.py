@@ -24,6 +24,7 @@ from titan.core.stealth import StealthEngine
 from titan.core.route_scorer import score_url, should_run_expensive_modules, sort_queue
 from titan.core.anomaly import AnomalyTracker
 from titan.verify.flows import apply_flows
+from titan.verify.role_aware import RoleAwareScanner
 
 
 # Challenge-wall fingerprints strong enough to abort a scan on their own,
@@ -142,6 +143,9 @@ class TitanEngine:
         # persona concurrently so BOLA/mass-assignment detectors can do
         # cross-identity differentials.
         self.session_pool = SessionPool()
+        self._role_scanner = RoleAwareScanner()
+        self._platform_brain = None
+        self._platform_extra_params: List[str] = []
         self.interactsh = InteractshClient()
         self.findings: List[Finding] = []
         self.visited: set = set()
@@ -207,6 +211,7 @@ class TitanEngine:
         # into long wall-clock scans.
         self._module_semaphore = asyncio.Semaphore(self.config.get("crawl", {}).get("module_concurrency", 8))
         self._module_timeouts: Dict[str, int] = {}
+        self._module_line_counts: Dict[str, int] = {}
         self._scan_target: str = ""
         # Set when a driver-death error is observed in a module run. Every
         # later phase checks it and skips driver work: a dead driver can wedge
@@ -368,6 +373,7 @@ class TitanEngine:
                     extra_http_headers=self.stealth.get_headers() if hasattr(self, "stealth") else {},
                     ignore_https_errors=True,
                 )
+                self._crawl_context = context
                 page = await context.new_page()
                 self._harden_page(page)
 
@@ -409,12 +415,27 @@ class TitanEngine:
                 result.fingerprint = fingerprint
                 print(f"[+] Technologies detected: {fingerprint.get('technologies', [])[:10]}")
 
+                # PLATFORM BRAIN: select a platform-specific brain and
+                # specialize the crawl for it.
+                self._platform_brain = self._select_platform_brain(fingerprint, body, headers)
+                if self._platform_brain is not None:
+                    print(f"[+] Platform brain: {self._platform_brain.name}")
+                    for seed in self._platform_brain.extra_seed_urls(target):
+                        if seed not in self.visited and self._is_in_scope(seed):
+                            self.visited.add(seed)
+                            self._discovered_urls.add(seed)
+                    # Extra parameters feed the common-param brute forcer.
+                    self._platform_extra_params = list(self._platform_brain.extra_parameters())
+                else:
+                    self._platform_extra_params = []
+
                 if self.config.get("auth"):
                     print("[+] Attempting authentication...")
                     logged_in = await self.auth_engine.login(context, page, target)
                     if logged_in:
                         role_name = self.auth_engine.get_current_role() or "user"
                         print(f"[+] Authenticated as {role_name}")
+                        self._role_scanner.record_role(role_name)
                         auth_headers = self.auth_engine.get_auth_headers()
                         if auth_headers:
                             await context.set_extra_http_headers(auth_headers)
@@ -498,6 +519,7 @@ class TitanEngine:
                             if logged_in:
                                 role_name = role_creds.get("role", "unknown")
                                 print(f"[+] Scanning as role: {role_name}")
+                                self._role_scanner.record_role(role_name)
                                 auth_headers = self.auth_engine.get_auth_headers()
                                 if auth_headers:
                                     await context.set_extra_http_headers(auth_headers)
@@ -715,6 +737,62 @@ class TitanEngine:
                 f"({ev_stats['capped']} severity-capped to MEDIUM)"
             )
 
+        # SCAN-QUALITY M1b auto-verification: run negative controls against
+        # each finding and demote if the control produces the same response.
+        # This catches the remaining false positives that slip through the
+        # evidence gate (e.g., smuggling FPs on edge 501s, baseline-echo
+        # errors in non-injection modules).
+        from titan.verify.auto_verify import AutoVerifier
+        av = AutoVerifier()
+        if getattr(self, "_crawl_context", None):
+            verified_count = 0
+            demoted_count = 0
+            for f in result.findings:
+                if f.verified and f.confidence >= 0.5:
+                    original_verified = f.verified
+                    await av.verify_finding(self._crawl_context, f)
+                    if original_verified and not f.verified:
+                        demoted_count += 1
+                    elif f.verified:
+                        verified_count += 1
+            if demoted_count:
+                print(
+                    f"[!] Auto-verify: demoted {demoted_count} finding(s) "
+                    f"that failed negative control tests"
+                )
+            if verified_count:
+                print(
+                    f"[+] Auto-verify: {verified_count} finding(s) passed "
+                    f"negative control tests"
+                )
+
+        # ROLE-AWARE SCANNING: downgrade findings that require capabilities
+        # the current authenticated role does not possess.  Runs AFTER
+        # auto-verify so the evidence gate sees honest findings first.
+        from titan.verify.role_aware import RoleAwareScanner
+        role_scanner = getattr(self, "_role_scanner", None)
+        if isinstance(role_scanner, RoleAwareScanner):
+            role_adjusted = 0
+            for f in result.findings:
+                if getattr(f, "verified", False):
+                    role_scanner.adjust_finding(f)
+                    if getattr(f, "metadata", {}).get("role_gated"):
+                        role_adjusted += 1
+            if role_adjusted:
+                print(
+                    f"[i] Role-aware: adjusted {role_adjusted} finding(s) for "
+                    f"role={role_scanner.role().value}"
+                )
+
+        # PLATFORM BRAIN: tag findings with platform context.
+        platform_brain = getattr(self, "_platform_brain", None)
+        if platform_brain is not None:
+            for f in result.findings:
+                try:
+                    platform_brain.tag_finding(f)
+                except Exception:
+                    pass
+
         # Track D prerequisite: tag every verified finding with the
         # capabilities it exposes to an attacker (file_read, creds,
         # url_fetch, auth_bypass, code_exec, data_leak, oob, client_exec,
@@ -740,6 +818,19 @@ class TitanEngine:
                 print(f"[+] Track D: {len(chains)} attack chains composed")
         except Exception as exc:
             result.errors.append(f"Chain analysis failed: {exc}")
+
+        # CROSS-DATA INFERENCE: combine independent findings into higher-
+        # confidence chained inferences (e.g. SSRF + cloud IMDS = credential
+        # exposure).  Runs AFTER the chain analyzer so the inference engine
+        # can reuse chain metadata.
+        try:
+            from titan.verify.inference import CrossDataInferenceEngine
+            inf_engine = CrossDataInferenceEngine()
+            result.inferences = [i.to_dict() for i in inf_engine.infer(result.findings)]
+            if result.inferences:
+                print(f"[+] Inference: {len(result.inferences)} cross-data inference(s)")
+        except Exception as exc:
+            result.errors.append(f"Inference failed: {exc}")
 
         # AI escalation: model verdicts for ambiguous high-value findings only.
         # Runs before CVSS/PoC so a verdict can influence scoring. Every failure
@@ -1334,6 +1425,9 @@ class TitanEngine:
                             print(f"    [!] WAF detected: {waf_info.waf_name} (confidence {waf_info.confidence:.0%})")
                     continue
 
+                # ROLE-AWARE: record this successful access for capability inference
+                self._role_scanner.record_access(current, resp.status, body)
+
                 if is_api_url:
                     print(f"    [+] API: {current} (status {resp.status}, len={len(body)})")
                     discovered_apis = self._dedupe_apis([current] + apis)
@@ -1477,6 +1571,15 @@ class TitanEngine:
             return hostname == target_hostname or hostname.endswith("." + target_hostname)
         except Exception:
             return True
+
+    def _select_platform_brain(self, fingerprint: Dict[str, Any], html: str, headers: Dict[str, str]) -> Optional[Any]:
+        try:
+            from titan.brains import BrainRegistry, MoodleBrain
+        except ImportError:
+            return None
+        registry = BrainRegistry()
+        registry.register(MoodleBrain())
+        return registry.select(fingerprint, html, headers)
 
     async def _run_interactions(self, context, target: str, fingerprint: Dict[str, Any], result: ScanResult) -> None:
         """Bounded SPA/API interaction phase.
@@ -2291,6 +2394,8 @@ class TitanEngine:
             "vital", "symptom", "allergy", "immunization",
             "payment_id", "invoice_id", "transaction_id", "receipt",
         ]
+        # PLATFORM BRAIN: append platform-specific parameters.
+        common_params.extend(getattr(self, "_platform_extra_params", []) or [])
         top_params = common_params[:25]
         
         test_endpoints = []
@@ -2754,6 +2859,7 @@ class TitanEngine:
             # Source/bundle floor + API-fed DOM-sink static analysis.
             ("sourcesecret", self._run_sourcesecret),
             ("apixss", self._run_apixss),
+            ("baas", self._run_baas),
         ]
 
         is_spa_shell = "#" in url
@@ -2855,7 +2961,31 @@ class TitanEngine:
         # budget for subsequent runs — it's clearly not going to finish.
         # After 2 timeouts, skip entirely (the check above).
         module_cfg = self.config.get("modules", {}).get(name, {})
-        base_budget = module_cfg.get("timeout") if "timeout" in module_cfg else (30 if name in ("rce", "sqli") else 15)
+        if "timeout" in module_cfg:
+            base_budget = module_cfg["timeout"]
+        else:
+            module_lines = self._module_line_counts.get(name)
+            if module_lines is None:
+                try:
+                    module_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "modules", name, "detector.py")
+                    if os.path.exists(module_path):
+                        with open(module_path, "r", encoding="utf-8") as f:
+                            module_lines = sum(1 for _ in f)
+                            self._module_line_counts[name] = module_lines
+                except Exception:
+                    module_lines = 0
+            if module_lines > 600:
+                base_budget = 90
+            elif module_lines > 400:
+                base_budget = 60
+            elif module_lines > 300:
+                base_budget = 45
+            elif module_lines > 200:
+                base_budget = 30
+            elif module_lines > 100:
+                base_budget = 20
+            else:
+                base_budget = 15
         budget = base_budget if timeout_count == 0 else max(3, base_budget // 2)
         try:
             module_findings = await asyncio.wait_for(
@@ -4061,6 +4191,11 @@ class TitanEngine:
         from titan.modules.smuggling.detector import SmugglingDetector
         detector = SmugglingDetector(self.payload_smith, fingerprint)
         return await detector.scan(context, target, method, url, params)
+
+    async def _run_baas(self, context, target, method, url, params, fingerprint) -> List[Finding]:
+        from titan.modules.baas.detector import SupabaseAuditModule
+        module = SupabaseAuditModule(http_client=getattr(context, "request", None))
+        return await module.scan(context, target, method, url, params, fingerprint)
 
     async def _run_fuzzer(self, context, target, method, url, params, fingerprint) -> List[Finding]:
         from titan.modules.fuzzer.detector import FuzzerDetector

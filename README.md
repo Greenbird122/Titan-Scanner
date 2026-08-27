@@ -57,7 +57,86 @@ python titan_repl.py findings/<site-slug>
 
 ---
 
-## 4. Attack Surface & Track Coverage
+## 4. AI Integration (Optional)
+
+Titan includes an optional AI layer for payload mutation and edge-case generation. **The scanner works without AI** — all core detection, verification, and reporting functions operate with hardcoded payload sets. AI is a fallback for WAF bypass and unknown platforms, not a requirement.
+
+### Option A: Free local model (recommended)
+
+Run Ollama locally with a free model. No API keys, no accounts, no data leaving your machine.
+
+```bash
+# 1. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Pull a lightweight model suitable for 4-8GB RAM machines
+ollama pull llama3:2b
+
+# 3. Verify it works
+ollama run llama3:2b "mutate this payload: ' OR 1=1-- - return only mutated payloads, one per line"
+```
+
+**Hardware guide:**
+
+| Your RAM | Recommended model | Expected speed |
+|----------|------------------|----------------|
+| 4GB | `llama3:2b` (1.3GB) | ~15-25 tokens/sec |
+| 8GB | `llama3:2b` or `llama3:8b` | ~2-5 tokens/sec (8B) |
+| 16GB+ | `llama3:8b` or `mistral:7b` | ~10+ tokens/sec |
+
+Then update `config.yaml`:
+
+```yaml
+ai:
+  enabled: true
+  model: "ollama/llama3:2b"
+  fallback: "deepseek-chat"    # optional paid fallback
+  ollama:
+    host: "http://localhost:11434"
+    model: "llama3:2b"
+```
+
+### Option B: Skip AI entirely
+
+Set `ai.enabled: false` in `config.yaml`. The scanner uses only hardcoded payloads. All verification, baseline diffing, and reporting work without AI.
+
+### Option C: Paid API with free tier
+
+If you have API access to DeepSeek, OpenAI, or similar, configure:
+
+```yaml
+ai:
+  enabled: true
+  model: "deepseek-chat"
+  api_key: "your-key-here"
+  fallback: "ollama/llama3:2b"
+```
+
+### When AI actually helps
+
+| Scenario | AI usefulness |
+|----------|--------------|
+| WAF bypass mutations | **High** — generates syntactic variants |
+| Edge-case payloads when hardcoded sets return nothing | **Medium** — occasional novel variants |
+| Unknown platform fallback | **Medium** — better than nothing |
+| Verification decisions | **None** — use deterministic oracles |
+| Business logic analysis | **None** — use platform brains |
+| Cross-data inference | **None** — use deterministic algorithms |
+
+### When AI does NOT help
+
+AI is **not used** for:
+- Verification or auto-demotion of findings
+- Platform-specific test matrix generation
+- Business logic reasoning
+- CVE applicability checks
+- Cross-data inference or access boundary analysis
+
+These tasks require deterministic, reproducible logic. AI is non-deterministic and hallucinates. It is excluded from the analysis pipeline by design.
+
+---
+
+## 5. Attack Surface & Track Coverage
 
 * **Track A (Client-Side & Browser)**: DOM XSS sink hooking, Prototype Pollution (`__proto__`, `constructor.prototype`), `postMessage` origin audits, CSP policy evaluation.
 * **Track B (Identity & Access Control)**: BOLA 3-way cross-tenant differentials, Mass Assignment in JSON ASTs, JWT secret dictionary & `alg:none` cracking, Session Fixation lifecycle tracking.
@@ -68,7 +147,7 @@ python titan_repl.py findings/<site-slug>
 
 ---
 
-## 5. Live Validation
+## 6. Live Validation
 
 Validated against authorized targets including:
 * **OWASP Juice Shop** (local Docker instance)
@@ -79,7 +158,7 @@ All scans use the evidence-gated verification pipeline: candidates → determini
 
 ---
 
-## 6. Repository Structure (Core)
+## 7. Repository Structure (Core)
 
 ```
 titan-lab/
@@ -101,7 +180,7 @@ titan-lab/
 
 ---
 
-## 7. License & Ethics
+## 8. License & Ethics
 
 **MIT License.** Use for authorized security testing only.
 

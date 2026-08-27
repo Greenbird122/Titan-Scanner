@@ -144,8 +144,11 @@ auth:
   roles: []
 ai:
   enabled: true
-  model: "deepseek-chat"
-  fallback: "ollama"
+  model: "ollama/llama3:2b"
+  fallback: "deepseek-chat"
+  ollama:
+    host: "http://localhost:11434"
+    model: "llama3:2b"
   max_payloads_per_param: 20
   escalate:
     enabled: false

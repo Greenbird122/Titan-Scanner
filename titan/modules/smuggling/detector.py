@@ -246,7 +246,27 @@ class SmugglingDetector:
             matches.append("duplicate_te_header")
 
         # Rejection triggers or backend gateway errors (501/502/503/504)
-        if matches or (resp_status in (501, 502, 503, 504) and (baseline_status or 200) < 500):
+        # Edge rejection allowlist: CDNs/WAFs return 501/502/503/504 for malformed
+        # Transfer-Encoding headers. These are NOT smuggling signals unless the
+        # response body indicates the backend actually processed the smuggled request.
+        _EDGE_REJECTION_MARKERS = (
+            "not implemented",
+            "bad request",
+            "invalid request",
+            "unsupported transfer",
+            "transfer-encoding",
+            "http/1.1 501",
+            "http/1.1 502",
+            "http/1.1 503",
+            "http/1.1 504",
+        )
+        is_edge_rejection = False
+        if resp_status in (501, 502, 503, 504) and not matches:
+            body_lower = body.lower()
+            if any(m in body_lower for m in _EDGE_REJECTION_MARKERS):
+                is_edge_rejection = True
+
+        if matches or (resp_status in (501, 502, 503, 504) and (baseline_status or 200) < 500 and not is_edge_rejection):
             diffs = [f"smuggle:{m}" for m in matches]
             if resp_status in (501, 502, 503, 504):
                 diffs.append(f"smuggle:gateway_error:{resp_status}")
