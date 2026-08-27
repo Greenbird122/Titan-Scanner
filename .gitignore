@@ -46,7 +46,7 @@ bench/targets/
 bench/results/
 
 # Learning notes (proprietary — not for distribution)
-learn/
+/learn/
 
 # Scratch / temp
 .tmp_pp/
