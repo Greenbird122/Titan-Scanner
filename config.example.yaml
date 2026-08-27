@@ -1,0 +1,212 @@
+target: "http://localhost:3000"
+aggression: "active"
+headless: true
+output_dir: "findings"
+crawl:
+  profile: fast
+  max_pages: 40
+  max_depth: 4
+  timeout: 600
+  module_concurrency: 8
+  interaction_timeout: 90
+  spa:
+    enabled: true
+    hydrate_budget: 10
+    max_routes: 6
+    per_route_budget: 30
+    network_idle: 2500
+  supplychain:
+    enabled: true
+  fuzz:
+    enabled: true
+    budget: 120
+    max_seeds: 10
+    max_depth: 3
+    max_words_per_seed: 100
+    max_requests: 500
+    concurrency: 8
+    timeout: 5000
+    delay: false
+stealth:
+  adaptive: true
+  jitter: 0.3
+  min_delay: 0.15
+  max_delay: 0.6
+  anti_forensics:
+    enabled: false
+    profile: browser
+    decoy_count: 3
+    polymorphic_count: 3
+governance:
+  enabled: false
+brain:
+  enabled: true
+  budget: 90
+  variants_per_finding: 5
+  evolution:
+    enabled: true
+    persist: true
+deep_audit:
+  enabled: true
+  budget: 60
+authorization:
+  practice_manifest: "findings/AUTHORIZED-PRACTICE.json"
+auth:
+  cookies: ""
+  url: ""
+  username: ""
+  password: ""
+  username_selector: 'input[name="identifier"], input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"]'
+  password_selector: 'input[type="password"], input[name*="pass"]'
+  submit_selector: 'button[type="submit"], input[type="submit"], button'
+  roles: []
+ai:
+  enabled: true
+  model: "ollama/llama3:2b"
+  fallback: "deepseek-chat"
+  ollama:
+    host: "http://localhost:11434"
+    model: "llama3:2b"
+  max_payloads_per_param: 20
+  escalate:
+    enabled: false
+    min_severity: "high"
+    min_confidence: 0.3
+    max_confidence: 0.85
+    unverified_only: true
+    max_per_scan: 5
+    timeout: 10
+    overall_deadline: 45
+modules:
+  sqli:
+    enabled: true
+    timeout: 60
+  xss:
+    enabled: true
+    timeout: 45
+  ssrf:
+    enabled: true
+    timeout: 45
+  auth:
+    enabled: true
+    timeout: 45
+  idor:
+    enabled: true
+    timeout: 45
+  lfi:
+    enabled: true
+    timeout: 45
+  rce:
+    enabled: true
+    timeout: 60
+  nosqli:
+    enabled: true
+    timeout: 45
+  ssti:
+    enabled: true
+    timeout: 45
+  xxe:
+    enabled: true
+    timeout: 45
+  api:
+    enabled: true
+    timeout: 45
+  upload:
+    enabled: true
+    timeout: 45
+  logic:
+    enabled: true
+    timeout: 45
+  crypto:
+    enabled: true
+    timeout: 45
+  deser:
+    enabled: true
+    timeout: 45
+  race:
+    enabled: true
+    timeout: 45
+  cache:
+    enabled: true
+    timeout: 45
+  smuggling:
+    enabled: true
+    timeout: 45
+  cors:
+    enabled: true
+    timeout: 45
+  headers:
+    enabled: true
+    timeout: 45
+  sourcesecret:
+    enabled: true
+  apixss:
+    enabled: true
+  fuzzer:
+    enabled: true
+  parserdiff:
+    enabled: true
+  bola:
+    enabled: true
+  massassignment:
+    enabled: true
+  jwt:
+    enabled: true
+  sessionfix:
+    enabled: true
+  baas:
+    enabled: true
+clientside:
+  enabled: true
+  domxss:
+    enabled: true
+  postmessage:
+    enabled: true
+  prototype:
+    enabled: true
+  third_party:
+    enabled: true
+  csp:
+    enabled: true
+llm:
+  enabled: false
+  endpoints: []
+  trials: 3
+  min_agree: 2
+  timeout: 15
+  per_endpoint_timeout: 40
+  checks:
+    prompt_injection:
+      enabled: true
+    system_leak:
+      enabled: true
+    data_exfil:
+      enabled: true
+    agency:
+      enabled: true
+cloud:
+  storage:
+    enabled: true
+    max_buckets: 3
+  imds:
+    enabled: true
+fleet:
+  enabled: false
+  agents: [recon, identity, learning]
+  max_targets: 5
+  max_concurrent: 5
+  budget: 120
+exploit:
+  enabled: false
+  consent_dir: "consent"
+  output_dir: "findings"
+  max_per_type: 2
+  budget: 120
+  listener:
+    host: "127.0.0.1"
+    port: 8770
+    start: false
+dawn:
+  memory: false
+  voice: false
+  gov: false
