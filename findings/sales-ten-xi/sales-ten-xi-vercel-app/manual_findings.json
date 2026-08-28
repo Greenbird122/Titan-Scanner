@@ -1,0 +1,67 @@
+{
+  "target": "https://sales-ten-xi.vercel.app",
+  "analysis_type": "manual_hostile_profile",
+  "performed_by": "Kilo (manual analysis)",
+  "findings": [
+    {
+      "finding_id": "MANUAL-001",
+      "severity": "high",
+      "category": "information_disclosure",
+      "title": "Backend API URL exposed in client-side JavaScript",
+      "description": "The React bundle exposes the backend API base URL: https://project-diabolical.onrender.com/sales. This gives attackers a direct target for the backend infrastructure.",
+      "evidence": "main.c3b98656.js: baseURL: 'https://project-diabolical.onrender.com/sales'",
+      "impact": "Attackers can bypass the frontend and target the backend directly. Combined with CORS wildcard, this enables cross-origin attacks with stolen tokens.",
+      "remediation": "Use relative URLs for API calls (e.g., /api/...) or proxy through the same origin. Do not hardcode backend URLs in client-side code.",
+      "verified": true,
+      "confidence": 1.0,
+      "source": "manual_js_analysis"
+    },
+    {
+      "finding_id": "MANUAL-002",
+      "severity": "high",
+      "category": "cors_misconfiguration",
+      "title": "CORS wildcard allows any origin",
+      "description": "Access-Control-Allow-Origin: * is present in responses. This allows any website to make cross-origin requests to this API.",
+      "evidence": "Response header: Access-Control-Allow-Origin: *",
+      "impact": "If a user visits a malicious site while logged in, that site can steal their Bearer token from localStorage and make authenticated API requests. Combined with MANUAL-001, this is a critical attack path.",
+      "remediation": "Restrict CORS to specific trusted origins. Do not use wildcard (*) for APIs that accept authenticated requests.",
+      "verified": true,
+      "confidence": 1.0,
+      "source": "manual_header_analysis"
+    },
+    {
+      "finding_id": "MANUAL-003",
+      "severity": "info",
+      "category": "authentication",
+      "title": "Bearer tokens stored in localStorage",
+      "description": "The application stores access tokens in localStorage and sends them via Authorization: Bearer header.",
+      "evidence": "localStorage.getItem('access_token') → Authorization: Bearer <token>",
+      "impact": "localStorage is vulnerable to XSS attacks. Any XSS vulnerability would allow token theft. sessionStorage or httpOnly cookies would be more secure.",
+      "remediation": "Consider using httpOnly, secure cookies for token storage instead of localStorage. This mitigates XSS token theft.",
+      "verified": true,
+      "confidence": 1.0,
+      "source": "manual_js_analysis"
+    },
+    {
+      "finding_id": "MANUAL-004",
+      "severity": "info",
+      "category": "authentication",
+      "title": "Basic authentication implementation present",
+      "description": "The application implements Basic Auth in addition to Bearer tokens, encoding credentials in base64.",
+      "evidence": "Authorization: Basic " + btoa(username + ":" + password)",
+      "impact": "Basic Auth sends credentials with every request. If HTTPS is not enforced everywhere, credentials can be intercepted. Also increases attack surface.",
+      "remediation": "Remove Basic Auth if not strictly needed. Ensure HTTPS is enforced site-wide (HSTS is already present).",
+      "verified": true,
+      "confidence": 1.0,
+      "source": "manual_js_analysis"
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "high": 2,
+    "medium": 0,
+    "low": 0,
+    "info": 2,
+    "verified": 4
+  }
+}
