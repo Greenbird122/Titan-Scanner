@@ -1,9 +1,9 @@
-target: "http://localhost:3000"
+target: "https://sales-ten-xi.vercel.app"
 aggression: "active"
 headless: true
 output_dir: "findings"
 crawl:
-  profile: fast
+  profile: hostile
   max_pages: 40
   max_depth: 4
   timeout: 600
@@ -33,7 +33,7 @@ stealth:
   min_delay: 0.15
   max_delay: 0.6
   anti_forensics:
-    enabled: false
+    enabled: true
     profile: browser
     decoy_count: 3
     polymorphic_count: 3
@@ -52,8 +52,7 @@ deep_audit:
 authorization:
   practice_manifest: "findings/AUTHORIZED-PRACTICE.json"
 auth:
-  cookies: ""
-  url: ""
+  url: "https://sales-ten-xi.vercel.app"
   username: ""
   password: ""
   username_selector: 'input[name="identifier"], input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"]'
@@ -62,14 +61,11 @@ auth:
   roles: []
 ai:
   enabled: true
-  model: "ollama/llama3:2b"
-  fallback: "deepseek-chat"
-  ollama:
-    host: "http://localhost:11434"
-    model: "llama3:2b"
+  model: "deepseek-chat"
+  fallback: "ollama"
   max_payloads_per_param: 20
   escalate:
-    enabled: false
+    enabled: true
     min_severity: "high"
     min_confidence: 0.3
     max_confidence: 0.85
@@ -169,7 +165,7 @@ clientside:
   csp:
     enabled: true
 llm:
-  enabled: false
+  enabled: true
   endpoints: []
   trials: 3
   min_agree: 2
@@ -191,13 +187,13 @@ cloud:
   imds:
     enabled: true
 fleet:
-  enabled: false
+  enabled: true
   agents: [recon, identity, learning]
   max_targets: 5
   max_concurrent: 5
   budget: 120
 exploit:
-  enabled: false
+  enabled: true
   consent_dir: "consent"
   output_dir: "findings"
   max_per_type: 2
@@ -205,7 +201,7 @@ exploit:
   listener:
     host: "127.0.0.1"
     port: 8770
-    start: false
+    start: true
 dawn:
   memory: false
   voice: false
