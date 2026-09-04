@@ -49,6 +49,9 @@ brain:
 deep_audit:
   enabled: true
   budget: 60
+subdomain_takeover:
+  enabled: true
+  timeout: 120
 authorization:
   practice_manifest: "findings/AUTHORIZED-PRACTICE.json"
 auth:

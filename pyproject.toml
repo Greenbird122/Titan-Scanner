@@ -1,44 +1,124 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "titan-scanner"
-version = "1.1.0"
-description = "Evidence-gated web vulnerability scanner: crawl, verify, chain, and consent-gated exploitation sessions"
+version = "1.0.0"
+description = "Titan — Autonomous Penetration Testing Platform"
 readme = "README.md"
+license = {text = "MIT"}
 requires-python = ">=3.10"
-license = { text = "MIT" }
-keywords = ["security", "scanner", "pentest", "owasp", "playwright", "vulnerability"]
+authors = [
+    {name = "Titan Security Lab"},
+]
+keywords = ["security", "penetration-testing", "vulnerability-scanner", "dast", "autopentest"]
 classifiers = [
-    "Environment :: Console",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Security",
 ]
 dependencies = [
-    "playwright>=1.40",
-    "aiohttp",
-    "pyyaml",
-    "requests",
-    "flask",
-    "PyJWT",
-    "cryptography",
+    "aiohttp>=3.9.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "cryptography>=41.0.0",
+    "PyJWT>=2.8.0",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio"]
+full = [
+    "playwright>=1.40.0",
+    "flask>=3.0.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+]
 
 [project.scripts]
-titan = "run:entrypoint"
-titan-exploit = "titan_exploit_cli:entrypoint"
+tscan = "titan.tscan_main:main"
+
+[project.urls]
+Homepage = "https://github.com/titan-security-lab/titan"
+Documentation = "https://github.com/titan-security-lab/titan#readme"
+Repository = "https://github.com/titan-security-lab/titan"
 
 [tool.setuptools.packages.find]
-include = ["titan*", "local_lab*"]
+include = ["titan*"]
+exclude = ["tests*", "docs*", "titan_states*", "titan_logs*", "titan_output*"]
 
-[tool.setuptools]
-py-modules = ["run", "titan_exploit_cli"]
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.yaml", "*.yml", "*.json"]
 
+# ---------------------------------------------------------------------------
+# Ruff (linter + formatter)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit (security)
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "T201",   # print found (scanner uses print for output)
+    "S101",   # assert used (fine in tests)
+    "S603",   # subprocess call (scanner runs tools)
+    "S607",   # start process with partial path
+    "B905",   # zip without strict= (Python 3.10 compat)
+    "UP007",  # use X | Y for union (Python 3.10 compat)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "T201"]
+"titan/local_lab/*" = ["S101"]
+"titan/ai/*" = ["T201"]
+
+# ---------------------------------------------------------------------------
+# Mypy (type checker)
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = false
+disable_error_code = ["import-untyped"]
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
+asyncio_mode = "auto"
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["titan"]
+omit = ["titan/local_lab/*", "tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 0
+

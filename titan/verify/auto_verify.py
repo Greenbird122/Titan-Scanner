@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import random
 import string
+from difflib import SequenceMatcher
 from typing import Any, Dict, List, Optional, Tuple
 
 from titan.core.models import Finding, Severity
@@ -138,8 +139,9 @@ class AutoVerifier:
         """Return True if the finding should be demoted based on control results."""
         original_body = finding.body or ""
         original_status = finding.status or 0
+        baseline_body = finding.baseline_body or ""
         original_error_classes = set(self._extract_new_error_classes(
-            finding.baseline_body or "", original_body
+            baseline_body, original_body
         ))
 
         for control_body, control_error_classes, control_status in controls:
@@ -159,7 +161,77 @@ class AutoVerifier:
                 if similarity > 0.7:
                     return True
 
+            # REFLECTION FP DETECTION (WordPress echo storm prevention):
+            # If the endpoint returns 200 and both the original payload and
+            # the control payload are simply reflected in the body (the body
+            # structure is nearly identical minus the payload itself), the
+            # endpoint is echoing input, not processing it. This catches
+            # WordPress soft-404 pages and similar catch-all routes that
+            # reflect every payload into an error page with HTTP 200.
+            if (
+                control_status == original_status
+                and original_status == 200
+                and self._is_reflection_finding(finding, original_body, control_body, baseline_body)
+            ):
+                return True
+
         return False
+
+    def _is_reflection_finding(
+        self,
+        finding: Finding,
+        original_body: str,
+        control_body: str,
+        baseline_body: str,
+    ) -> bool:
+        """Detect if a finding is just payload reflection (not real processing).
+
+        A reflection FP occurs when the endpoint echoes any input back in
+        the response body without actually processing it. The key signal:
+        the response body structure is nearly identical across different
+        payloads — only the payload substring changes.
+
+        This catches WordPress echo storms, generic error pages, and any
+        catch-all route that reflects input.
+        """
+        payload = finding.payload or ""
+        if not payload or not original_body or not control_body:
+            return False
+
+        # Guard: require a baseline — without it we can't distinguish
+        # reflection from genuine content change.
+        if not baseline_body:
+            return False
+
+        # Signal 1: The payload appears in the original response but NOT
+        # in the baseline. This means the endpoint reflects input.
+        payload_in_response = payload.lower() in original_body.lower()
+        payload_in_baseline = payload.lower() in baseline_body.lower()
+        payload_reflected = payload_in_response and not payload_in_baseline
+
+        if not payload_reflected:
+            return False
+
+        # Signal 2: The control body is structurally similar to the original
+        # (same page layout, just different payload substring). High similarity
+        # means the endpoint produces the same page for any input.
+        similarity = self._body_similarity(original_body, control_body)
+
+        # Signal 3: The control body does NOT contain NEW error classes that
+        # the original has — the original's "verification" was just reflection,
+        # not actual error triggering.
+        original_errors = set(self._extract_new_error_classes(baseline_body, original_body))
+        control_errors = set(self._extract_new_error_classes(baseline_body, control_body))
+        no_new_errors = not control_errors or control_errors == original_errors
+
+        # Signal 4: The response body is significantly larger than the payload
+        # (the payload is a small substring in a large page, not the entire
+        # response). This prevents false-flagging APIs that return the payload
+        # as the full response body (which could be real processing).
+        body_is_large = len(original_body) > len(payload) * 5
+
+        # All four signals together = strong reflection FP signal
+        return payload_reflected and similarity > 0.6 and no_new_errors and body_is_large
 
     @staticmethod
     def _extract_new_error_classes(baseline_body: str, test_body: str) -> List[str]:

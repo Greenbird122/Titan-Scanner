@@ -15,14 +15,14 @@ from titan.modules.sourcesecret.detector import SourceSecretDetector
 
 mini = Flask(__name__)
 
-# The exact git-vizor exposure shape (real key from the live repo).
+# Simulated Firebase config exposure (test key, not a real credential).
 FIREBASE = """<html><body>
 <script type="module">
 const firebaseConfig = {
-    apiKey: "AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI",
-    authDomain: "tulia-tag.firebaseapp.com",
-    projectId: "tulia-tag",
-    appId: "1:488585644867:web:c5db733dd5b2cd939afdf6"
+    apiKey: "AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345",
+    authDomain: "test-project.firebaseapp.com",
+    projectId: "test-project",
+    appId: "1:123456789:web:abcdef123456"
 };
 </script>
 </body></html>"""
@@ -99,10 +99,10 @@ def test_firebase_config_and_key_fire():
     assert "Google/Firebase API Key" in labels
     assert "Firebase client config exposed" in labels
     # the actual exposed value must be reported verbatim
-    assert any("AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI" in f.payload for f in findings)
+    assert any("AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345" in f.payload for f in findings)
     # firebase config finding carries the project id
     fb = [f for f in findings if f.metadata["secret_type"] == "Firebase client config exposed"]
-    assert fb and "projectId=tulia-tag" in fb[0].payload
+    assert fb and "projectId=test-project" in fb[0].payload
 
 
 def test_finding_shape():

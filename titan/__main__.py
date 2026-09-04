@@ -7,6 +7,6 @@ Usage:
 """
 
 import sys
-from titan.cli.main import main
+from titan.cli import main
 
 sys.exit(main())

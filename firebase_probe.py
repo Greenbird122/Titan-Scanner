@@ -12,12 +12,16 @@ git-vizor and database-tulia JS bundles. Tests:
 """
 import asyncio
 import json
+import os
 from pathlib import Path
 
 import aiohttp
 
-API_KEY = "AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI"
+API_KEY = os.environ.get("FIREBASE_API_KEY", "")
 ITKIT = "https://identitytoolkit.googleapis.com/v1"
+
+if not API_KEY:
+    print("[!] FIREBASE_API_KEY not set — export it or add to .env")
 MARKER = "titan.seprobe.x9z2k7"
 
 

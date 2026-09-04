@@ -1,1 +1,1 @@
-"""CORS detection module."""
+

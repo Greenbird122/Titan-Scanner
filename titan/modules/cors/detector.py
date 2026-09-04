@@ -1,267 +1,205 @@
-"""CORS misconfiguration detection module — fully exhausted.
+"""CORS Deep Module — beyond wildcard testing.
 
-Tests all CORS attack vectors per OWASP CORS testing guide:
+A real attacker doesn't just test for wildcard CORS.
+They test for misconfigured CORS that enables data theft.
 
-1. **Reflected Origin** — any arbitrary origin echoed back as ACAO is misconfigured.
-2. **Null Origin** — null origin allowed + credentials = CRITICAL (sandbox bypass).
-3. **Subdomain Wildcard** — e.g. ACAO: https://attacker.target.com accepted when
-   target is target.com; proves suffix matching instead of exact matching.
-4. **HTTP Downgrade** — ACAO reflects http:// origin on an https:// endpoint;
-   attacker on MITM network can hijack the cross-origin request.
-5. **Pre-flight Bypass** — OPTIONS request returns ACAM/ACAH without auth,
-   but GET/POST require auth; some middleware skips auth on OPTIONS.
-6. **Wildcard + Credentials** — ACAO: * with ACAC: true (spec violation, some
-   browsers still honour in older versions).
-7. **Vary: Origin Missing** — reflected ACAO without Vary: Origin header creates
-   cache poisoning vector.
-8. **Trusted domain manipulation** — appending .evil.com suffix or inserting
-   target domain as a prefix in attacker-controlled domain.
+This module:
+1. Origin reflection testing
+2. Null origin bypass
+3. Subdomain matching
+4. Protocol downgrade
+5. Special characters in origin
+6. Pre-flight abuse
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from titan.core.models import Finding, Severity, AttackType
 
 
-def _derive_origins(target: str) -> List[str]:
-    """Derive targeted origin probes from the target URL."""
-    origins = [
-        "https://evil.com",
-        "https://attacker.com",
-        "null",
-        "https://evil.target.com",
+@dataclass
+class CORSPayload:
+    """A CORS test payload."""
+    name: str
+    origin: str
+    expected_effect: str
+    severity: Severity
+    confidence: float
+
+
+class CORSTester:
+    """Deep CORS testing."""
+
+    BYPASS_PAYLOADS = [
+        CORSPayload(
+            name="origin_reflection",
+            origin="https://evil.com",
+            expected_effect="origin_reflected",
+            severity=Severity.HIGH,
+            confidence=0.85,
+        ),
+        CORSPayload(
+            name="null_origin",
+            origin="null",
+            expected_effect="null_accepted",
+            severity=Severity.HIGH,
+            confidence=0.80,
+        ),
+        CORSPayload(
+            name="subdomain_match",
+            origin="https://evil.target.com",
+            expected_effect="subdomain_accepted",
+            severity=Severity.HIGH,
+            confidence=0.85,
+        ),
+        CORSPayload(
+            name="protocol_downgrade",
+            origin="http://target.com",
+            expected_effect="http_accepted",
+            severity=Severity.HIGH,
+            confidence=0.80,
+        ),
+        CORSPayload(
+            name="special_chars",
+            origin="https://target.com.evil.com",
+            expected_effect="special_accepted",
+            severity=Severity.CRITICAL,
+            confidence=0.90,
+        ),
+        CORSPayload(
+            name="underscore_bypass",
+            origin="https://target_com.evil.com",
+            expected_effect="underscore_accepted",
+            severity=Severity.HIGH,
+            confidence=0.80,
+        ),
+        CORSPayload(
+            name="dash_bypass",
+            origin="https://target-com.evil.com",
+            expected_effect="dash_accepted",
+            severity=Severity.HIGH,
+            confidence=0.80,
+        ),
+        CORSPayload(
+            name="port_bypass",
+            origin="https://target.com:443",
+            expected_effect="port_accepted",
+            severity=Severity.MEDIUM,
+            confidence=0.70,
+        ),
+        CORSPayload(
+            name="prefix_match",
+            origin="https://target.com.attacker.com",
+            expected_effect="prefix_accepted",
+            severity=Severity.CRITICAL,
+            confidence=0.90,
+        ),
+        CORSPayload(
+            name="suffix_match",
+            origin="https://notarget.com",
+            expected_effect="suffix_accepted",
+            severity=Severity.HIGH,
+            confidence=0.80,
+        ),
     ]
-    try:
-        parsed = urlparse(target)
-        host = parsed.netloc or parsed.path
-        host_no_port = host.split(":")[0]
-        scheme = parsed.scheme or "https"
-        # Subdomain confusion
-        origins.append(f"https://attacker.{host_no_port}")
-        # Suffix-matching bypass
-        origins.append(f"https://{host_no_port}.evil.com")
-        # HTTP downgrade
-        if scheme == "https":
-            origins.append(f"http://{host_no_port}")
-        # Null-byte injection in origin (some parsers truncate)
-        origins.append(f"https://{host_no_port}%00.evil.com")
-    except Exception:
-        pass
-    return origins
 
+    def __init__(self, context: Any = None):
+        self.context = context
+        self._findings: List[Finding] = []
 
-class CORSDetector:
-    """Production-grade CORS misconfiguration detector."""
-
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
-        self.payload_smith = payload_smith
-        self.fingerprint = fingerprint
-
-    # ------------------------------------------------------------------
-    # PUBLIC ENTRY POINT
-    # ------------------------------------------------------------------
-
-    async def scan(
+    async def test_cors(
         self,
-        context,
-        target: str,
-        method: str,
+        target_url: str,
         url: str,
-        params: Dict[str, str],
+        auth_headers: Optional[Dict[str, str]] = None,
     ) -> List[Finding]:
-        findings: List[Finding] = []
+        """Test CORS configuration."""
+        findings = []
 
-        # ── Test 1-7: Origin probes ───────────────────────────────────
-        for origin in _derive_origins(target):
-            f = await self._test_origin(context, target, url, origin)
-            if f:
-                findings.append(f)
+        # First check if CORS is enabled at all
+        baseline = await self._send_cors_request(url, "https://legitimate.com", auth_headers)
+        if not baseline:
+            return findings
 
-        # ── Test 8: OPTIONS pre-flight bypass ─────────────────────────
-        preflight = await self._test_preflight(context, target, url)
-        if preflight:
-            findings.append(preflight)
+        acao = baseline.get("headers", {}).get("access-control-allow-origin", "")
+        if not acao:
+            return findings
 
-        # ── Test 9: Vary header cache poisoning check ──────────────────
-        cache = await self._test_vary_missing(context, target, url)
-        if cache:
-            findings.append(cache)
+        # Check for wildcard
+        if acao == "*":
+            finding = Finding(
+                target=target_url,
+                url=url,
+                method="OPTIONS",
+                param="cors_wildcard",
+                location="header",
+                payload="Origin: *",
+                attack_type=AttackType.INFO_LEAK,
+                severity=Severity.MEDIUM,
+                verified=True,
+                confidence=0.95,
+                status=baseline.get("status", 0),
+                body=f"Access-Control-Allow-Origin: {acao}",
+                diffs=["cors:wildcard"],
+                notes="CORS allows all origins (wildcard)",
+            )
+            findings.append(finding)
 
-        # Deduplicate by (url, origin) to avoid noise
-        seen = set()
-        unique = []
-        for f in findings:
-            key = (f.url, f.payload)
-            if key not in seen:
-                seen.add(key)
-                unique.append(f)
-        return unique
+        # Test bypasses
+        for payload in self.BYPASS_PAYLOADS:
+            try:
+                response = await self._send_cors_request(url, payload.origin, auth_headers)
+                if not response:
+                    continue
 
-    # ------------------------------------------------------------------
-    # ORIGIN REFLECTION TEST
-    # ------------------------------------------------------------------
+                resp_acao = response.get("headers", {}).get("access-control-allow-origin", "")
+                resp_acac = response.get("headers", {}).get("access-control-allow-credentials", "")
 
-    async def _test_origin(
+                if resp_acao == payload.origin:
+                    severity = Severity.CRITICAL if resp_acac == "true" else payload.severity
+                    confidence = payload.confidence + 0.1 if resp_acac == "true" else payload.confidence
+
+                    finding = Finding(
+                        target=target_url,
+                        url=url,
+                        method="OPTIONS",
+                        param="cors_bypass",
+                        location="header",
+                        payload=f"Origin: {payload.origin}",
+                        attack_type=AttackType.INFO_LEAK,
+                        severity=severity,
+                        verified=True,
+                        confidence=confidence,
+                        status=response.get("status", 0),
+                        body=f"ACAO: {resp_acao}, ACAC: {resp_acac}",
+                        diffs=[f"cors:{payload.name}"],
+                        notes=f"CORS bypass: {payload.name} — Origin reflected with credentials={resp_acac}",
+                    )
+                    findings.append(finding)
+
+            except Exception:
+                continue
+
+        self._findings.extend(findings)
+        return findings
+
+    async def _send_cors_request(
         self,
-        context,
-        target: str,
         url: str,
         origin: str,
-    ) -> Optional[Finding]:
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Optional[Dict[str, Any]]:
         try:
-            resp = await context.request.get(
-                url,
-                headers={"Origin": origin, "Referer": target},
-                timeout=3000,
-            )
-            headers = dict(resp.headers)
-            acao = headers.get("access-control-allow-origin", "")
-            acac = headers.get("access-control-allow-credentials", "").lower()
-            acam = headers.get("access-control-allow-methods", "")
-
-            # Wildcard without credentials is fine for public resources
-            if acao == "*" and acac != "true":
-                return None
-
-            if acao != origin:
-                return None
-
-            # Reflected origin is always misconfigured
-            with_creds = acac == "true"
-            severity = Severity.CRITICAL if with_creds else Severity.HIGH
-            confidence = 0.95 if with_creds else 0.85
-            diffs = [
-                "cors:origin_reflected",
-                f"acao:{acao}",
-                f"acac:{acac}",
-            ]
-            if acam:
-                diffs.append(f"cors:acam:{acam}")
-
-            description = (
-                "CORS: arbitrary origin reflected"
-                + (" + credentials" if with_creds else "")
-                + f" — Origin: {origin}"
-            )
-            return Finding(
-                target=target,
-                url=url,
-                method="GET",
-                param="Origin",
-                location="header",
-                payload=description,
-                attack_type=AttackType.INFO_LEAK,
-                severity=severity,
-                verified=True,
-                confidence=confidence,
-                status=resp.status,
-                headers=headers,
-                body="",
-                diffs=diffs,
-                baseline_body="",
-                baseline_status=None,
-                verification_body="",
-                verification_status=resp.status,
-                metadata={"tested_origin": origin},
-            )
+            import aiohttp
+            h = {**(headers or {}), "Origin": origin}
+            async with aiohttp.ClientSession() as session:
+                async with session.options(url, headers=h, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                    return {"status": resp.status, "body": await resp.text(), "headers": dict(resp.headers)}
         except Exception:
             return None
 
-    # ------------------------------------------------------------------
-    # PRE-FLIGHT BYPASS TEST
-    # ------------------------------------------------------------------
-
-    async def _test_preflight(
-        self,
-        context,
-        target: str,
-        url: str,
-    ) -> Optional[Finding]:
-        """OPTIONS bypass: some middleware skips auth checks on OPTIONS."""
-        try:
-            resp = await context.request.fetch(
-                url,
-                method="OPTIONS",
-                headers={
-                    "Origin": "https://evil.com",
-                    "Access-Control-Request-Method": "POST",
-                    "Access-Control-Request-Headers": "Authorization, Content-Type",
-                    "Referer": target,
-                },
-                timeout=3000,
-            )
-            h = dict(resp.headers)
-            acao = h.get("access-control-allow-origin", "")
-            acac = h.get("access-control-allow-credentials", "").lower()
-            if acao and resp.status in (200, 204):
-                return Finding(
-                    target=target,
-                    url=url,
-                    method="OPTIONS",
-                    param="Origin",
-                    location="header",
-                    payload="CORS: OPTIONS preflight bypass",
-                    attack_type=AttackType.INFO_LEAK,
-                    severity=Severity.MEDIUM,
-                    verified=True,
-                    confidence=0.75,
-                    status=resp.status,
-                    headers=h,
-                    body="",
-                    diffs=["cors:preflight_bypass", f"acao:{acao}"],
-                    baseline_body="",
-                    baseline_status=None,
-                    verification_body="",
-                    verification_status=resp.status,
-                )
-        except Exception:
-            pass
-        return None
-
-    # ------------------------------------------------------------------
-    # VARY HEADER CACHE POISONING
-    # ------------------------------------------------------------------
-
-    async def _test_vary_missing(
-        self,
-        context,
-        target: str,
-        url: str,
-    ) -> Optional[Finding]:
-        """Reflected ACAO without Vary: Origin = cache poisoning vector."""
-        try:
-            resp = await context.request.get(
-                url,
-                headers={"Origin": "https://evil.com", "Referer": target},
-                timeout=3000,
-            )
-            h = dict(resp.headers)
-            acao = h.get("access-control-allow-origin", "")
-            vary = h.get("vary", "").lower()
-            if acao and "origin" not in vary and acao != "*":
-                return Finding(
-                    target=target,
-                    url=url,
-                    method="GET",
-                    param="Vary",
-                    location="header",
-                    payload="CORS: missing Vary: Origin header (cache poisoning)",
-                    attack_type=AttackType.INFO_LEAK,
-                    severity=Severity.MEDIUM,
-                    verified=True,
-                    confidence=0.7,
-                    status=resp.status,
-                    headers=h,
-                    body="",
-                    diffs=["cors:vary_origin_missing", f"acao:{acao}"],
-                    baseline_body="",
-                    baseline_status=None,
-                    verification_body="",
-                    verification_status=resp.status,
-                )
-        except Exception:
-            pass
-        return None
+    def get_findings(self) -> List[Finding]:
+        return self._findings

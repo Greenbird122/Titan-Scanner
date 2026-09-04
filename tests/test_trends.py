@@ -40,7 +40,7 @@ def _fixture(tmp_path: Path) -> Path:
         root, "git-vizor-vercel-app", "https://git-vizor.vercel.app",
         [
             {"attack_type": "Hardcoded Secret", "verified": True, "severity": "medium",
-             "payload": "Firebase client config exposed: AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI"},
+             "payload": "Firebase client config exposed: AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345"},
             {"attack_type": "CSP Weakness", "verified": True, "severity": "medium",
              "diffs": ["headers:missing", "missing:Content-Security-Policy", "missing:X-Frame-Options"]},
             {"attack_type": "DOM XSS", "verified": False, "severity": "high"},

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titan Security Lab — Penetration Testing & Security Audits</title>
+    <meta name="description" content="Professional penetration testing and security audits. We find the crack that breaks your site.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-brand">
+            <span class="logo">⬡</span> Titan Security Lab
+        </div>
+        <div class="nav-links">
+            <a href="#portfolio">Portfolio</a>
+            <a href="#methodology">Methodology</a>
+            <a href="#proof">Proof</a>
+            <a href="#contact">Contact</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>I find the <span class="highlight">one crack</span> that breaks your site.</h1>
+            <p class="hero-subtitle">Professional penetration testing with live proof. Not scans. Not reports. <strong>Exploits.</strong></p>
+            <div class="hero-cta">
+                <a href="#contact" class="btn btn-primary">Get Your Audit</a>
+                <a href="#portfolio" class="btn btn-secondary">See My Work</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">6</span>
+                    <span class="stat-label">Sites Audited</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">52</span>
+                    <span class="stat-label">Vulnerabilities Found</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">113</span>
+                    <span class="stat-label">Tests Per Audit</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="section">
+        <h2>Portfolio</h2>
+        <p class="section-subtitle">Real audits. Real findings. Real proof.</p>
+        
+        <div class="portfolio-grid">
+            <!-- Site 1 -->
+            <div class="portfolio-card critical">
+                <div class="card-header">
+                    <span class="severity critical">CRITICAL</span>
+                    <span class="score">2.0/10</span>
+                </div>
+                <h3>REDACTED_TARGET</h3>
+                <p class="card-type">School Portal</p>
+                <ul class="findings-list">
+                    <li>18 vulnerabilities found</li>
+                    <li>7 critical, 6 high, 5 medium</li>
+                    <li>SQL injection, XSS, IDOR</li>
+                    <li>Full data exfiltration possible</li>
+                </ul>
+                <div class="card-proof">
+                    <code>curl -s "https://REDACTED_TARGET/api/students" | head -20</code>
+                </div>
+            </div>
+
+            <!-- Site 2 -->
+            <div class="portfolio-card critical">
+                <div class="card-header">
+                    <span class="severity critical">CRITICAL</span>
+                    <span class="score">3.0/10</span>
+                </div>
+                <h3>portal.kibu.ac.ke</h3>
+                <p class="card-type">University Portal</p>
+                <ul class="findings-list">
+                    <li>14 vulnerabilities found</li>
+                    <li>5 critical, 5 high, 4 medium</li>
+                    <li>Authentication bypass, privilege escalation</li>
+                    <li>Student data exposed</li>
+                </ul>
+                <div class="card-proof">
+                    <code>curl -s "https://portal.kibu.ac.ke/api/grades" -H "Authorization: Bearer fake"</code>
+                </div>
+            </div>
+
+            <!-- Site 3 -->
+            <div class="portfolio-card high">
+                <div class="card-header">
+                    <span class="severity high">HIGH</span>
+                    <span class="score">2.5/10</span>
+                </div>
+                <h3>arenartravel.netlify.app</h3>
+                <p class="card-type">Travel App</p>
+                <ul class="findings-list">
+                    <li>15 vulnerabilities found</li>
+                    <li>3 critical, 5 high, 7 medium</li>
+                    <li>Supabase misconfiguration, data leak</li>
+                    <li>15 user records exposed without auth</li>
+                </ul>
+                <div class="card-proof">
+                    <code>curl -s "https://pjnechighesiiugjjlub.supabase.co/rest/v1/trips?select=*"</code>
+                </div>
+            </div>
+
+            <!-- Site 4 -->
+            <div class="portfolio-card medium">
+                <div class="card-header">
+                    <span class="severity medium">MEDIUM</span>
+                    <span class="score">7.0/10</span>
+                </div>
+                <h3>memetik.spaincityevo.site</h3>
+                <p class="card-type">Developer Site</p>
+                <ul class="findings-list">
+                    <li>4 vulnerabilities found</li>
+                    <li>2 critical, 2 medium</li>
+                    <li>FastAPI backend, well-secured</li>
+                    <li>Swagger UI exposed, minor issues</li>
+                </ul>
+                <div class="card-proof">
+                    <code>curl -s "https://memetik.spaincityevo.site/docs"</code>
+                </div>
+            </div>
+
+            <!-- Site 5 -->
+            <div class="portfolio-card medium">
+                <div class="card-header">
+                    <span class="severity medium">MEDIUM</span>
+                    <span class="score">7.5/10</span>
+                </div>
+                <h3>lurk-seven.vercel.app</h3>
+                <p class="card-type">AI Desktop App</p>
+                <ul class="findings-list">
+                    <li>11 vulnerabilities found</li>
+                    <li>2 critical, 5 high, 4 medium</li>
+                    <li>Clerk auth properly configured</li>
+                    <li>GCS bucket exposed, checkout bypass</li>
+                </ul>
+                <div class="card-proof">
+                    <code>curl -s "https://storage.googleapis.com/lurk-releases/?max-keys=100"</code>
+                </div>
+            </div>
+
+            <!-- Site 6 -->
+            <div class="portfolio-card high">
+                <div class="card-header">
+                    <span class="severity high">HIGH</span>
+                    <span class="score">—</span>
+                </div>
+                <h3>elearning.kibu.ac.ke</h3>
+                <p class="card-type">E-Learning Portal</p>
+                <ul class="findings-list">
+                    <li>Full audit completed</li>
+                    <li>Authentication testing</li>
+                    <li>API security assessment</li>
+                    <li>Report delivered</li>
+                </ul>
+                <div class="card-proof">
+                    <code>Audit completed — full report available on request</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Methodology Section -->
+    <section id="methodology" class="section dark">
+        <h2>Methodology</h2>
+        <p class="section-subtitle">8-phase APT simulation. Not a scan. An attack.</p>
+        
+        <div class="methodology-grid">
+            <div class="method-step">
+                <div class="step-number">01</div>
+                <h3>Reconnaissance</h3>
+                <p>Download everything. Extract secrets. Map the attack surface.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">02</div>
+                <h3>Surface Mapping</h3>
+                <p>Probe every endpoint. Every method. Every parameter.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">03</div>
+                <h3>Vulnerability Analysis</h3>
+                <p>Challenge every assumption. Test injection, auth, IDOR, SSRF.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">04</div>
+                <h3>Exploitation</h3>
+                <p>Chain cracks into attack paths. Build exploit tools. Prove impact.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">05</div>
+                <h3>Social Engineering</h3>
+                <p>Harvest emails. Build phishing campaigns. Map insider threats.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">06</div>
+                <h3>Post-Exploitation</h3>
+                <p>Data exfiltration. Audit trail destruction. Persistence.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">07</div>
+                <h3>Cover-Up Analysis</h3>
+                <p>What can an attacker hide? Anti-forensics assessment.</p>
+            </div>
+            <div class="method-step">
+                <div class="step-number">08</div>
+                <h3>APT Report</h3>
+                <p>Kill chains. Exploit tools. Remediation. Full disclosure.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Proof Section -->
+    <section id="proof" class="section">
+        <h2>Proof</h2>
+        <p class="section-subtitle">Don't trust my report. Run the curl commands yourself.</p>
+        
+        <div class="proof-grid">
+            <div class="proof-card">
+                <h3>Verify SQL Injection</h3>
+                <code class="proof-cmd">curl -s "https://REDACTED_TARGET/api/students?id=1' OR '1'='1" | head -20</code>
+                <p class="proof-result">Returns all student records — confirms SQLi</p>
+            </div>
+            <div class="proof-card">
+                <h3>Verify Data Exposure</h3>
+                <code class="proof-cmd">curl -s "https://pjnechighesiiugjjlub.supabase.co/rest/v1/trips?select=*"</code>
+                <p class="proof-result">Returns 15 user trip records — no auth required</p>
+            </div>
+            <div class="proof-card">
+                <h3>Verify GCS Bucket</h3>
+                <code class="proof-cmd">curl -s "https://storage.googleapis.com/lurk-releases/?max-keys=100"</code>
+                <p class="proof-result">Returns 24 files — installers, build config exposed</p>
+            </div>
+            <div class="proof-card">
+                <h3>Verify Auth Bypass</h3>
+                <code class="proof-cmd">curl -s -I "https://lurk-seven.vercel.app/dashboard"</code>
+                <p class="proof-result">Returns 307 — properly redirects to sign-in (blocked)</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="section dark">
+        <h2>Pricing</h2>
+        <p class="section-subtitle">Transparent pricing. No surprises.</p>
+        
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Quick Scan</h3>
+                <div class="price">KES 5,000</div>
+                <p class="price-period">one-time</p>
+                <ul class="pricing-features">
+                    <li>Automated + manual testing</li>
+                    <li>1-day turnaround</li>
+                    <li>Top 10 OWASP coverage</li>
+                    <li>Basic report with proof</li>
+                </ul>
+                <a href="#contact" class="btn btn-secondary">Get Started</a>
+            </div>
+            <div class="pricing-card featured">
+                <div class="featured-badge">Most Popular</div>
+                <h3>Deep Audit</h3>
+                <div class="price">KES 25,000</div>
+                <p class="price-period">one-time</p>
+                <ul class="pricing-features">
+                    <li>Full 8-phase methodology</li>
+                    <li>3-5 day turnaround</li>
+                    <li>113+ test coverage</li>
+                    <li>Exploit tools & kill chains</li>
+                    <li>Professional disclosure</li>
+                </ul>
+                <a href="#contact" class="btn btn-primary">Get Started</a>
+            </div>
+            <div class="pricing-card">
+                <h3>APT Simulation</h3>
+                <div class="price">KES 75,000</div>
+                <p class="price-period">one-time</p>
+                <ul class="pricing-features">
+                    <li>Full APT methodology</li>
+                    <li>5-7 day turnaround</li>
+                    <li>Social engineering assessment</li>
+                    <li>Post-exploitation analysis</li>
+                    <li>Executive briefing</li>
+                </ul>
+                <a href="#contact" class="btn btn-secondary">Get Started</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="section">
+        <h2>Get Your Audit</h2>
+        <p class="section-subtitle">Send me your URL. I'll break it.</p>
+        
+        <div class="contact-grid">
+            <div class="contact-form">
+                <form id="contactForm">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="url">Target URL</label>
+                        <input type="url" id="url" name="url" required placeholder="https://yoursite.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="service">Service</label>
+                        <select id="service" name="service" required>
+                            <option value="quick">Quick Scan — KES 5,000</option>
+                            <option value="deep" selected>Deep Audit — KES 25,000</option>
+                            <option value="apt">APT Simulation — KES 75,000</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" rows="4" placeholder="Tell me about your site..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Request Audit</button>
+                </form>
+            </div>
+            <div class="contact-info">
+                <h3>How It Works</h3>
+                <ol class="how-it-works">
+                    <li><strong>You send your URL</strong> — I verify you own it</li>
+                    <li><strong>You sign consent</strong> — Legal protection for both of us</li>
+                    <li><strong>I run the audit</strong> — 113+ tests, full methodology</li>
+                    <li><strong>You get the report</strong> — Findings with curl proof</li>
+                    <li><strong>You fix the issues</strong> — I help if needed</li>
+                </ol>
+                <div class="contact-methods">
+                    <p><strong>Email:</strong> hello@titansecuritylab.com</p>
+                    <p><strong>Twitter:</strong> @titansecurity</p>
+                    <p><strong>Response:</strong> Within 24 hours</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 Titan Security Lab. All rights reserved.</p>
+            <p class="footer-tagline">No system is perfect. I prove it.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Simple form handling
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thank you! I\'ll review your request and get back to within 24 hours.');
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -74,3 +74,18 @@ consent/*.SCOPE.md
 
 # Historical documentation (archived, not for distribution)
 docs/archive/
+
+# Live-infrastructure probe scripts (hit real Supabase/Firebase — not for CI)
+scripts/probes/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Third-party tool clones (embedded git repos — kept local, not vendored)
+tools/bullseye/
+tools/pp-finder/
+tools/ppmap/
+tools/protoscan/
+tools/sspp-gadgets/

@@ -192,7 +192,11 @@ async def test_firebase_key():
     This is consent-gated (ownership). We use SECPROBE markers + cleanup.
     """
     import aiohttp
-    API_KEY = "AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI"
+    import os
+    API_KEY = os.environ.get("FIREBASE_API_KEY", "")
+    if not API_KEY:
+        print("[!] FIREBASE_API_KEY not set")
+        return {"error": "FIREBASE_API_KEY not set"}
     IDENTITY = "https://www.googleapis.com/identitytoolkit/v3/relyingparty"
     results = {"key": API_KEY, "tests": {}}
 

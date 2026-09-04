@@ -5,12 +5,16 @@ in database-tulia.vercel.app.
 """
 import asyncio
 import json
+import os
 from pathlib import Path
 
 import aiohttp
 
-API_KEY = "AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI"
-PROJECT = "tulia-tag"
+API_KEY = os.environ.get("FIREBASE_API_KEY", "")
+PROJECT = os.environ.get("FIREBASE_PROJECT", "tulia-tag")
+
+if not API_KEY:
+    print("[!] FIREBASE_API_KEY not set — export it or add to .env")
 RESULTS = {}
 
 

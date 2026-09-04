@@ -1,0 +1,18 @@
+include README.md
+include LICENSE
+include requirements.txt
+include pyproject.toml
+recursive-include titan *.py *.md *.yaml *.yml *.json
+recursive-include docs *.md
+recursive-include docker *
+recursive-include scripts *.py *.yaml *.yml
+recursive-include tests *.py
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude .git
+global-exclude titan_states
+global-exclude titan_logs
+global-exclude titan_output
+global-exclude findings
+global-exclude consent

@@ -101,22 +101,29 @@ def authorize_target(
     keypair (~/.titan/consent.key), which is what the CLI signs with; tests
     pass a temp key.
     """
-    from titan.exploit.consent import DEFAULT_KEY_PATH, verify_consent
+    try:
+        from titan.exploit.consent import DEFAULT_KEY_PATH, verify_consent
+    except Exception:
+        # exploit module not fully initialized (e.g. vault not built)
+        # — fall through to practice manifest check
+        DEFAULT_KEY_PATH = None
+        verify_consent = None
 
     host = _host_of(target)
     if not host:
         return f"target {target!r} has no resolvable hostname"
     if host in LOOPBACK_HOSTS:
         return None
-    try:
-        verify_consent(
-            target,
-            consent_dir=consent_dir,
-            key_path=Path(key_path) if key_path else DEFAULT_KEY_PATH,
-        )
-        return None
-    except Exception:  # noqa: BLE001 - any consent failure = not authorized
-        pass
+    if verify_consent is not None:
+        try:
+            verify_consent(
+                target,
+                consent_dir=consent_dir,
+                key_path=Path(key_path) if key_path else DEFAULT_KEY_PATH,
+            )
+            return None
+        except Exception:  # noqa: BLE001 - any consent failure = not authorized
+            pass
     if host_is_practice(host, practice_hosts(practice_manifest)):
         return None
     return (
