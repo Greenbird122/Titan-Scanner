@@ -513,10 +513,34 @@ class MassAssignmentDetector:
             if test_body == baseline_body:
                 return None
 
-            # Check if the type-confused value was accepted
+            # Oracle A: the plain value must NOT already be in the baseline
+            # body — if the response always carries e.g. "admin" (nav bar,
+            # role list), its presence cannot prove the injected field was
+            # honored. Same guard as the flat-injection engine.
+            plain_values = self._plain_value_strings(value)
+            for pv in plain_values:
+                if pv and pv in baseline_body:
+                    return None
+
+            # Oracle B: the type-confused value must appear in test body
             val_str = self._value_to_str(value)
-            if val_str in test_body and val_str not in baseline_body:
-                return Finding(
+            if val_str not in test_body:
+                return None
+
+            # Oracle C: JSON-reflection gate — the response must be JSON
+            # carrying the field:value pairing. A raw HTML echo of the
+            # injected value is not evidence the server honored it.
+            reflected = False
+            try:
+                data = json.loads(test_body)
+                if self._verify_json_field(data, field, value, val_str):
+                    reflected = True
+            except Exception:
+                pass
+            if not reflected:
+                return None
+
+            return Finding(
                     target=target,
                     url=str(getattr(test_resp, "url", None) or url),
                     method=method.upper(),
@@ -590,6 +614,20 @@ class MassAssignmentDetector:
         if isinstance(value, list):
             return json.dumps(value)
         return str(value)
+
+    @staticmethod
+    def _plain_value_strings(value: Any) -> List[str]:
+        """Extract plain (unserialized) value strings for baseline comparison.
+
+        For a list value (e.g. role=["admin"]) returns each element's string
+        ("admin") rather than the serialized form ("[\"admin\"]"), so a
+        baseline that always contains "admin" correctly rejects the echo.
+        """
+        if isinstance(value, list):
+            return [MassAssignmentDetector._value_to_str(v) for v in value]
+        if isinstance(value, dict):
+            return [MassAssignmentDetector._value_to_str(v) for v in value.values()]
+        return [MassAssignmentDetector._value_to_str(value)]
 
     def _verify_json_field(self, data: Any, field: str, raw_val: Any, val_str: str) -> bool:
         """Recursively check if JSON data contains the field:value pair."""

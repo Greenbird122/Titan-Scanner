@@ -31,6 +31,13 @@ def _engine() -> TitanEngine:
     return TitanEngine({"stealth": {"min_delay": 0.01, "max_delay": 0.01}})
 
 
+def _dedupe(findings):
+    """Dedup as the engine does: module-level helper + root-cause types."""
+    from titan.core.constants import ROOT_CAUSE_ATTACK_TYPES
+    from titan.core.helpers import dedupe_findings
+    return dedupe_findings(findings, ROOT_CAUSE_ATTACK_TYPES)
+
+
 def _forms(n: int) -> list:
     return [
         {
@@ -423,7 +430,6 @@ class TestContentScanDedupe:
         )
 
     def test_identical_body_scan_collapses_to_one(self):
-        engine = _engine()
         findings = [
             self._finding(
                 f"http://localhost:5000/p{i}", "body", "body",
@@ -431,26 +437,24 @@ class TestContentScanDedupe:
             )
             for i in range(3)
         ]
-        out = engine._dedupe_findings(findings)
+        out = _dedupe(findings)
         assert len(out) == 1, f"shared bundle leak must be reported once, got {len(out)}"
 
     def test_distinct_body_payloads_are_kept(self):
-        engine = _engine()
         findings = [
             self._finding("http://localhost:5000/p1", "body", "body", "payload-A"),
             self._finding("http://localhost:5000/p2", "body", "body", "payload-B"),
         ]
-        out = engine._dedupe_findings(findings)
+        out = _dedupe(findings)
         assert len(out) == 2
 
     def test_query_injection_findings_not_collapsed(self):
         """Per-endpoint injection findings (real param names) stay per-URL."""
-        engine = _engine()
         findings = [
             self._finding(f"http://localhost:5000/p{i}", "id", "query", "' OR 1=1--")
             for i in range(2)
         ]
-        out = engine._dedupe_findings(findings)
+        out = _dedupe(findings)
         assert len(out) == 2, "distinct endpoints with the same injection must not collapse"
 
 

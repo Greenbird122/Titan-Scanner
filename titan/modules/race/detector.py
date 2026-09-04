@@ -417,10 +417,17 @@ class RaceDetector:
                     success_count += 1
                     bodies.append(res[0])
 
-            # Multiple successes = duplicate creation vulnerability
+            # Multiple successes = duplicate creation vulnerability, but only
+            # when the concurrent responses DIVERGE as a counter (1st wins,
+            # rest differ). Identical responses prove nothing (idempotent
+            # endpoint) and per-request token noise is not a race — both
+            # rejected here, mirroring Engine 1's oracle.
             if success_count > 1:
                 unique_bodies = set(bodies)
-                if len(unique_bodies) > 1 or success_count >= 2:
+                if (
+                    len(unique_bodies) > 1
+                    and self._is_counter_divergence(list(unique_bodies))
+                ):
                     return Finding(
                         target=target,
                         url=str(url),

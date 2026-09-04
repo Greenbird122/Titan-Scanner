@@ -37,23 +37,24 @@ def _finding(url, attack=AttackType.LFI, payload="../../../../etc/passwd",
     )
 
 
-def _engine():
-    from titan.core.engine import TitanEngine
-    return TitanEngine({"crawl": {}, "ai": {}, "modules": {}})
+def _dedupe(findings):
+    """Dedup as the engine does: module-level helper + root-cause types."""
+    from titan.core.constants import ROOT_CAUSE_ATTACK_TYPES
+    from titan.core.helpers import dedupe_findings
+    return dedupe_findings(findings, ROOT_CAUSE_ATTACK_TYPES)
 
 
 class TestRootCauseDedup:
     def test_identical_findings_collapse_to_one(self):
         """21 endpoints, identical attack+payload+verified -> ONE finding with
         all 21 URLs recorded in metadata['affected_urls']."""
-        engine = _engine()
         findings = [_finding(f"https://zairaku.rest/{path}?id=1&q=test")
                     for path in ("token", "hash", "login", "signin", "signup",
                                  "register", "session", "refresh", "upload",
                                  "api.raml", "backup", "xss", "manager",
                                  "export", ".DS_Store", "test", "console",
                                  "bak", "dev", "users", "panel")]
-        out = engine._dedupe_findings(findings)
+        out = _dedupe(findings)
         assert len(out) == 1, f"21 identical LFI must collapse to 1, got {len(out)}"
         rep = out[0]
         urls = rep.metadata["affected_urls"]
@@ -65,29 +66,26 @@ class TestRootCauseDedup:
         """Verification state is part of the root-cause signature: a confirmed
         finding and a weak copy of the same payload are different evidence
         classes and must not merge (one may later be demoted)."""
-        engine = _engine()
         confirmed = _finding("https://x/a", verified=True)
         weak = _finding("https://x/b", verified=False, confidence=0.4)
-        out = engine._dedupe_findings([confirmed, weak])
+        out = _dedupe([confirmed, weak])
         assert len(out) == 2, f"verified/weak copies must stay separate, got {len(out)}"
 
     def test_different_payloads_stay_separate(self):
-        engine = _engine()
         a = _finding("https://x/a", payload="../../etc/passwd")
         b = _finding("https://x/b", payload="../../windows/win.ini")
-        out = engine._dedupe_findings([a, b])
+        out = _dedupe([a, b])
         assert len(out) == 2
 
     def test_non_injection_findings_are_not_root_collapsed(self):
         """Header misconfigs collapse via their own site-wide rule; the
         root-cause pass must not merge identical header findings that live on
         distinct endpoints with distinct params."""
-        engine = _engine()
         h1 = _finding("https://x/a", attack=AttackType.INFO_LEAK, param="body",
                       payload="Missing: X-Frame-Options")
         h2 = _finding("https://x/b", attack=AttackType.INFO_LEAK, param="body",
                       payload="Missing: X-Frame-Options")
-        out = engine._dedupe_findings([h1, h2])
+        out = _dedupe([h1, h2])
         # site-wide rule collapses these (same sig) BEFORE the root-cause pass
         assert len(out) == 1, f"identical header leak must collapse via site-wide rule, got {len(out)}"
 
@@ -98,13 +96,12 @@ class TestEvidenceGateIntegration:
         1, and the evidence gate demotes it because its diffs name no strong
         oracle marker (the pre-fix version emitted 21 CRITICAL)."""
         from titan.verify.oracles import enforce_evidence
-        engine = _engine()
         # Reflection-only diffs: exactly what a catch-all echo produces.
         findings = [_finding(f"https://zairaku.rest/{i}", verified=True,
                              diffs=["payload_reflected", "content_hash_changed",
                                     "response_length_increased"])
                     for i in range(21)]
-        deduped = engine._dedupe_findings(findings)
+        deduped = _dedupe(findings)
         assert len(deduped) == 1
         stats = enforce_evidence(deduped)
         f = deduped[0]
@@ -121,7 +118,6 @@ class TestEvidenceGateIntegration:
         genuinely verified CRITICAL RCE to unverified MEDIUM."""
         from titan.verify.oracles import enforce_evidence
         from titan.verify.oracles import grade_finding
-        engine = _engine()
         f = _finding("https://x/cmd?host=test", attack=AttackType.RCE,
                      payload="| id", verified=True, confidence=0.93,
                      diffs=["rce:content:uid=", "rce:content:gid=",
@@ -144,7 +140,6 @@ class TestEvidenceGateIntegration:
         """A pre-fix ``rce:uid=`` diff (no strong marker) still gets demoted:
         the gate is strict about naming the oracle that backed the label."""
         from titan.verify.oracles import enforce_evidence
-        engine = _engine()
         f = _finding("https://x/cmd?host=test", attack=AttackType.RCE,
                      payload="| id", verified=True, confidence=0.93,
                      diffs=["rce:uid=", "content_hash_changed"])
@@ -172,7 +167,6 @@ class TestEvidenceGateIntegration:
         docstring admits Playwright may strip the TE header, so the probe is
         best-effort). The demotion is the strictness the program mandates."""
         from titan.verify.oracles import enforce_evidence
-        engine = _engine()
         f = _finding("https://x/weather-hourly?next=test",
                      attack=AttackType.REQUEST_SMUGGLING,
                      payload="Smuggling probe: test%0d%0a...",

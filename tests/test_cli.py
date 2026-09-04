@@ -1,10 +1,11 @@
-"""Tests for the Titan Unified CLI.
+"""Tests for the Titan CLI (tscan).
 
-Covers:
-  - Parser construction (all subcommands, arguments)
-  - Command dispatch (scan, brain, fleet, consent, transport, report)
+Covers the current unified CLI surface:
+  - Parser construction (prog, subcommands, required args)
+  - scan: --target required, mode flags, output options
+  - report: --scan-id required, format choices
+  - list / status / delete handlers
   - Help output
-  - Version output
 """
 
 from __future__ import annotations
@@ -17,197 +18,183 @@ from titan.cli import create_parser, main
 class TestCLIParser:
     def test_parser_creates(self):
         parser = create_parser()
-        assert parser.prog == "titan"
-
-    def test_version(self):
-        parser = create_parser()
-        with pytest.raises(SystemExit) as exc_info:
-            parser.parse_args(["--version"])
-        assert exc_info.value.code == 0
+        assert parser.prog == "tscan"
 
     def test_no_command_shows_help(self, capsys):
         parser = create_parser()
         parser.parse_args([])
         # No crash — parser handles empty args
 
+    def test_scan_requires_target(self):
+        parser = create_parser()
+        with pytest.raises(SystemExit) as exc_info:
+            parser.parse_args(["scan"])
+        assert exc_info.value.code == 2
+
     def test_scan_subcommand(self):
         parser = create_parser()
-        args = parser.parse_args(["scan", "https://example.com"])
+        args = parser.parse_args(["scan", "--target", "https://example.com"])
         assert args.command == "scan"
         assert args.target == "https://example.com"
-        assert args.profile == "fast"
-        assert args.transport == "auto"
+        assert args.deep is False
+        assert args.hostile is False
+        assert args.no_governance is False
 
     def test_scan_with_options(self):
         parser = create_parser()
         args = parser.parse_args([
-            "scan", "https://example.com",
-            "--profile", "deep",
-            "--transport", "tor",
-            "--exploit",
-            "--fleet",
-            "--timeout", "600",
+            "scan", "--target", "https://example.com",
+            "--deep",
+            "--config", "config.yaml",
+            "--output", "out.json",
+            "--html", "report.html",
+            "--markdown", "report.md",
+            "--scan-id", "scan_abc",
+            "--no-governance",
         ])
-        assert args.profile == "deep"
-        assert args.transport == "tor"
-        assert args.exploit is True
-        assert args.fleet is True
-        assert args.timeout == 600
-
-    def test_brain_subcommand(self):
-        parser = create_parser()
-        args = parser.parse_args(["brain", "https://target.com"])
-        assert args.command == "brain"
-        assert args.target == "https://target.com"
-        assert args.budget == 300
-        assert args.max_iterations == 100
-
-    def test_brain_with_options(self):
-        parser = create_parser()
-        args = parser.parse_args([
-            "brain", "https://target.com",
-            "--budget", "600",
-            "--max-iterations", "50",
-            "--depth-ceiling", "0.9",
-        ])
-        assert args.budget == 600
-        assert args.max_iterations == 50
-        assert args.depth_ceiling == 0.9
-
-    def test_fleet_subcommands(self):
-        parser = create_parser()
-        args = parser.parse_args(["fleet", "scan-all"])
-        assert args.command == "fleet"
-        assert args.fleet_command == "scan-all"
-
-    def test_fleet_list(self):
-        parser = create_parser()
-        args = parser.parse_args(["fleet", "list"])
-        assert args.fleet_command == "list"
-
-    def test_fleet_link(self):
-        parser = create_parser()
-        args = parser.parse_args(["fleet", "link", "my-repo", "https://example.com"])
-        assert args.fleet_command == "link"
-        assert args.repo == "my-repo"
-        assert args.url == "https://example.com"
-
-    def test_consent_add(self):
-        parser = create_parser()
-        args = parser.parse_args([
-            "consent", "add", "https://target.com",
-            "--basis", "ownership",
-            "--write", "--shells",
-        ])
-        assert args.consent_command == "add"
-        assert args.target == "https://target.com"
-        assert args.basis == "ownership"
-        assert args.write is True
-        assert args.shells is True
-
-    def test_consent_list(self):
-        parser = create_parser()
-        args = parser.parse_args(["consent", "list"])
-        assert args.consent_command == "list"
-
-    def test_consent_revoke(self):
-        parser = create_parser()
-        args = parser.parse_args(["consent", "revoke", "https://target.com"])
-        assert args.consent_command == "revoke"
-        assert args.target == "https://target.com"
-
-    def test_transport_list(self):
-        parser = create_parser()
-        args = parser.parse_args(["transport", "list"])
-        assert args.command == "transport"
-        assert args.transport_command == "list"
-
-    def test_transport_check(self):
-        parser = create_parser()
-        args = parser.parse_args(["transport", "check", "http", "https://example.com"])
-        assert args.transport_command == "check"
-        assert args.name == "http"
         assert args.target == "https://example.com"
+        assert args.deep is True
+        assert args.config == "config.yaml"
+        assert args.output == "out.json"
+        assert args.html == "report.html"
+        assert args.markdown == "report.md"
+        assert args.scan_id == "scan_abc"
+        assert args.no_governance is True
 
-    def test_report_estate(self):
+    def test_scan_hostile_mode(self):
         parser = create_parser()
-        args = parser.parse_args(["report", "--estate"])
+        args = parser.parse_args(["scan", "--target", "https://example.com", "--hostile"])
+        assert args.hostile is True
+        assert args.deep is False
+
+    def test_report_requires_scan_id(self):
+        parser = create_parser()
+        with pytest.raises(SystemExit) as exc_info:
+            parser.parse_args(["report"])
+        assert exc_info.value.code == 2
+
+    def test_report_subcommand(self):
+        parser = create_parser()
+        args = parser.parse_args(["report", "--scan-id", "scan_abc", "--format", "html", "--output", "r.html"])
         assert args.command == "report"
-        assert args.estate is True
-        assert args.format == "technical"
+        assert args.scan_id == "scan_abc"
+        assert args.format == "html"
+        assert args.output == "r.html"
 
-    def test_report_dashboard(self):
+    def test_report_default_format_is_json(self):
         parser = create_parser()
-        args = parser.parse_args(["report", "--target", "my-site", "--dashboard"])
-        assert args.dashboard is True
+        args = parser.parse_args(["report", "--scan-id", "scan_abc"])
+        assert args.format == "json"
 
-    def test_scan_quiet_mode(self):
+    def test_list_subcommand(self):
         parser = create_parser()
-        args = parser.parse_args(["scan", "https://example.com", "--quiet", "-q"])
-        assert args.quiet is True
+        args = parser.parse_args(["list"])
+        assert args.command == "list"
 
-    def test_scan_custom_config(self):
+    def test_status_requires_scan_id(self):
         parser = create_parser()
-        args = parser.parse_args(["scan", "https://example.com", "--config", "my-config.yaml"])
-        assert args.config == "my-config.yaml"
+        with pytest.raises(SystemExit) as exc_info:
+            parser.parse_args(["status"])
+        assert exc_info.value.code == 2
 
-    def test_scan_custom_output(self):
+    def test_status_subcommand(self):
         parser = create_parser()
-        args = parser.parse_args(["scan", "https://example.com", "-o", "my-output"])
-        assert args.output == "my-output"
+        args = parser.parse_args(["status", "--scan-id", "scan_abc"])
+        assert args.command == "status"
+        assert args.scan_id == "scan_abc"
+
+    def test_delete_requires_scan_id(self):
+        parser = create_parser()
+        with pytest.raises(SystemExit) as exc_info:
+            parser.parse_args(["delete"])
+        assert exc_info.value.code == 2
+
+    def test_delete_subcommand(self):
+        parser = create_parser()
+        args = parser.parse_args(["delete", "--scan-id", "scan_abc"])
+        assert args.command == "delete"
+        assert args.scan_id == "scan_abc"
 
 
 class TestCLIHelp:
     def test_main_help(self, capsys):
-        """Main without args should print help and return 0."""
-        result = main([])
-        assert result == 0
-
-    def test_scan_help(self, capsys):
-        """Scan subcommand should have help."""
         parser = create_parser()
-        with pytest.raises(SystemExit) as exc_info:
-            parser.parse_args(["scan", "--help"])
-        assert exc_info.value.code == 0
+        parser.print_help()
+        captured = capsys.readouterr()
+        assert "usage" in captured.out.lower()
+        assert "scan" in captured.out
+        assert "report" in captured.out
+
+    def test_main_dispatches_scan(self, monkeypatch):
+        """main() with a scan argv must dispatch to run_scan (which then
+        attempts a real scan — we only assert it gets past dispatch)."""
+        import asyncio
+        from titan.cli import run_scan
+        seen = {}
+
+        def fake_run_scan(args):
+            seen["args"] = args
+            return asyncio.sleep(0)
+
+        import titan.cli
+        monkeypatch.setattr(titan.cli, "run_scan", fake_run_scan)
+        monkeypatch.setattr("sys.argv", ["tscan", "scan", "--target", "https://example.com"])
+        main()
+        assert seen["args"].target == "https://example.com"
 
 
 class TestCLIHandlers:
-    @pytest.mark.asyncio
-    async def test_handle_transport_list(self, capsys):
-        """Transport list should show available transports."""
-        from titan.cli.main import _handle_transport
-
-        class FakeArgs:
-            transport_command = "list"
-
-        await _handle_transport(FakeArgs())
+    def test_run_report_missing_scan(self, capsys):
+        """Report for a nonexistent scan must print a clear error, not crash."""
+        from titan.cli import run_report
+        run_report(_Args(scan_id="scan_does_not_exist_xyz", format="json", output=None))
         captured = capsys.readouterr()
-        assert "Available transports" in captured.out
-        assert "http" in captured.out
+        assert "not found" in captured.out.lower() or "not found" in captured.err.lower()
 
-    @pytest.mark.asyncio
-    async def test_handle_fleet_list(self, capsys):
-        """Fleet list should show registered sites (even if empty)."""
-        from titan.cli.main import _handle_fleet
-
-        class FakeArgs:
-            fleet_command = "list"
-
-        try:
-            await _handle_fleet(FakeArgs())
-            captured = capsys.readouterr()
-            assert "registered" in captured.out.lower() or "No sites" in captured.out or "site(s)" in captured.out
-        except ModuleNotFoundError:
-            pytest.skip("fleet.registry not importable in this context")
-
-    @pytest.mark.asyncio
-    async def test_handle_consent_list(self, capsys):
-        """Consent list should not crash."""
-        from titan.cli.main import _handle_consent
-
-        class FakeArgs:
-            consent_command = "list"
-
-        await _handle_consent(FakeArgs())
+    def test_run_list_empty(self, capsys, tmp_path, monkeypatch):
+        """List with an empty findings dir must say no scans, not crash."""
+        from titan.cli import run_list
+        monkeypatch.chdir(tmp_path)
+        run_list(_Args())
         captured = capsys.readouterr()
-        assert "consent" in captured.out.lower() or "No consents" in captured.out
+        assert "no saved scans" in captured.out.lower()
+
+    def test_run_status_missing_scan(self, capsys):
+        from titan.cli import run_status
+        run_status(_Args(scan_id="scan_does_not_exist_xyz"))
+        captured = capsys.readouterr()
+        assert "not found" in captured.out.lower() or "not found" in captured.err.lower()
+
+    def test_run_delete_missing_scan(self, capsys):
+        from titan.cli import run_delete
+        run_delete(_Args(scan_id="scan_does_not_exist_xyz"))
+        captured = capsys.readouterr()
+        assert "not found" in captured.out.lower() or "not found" in captured.err.lower()
+
+    def test_run_status_reads_real_scan(self, tmp_path, monkeypatch, capsys):
+        """status must read a real scan file from the findings dir."""
+        import json
+        from titan.cli import run_status
+        (tmp_path / "findings").mkdir()
+        (tmp_path / "findings" / "scan_real_123.json").write_text(json.dumps({
+            "scan_id": "scan_real_123",
+            "target": "https://example.com",
+            "mode": "fast",
+            "duration_seconds": 3.5,
+            "findings": [{"severity": "CRITICAL", "verified": True}],
+            "chains": [],
+            "errors": [],
+        }), encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+        run_status(_Args(scan_id="scan_real_123"))
+        captured = capsys.readouterr()
+        assert "scan_real_123" in captured.out
+        assert "Critical:  1" in captured.out
+        assert "Verified:  1" in captured.out
+
+
+class _Args:
+    """Minimal argparse.Namespace stand-in for handler unit tests."""
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)

@@ -156,13 +156,13 @@ def test_governance_denial_keeps_sane_duration(monkeypatch, tmp_path):
     """Regression: the engine switched started_at/finished_at from monotonic
     to wall-clock; the governance-denial early return must not mix clock
     bases (which would persist a garbage negative duration)."""
-    import titan.core.engine as engine_mod
     from titan.core.engine import TitanEngine
+    import titan.integrations.titan_gov as gov_mod
 
     async def _deny(*a, **k):
         return False
 
-    monkeypatch.setattr(engine_mod, "request_scan_approval", _deny)
+    monkeypatch.setattr(gov_mod, "request_scan_approval", _deny)
     config = {
         "governance": {"enabled": True},
         "output_dir": str(tmp_path),
