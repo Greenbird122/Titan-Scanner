@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from titan.cli.main import create_parser, main
+from titan.cli import create_parser, main
 
 
 class TestCLIParser:

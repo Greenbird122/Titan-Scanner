@@ -1,6 +1,14 @@
 target: "http://localhost:3000"
 aggression: "active"
 headless: true
+# Browser launch: auto|system|bundled
+#   system/auto = real installed Chrome via channel=chrome (genuine TLS
+#   fingerprint, defeats naive bot-gates); falls back to bundled Chromium
+#   if Chrome is unavailable. bundled = Playwright's own Chromium.
+browser: auto
+# Optional persistent profile dir: sessions/cookies survive between runs
+# (credentialed rounds). Empty = ephemeral context per scan.
+browser_profile: ""
 output_dir: "findings"
 crawl:
   profile: fast
