@@ -218,6 +218,64 @@ class TitanEngine:
     # Page hardening (popups, dialogs, downloads, redirects)
     # ==================================================================
 
+    async def _launch_crawler(self, p: Any, target: str):
+        """Launch hardened Playwright browser; returns (browser, context).
+
+        - ``browser: auto|system|bundled`` — ``system``/``auto`` uses the real
+          installed Chrome via ``channel=chrome`` (genuine TLS fingerprint,
+          defeats naive bot-gates); ``bundled`` forces Playwright's Chromium.
+          Falls back to bundled if system Chrome is unavailable.
+        - ``browser_profile: <path>`` — when set, uses a persistent context so
+          cookies/sessions survive between runs (credentialed rounds); the
+          returned ``browser`` is None and teardown closes the context.
+        """
+        browser_args = {"headless": self.config.get("headless", True)}
+        proxy_config = self.config.get("proxy", {})
+        if proxy_config.get("enabled") and proxy_config.get("list"):
+            proxy_url = self.proxy_rotator.get_proxy(target)
+            if proxy_url:
+                browser_args["proxy"] = {"server": proxy_url}
+
+        mode = str(self.config.get("browser", "auto")).lower()
+        if mode in ("system", "auto"):
+            browser_args["channel"] = "chrome"
+
+        profile_dir = self.config.get("browser_profile") or None
+        context_kwargs = dict(
+            user_agent=self.stealth.get_user_agent(),
+            extra_http_headers=self.stealth.get_headers(),
+            ignore_https_errors=True,
+        )
+
+        def _persistent() -> Any:
+            return p.chromium.launch_persistent_context(
+                user_data_dir=profile_dir, **browser_args, **context_kwargs
+            )
+
+        try:
+            if profile_dir:
+                return None, await _persistent()
+            browser = await p.chromium.launch(**browser_args)
+            return browser, await browser.new_context(**context_kwargs)
+        except Exception:
+            if not browser_args.get("channel"):
+                raise
+            # System Chrome unavailable (e.g. CI runner) — fall back to bundled.
+            browser_args.pop("channel")
+            if profile_dir:
+                return None, await _persistent()
+            browser = await p.chromium.launch(**browser_args)
+            return browser, await browser.new_context(**context_kwargs)
+
+    async def _close_crawler(self, browser: Any, context: Any) -> None:
+        """Close the crawler handle — browser for ephemeral launches, the
+        persistent context itself when a profile dir is in use."""
+        try:
+            handle = browser or context
+            await asyncio.wait_for(handle.close(), timeout=10)
+        except Exception:
+            pass
+
     def _harden_page(self, page: Any) -> None:
         try:
             page.on("popup", lambda p: asyncio.create_task(self._close_popup(p)))
@@ -394,19 +452,14 @@ class TitanEngine:
 
         p = await async_playwright().start()
         try:
-            browser_args = {"headless": self.config.get("headless", True)}
-            proxy_config = self.config.get("proxy", {})
-            if proxy_config.get("enabled") and proxy_config.get("list"):
-                proxy_url = self.proxy_rotator.get_proxy(target)
-                if proxy_url:
-                    browser_args["proxy"] = {"server": proxy_url}
-
-            browser = await p.chromium.launch(**browser_args)
-            context = await browser.new_context(
-                user_agent=self.stealth.get_user_agent(),
-                extra_http_headers=self.stealth.get_headers(),
-                ignore_https_errors=True,
-            )
+            browser, context = await self._launch_crawler(p, target)
+            # Hide the loudest automation signal on every page in this context.
+            try:
+                await context.add_init_script(
+                    "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
+                )
+            except Exception:
+                pass
             self._crawl_context = context
             page = await context.new_page()
             self._harden_page(page)
@@ -431,10 +484,7 @@ class TitanEngine:
                 self._coverage["checkpoint_blocked"] = True
                 print(f"[!] Checkpoint detected: {title}")
                 result.finished_at = time.time()
-                try:
-                    await asyncio.wait_for(browser.close(), timeout=10)
-                except Exception:
-                    pass
+                await self._close_crawler(browser, context)
                 return result
 
             fingerprint = await self.fingerprinter.analyze(headers, body, target)
@@ -541,10 +591,7 @@ class TitanEngine:
             # LLM, storage, subdomain, IMDS, SBOM, deep audit
             await self._run_optional_phases(target, result, page)
 
-            try:
-                await asyncio.wait_for(browser.close(), timeout=10)
-            except Exception:
-                pass
+            await self._close_crawler(browser, context)
         finally:
             try:
                 await asyncio.wait_for(p.stop(), timeout=5)
