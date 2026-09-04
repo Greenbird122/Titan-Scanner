@@ -1,11 +1,26 @@
-"""Titan Scanner — The sharpest scalpel in existence.
+"""Titan — Autonomous Penetration Testing Platform.
 
-Architecture:
-- core/        : Engine, fingerprinting, mutation, chain detection, evasion
-- modules/     : Attack modules (sqli, xss, ssrf, auth, api, upload, logic, crypto, deser, race, cache, smuggling)
-- ai/          : DeepSeek-powered payload mutation and analysis
-- stealth/     : JA3 randomization, jitter models, noise generation, proxy rotation
-- verify/      : Baseline, blind statistical, OOB, chain verification
-- integrations/: Dawn, Titan Gov, DeepSeek, Interactsh
-- reporting/   : Raw, structured, minimal output
+Usage:
+    from titan import TitanScanner
+
+    scanner = TitanScanner(target="https://example.com")
+    result = await scanner.scan()
+
+Or via CLI:
+    titan --target https://example.com
+    titan scan --target https://example.com --deep
 """
+
+__version__ = "1.0.0"
+__author__ = "Titan Security Lab"
+
+from titan.core.engine import TitanEngine
+from titan.core.models import Finding, Severity, AttackType
+
+__all__ = [
+    "TitanEngine",
+    "Finding",
+    "Severity",
+    "AttackType",
+    "__version__",
+]
