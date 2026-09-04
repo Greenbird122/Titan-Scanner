@@ -67,6 +67,13 @@ BLOCKS = [
         "id": "framework-cve-sweep-doc-template",
         "canonical": _path("deep-audit", "references", "report-templates.md"),
         "start_anchor": "## 8. `FRAMEWORK-CVE-SWEEP-<date>.md`",
+        "end_anchor": "## 9. Engagement metric row",
+        "copy": _path("deep-attacker", "references", "report-template.md"),
+    },
+    {
+        "id": "engagement-metric-row",
+        "canonical": _path("deep-audit", "references", "report-templates.md"),
+        "start_anchor": "## 9. Engagement metric row",
         "end_anchor": None,
         "copy": _path("deep-attacker", "references", "report-template.md"),
     },
