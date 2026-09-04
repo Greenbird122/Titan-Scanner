@@ -630,7 +630,7 @@ class TitanEngine:
                             self.visited.add(api_url)
                             try:
                                 api_findings = await asyncio.wait_for(
-                                    self._modules._run_api_modules(context, target, api_url, fingerprint),
+                                    self._run_api_modules(context, target, api_url, fingerprint),
                                     timeout=60,
                                 )
                             except asyncio.TimeoutError:
@@ -1829,6 +1829,31 @@ class TitanEngine:
         """Forward to ModuleRunner. Kept for test compatibility."""
         return await self._modules._test_rest_api(context, target, api_url, fingerprint)
 
+    async def _fuzz_paths(self, context, seeds: list[str], base_url: str = "") -> list[str]:
+        """Path-fuzz seeds, delegating to PathFuzzer. Kept for test
+        compatibility and used by the crawl wiring (crawl.py)."""
+        from titan.core.pathfuzz import PathFuzzer
+
+        fuzz_cfg = self.config.get("crawl", {}).get("fuzz", {})
+        # M3 gate: the wordlist fuzzer is deep/hostile-only — a fast profile
+        # must skip it even when fuzz.enabled is explicitly true.
+        if not getattr(self, "_deep", False):
+            return []
+        if not fuzz_cfg.get("enabled", False):
+            return []
+        fuzzer = PathFuzzer(
+            fuzz_cfg,
+            in_scope=self._is_in_scope,
+            stealth=self.stealth if hasattr(self, "stealth") else None,
+        )
+        try:
+            return await asyncio.wait_for(
+                fuzzer.fuzz(context, seeds),
+                timeout=float(fuzz_cfg.get("budget", 60)),
+            )
+        except Exception:
+            return []
+
     async def _discover_all(self, context, page, base_url, current):
         """Forward to DiscoveryEngine. Kept for test compatibility."""
         from titan.core.discovery import DiscoveryEngine
@@ -1982,69 +2007,8 @@ class TitanEngine:
             pass
         return result
 
-    async def _test_rest_api(self, context, target, api_url, fingerprint):
-        from urllib.parse import urlparse, parse_qs
-        from titan.core.helpers import is_soft_404
-        from titan.core.route_scorer import score_url
-
-        findings: list[Finding] = []
-        parsed = urlparse(api_url)
-        params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
-        if not params:
-            params = {"id": "1", "q": "test", "search": "test", "page": "1", "limit": "10"}
-
-        base_url = api_url.split("?")[0]
-        if not await self._endpoint_is_alive(context, base_url, params):
-            print(f"    [i] Skipping dead endpoint {base_url}")
-            return []
-
-        api_score = score_url(api_url, params=list(params.keys()),
-                              technologies=fingerprint.get("technologies", []) if fingerprint else [])
-        findings.extend(await self._modules.run_attack_modules(
-            context, target, "GET", api_url, params, fingerprint, route_score=api_score,
-        ))
-
-        post_url = api_url.split("?")[0]
-        post_data = dict(params) if params else {"test": "1", "id": "1", "q": "test"}
-        findings.extend(await self._modules.run_attack_modules(
-            context, target, "POST", post_url, post_data, fingerprint, route_score=api_score,
-        ))
-        return findings
-
-    async def _endpoint_is_alive(self, context, base_url, params):
-        try:
-            resp = await context.request.get(base_url, params=params, timeout=5000)
-            status = resp.status
-        except Exception:
-            return True
-        if status in (404, 410):
-            return await self._post_probe(context, base_url)
-        if status == 200:
-            try:
-                body = await resp.text()
-            except Exception:
-                return True
-            from titan.core.helpers import is_soft_404
-            if is_soft_404(body):
-                return await self._post_probe(context, base_url)
-        return True
-
-    async def _post_probe(self, context, base_url):
-        try:
-            post_resp = await context.request.post(base_url, data={"test": "1"}, timeout=5000)
-        except Exception:
-            return False
-        if post_resp.status in (404, 410):
-            return False
-        try:
-            body = await post_resp.text()
-        except Exception:
-            return post_resp.status == 200
-        head = body[:4000].lower()
-        is_html = "<html" in head or head.startswith("<!doctype")
-        if post_resp.status == 200:
-            from titan.core.helpers import is_soft_404
-            if is_html and is_soft_404(body):
-                return False
-            return True
-        return not is_html
+    # NOTE: _test_rest_api / _endpoint_is_alive / _post_probe live in
+    # ModuleRunner (the canonical implementations). engine.py forwards via
+    # the _test_rest_api shim above; a shadowing duplicate was removed here
+    # because it called _modules.run_attack_modules directly, bypassing the
+    # engine._run_attack_modules hook (breaking test patching + parity).

@@ -19,7 +19,7 @@ mini = Flask(__name__)
 FIREBASE = """<html><body>
 <script type="module">
 const firebaseConfig = {
-    apiKey: "AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345",
+    apiKey: "AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345AB",
     authDomain: "test-project.firebaseapp.com",
     projectId: "test-project",
     appId: "1:123456789:web:abcdef123456"
@@ -99,7 +99,7 @@ def test_firebase_config_and_key_fire():
     assert "Google/Firebase API Key" in labels
     assert "Firebase client config exposed" in labels
     # the actual exposed value must be reported verbatim
-    assert any("AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345" in f.payload for f in findings)
+    assert any("AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345AB" in f.payload for f in findings)
     # firebase config finding carries the project id
     fb = [f for f in findings if f.metadata["secret_type"] == "Firebase client config exposed"]
     assert fb and "projectId=test-project" in fb[0].payload

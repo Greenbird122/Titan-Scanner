@@ -344,7 +344,7 @@ class TestLLMEngineWiring:
         engine._llm_interactsh = FakeInteractsh(callbacks=False)
 
         result = ScanResult(target="http://localhost:5000", started_at=0)
-        await engine._run_llm_channel("http://localhost:5000", {}, result)
+        await engine._run_llm_channel("http://localhost:5000", result)
         pi = [f for f in result.findings if f.attack_type == AttackType.PROMPT_INJECTION]
         assert pi, f"LLM channel must fire through the engine seam, got {result.findings}"
 
@@ -355,7 +355,7 @@ class TestLLMEngineWiring:
         engine.visited = {"http://localhost:5000/api/chat"}
 
         result = ScanResult(target="http://localhost:5000", started_at=0)
-        await engine._run_llm_channel("http://localhost:5000", {}, result)
+        await engine._run_llm_channel("http://localhost:5000", result)
         assert result.findings == []
 
     async def test_no_llm_endpoint_skips_quietly(self):
@@ -365,7 +365,7 @@ class TestLLMEngineWiring:
         engine.visited = {"http://localhost:5000/", "http://localhost:5000/about"}
 
         result = ScanResult(target="http://localhost:5000", started_at=0)
-        await engine._run_llm_channel("http://localhost:5000", {}, result)
+        await engine._run_llm_channel("http://localhost:5000", result)
         assert result.findings == []
 
     def test_is_llm_endpoint(self):
