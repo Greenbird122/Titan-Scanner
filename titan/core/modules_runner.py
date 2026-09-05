@@ -557,8 +557,8 @@ class ModuleRunner:
         return await SmugglingDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_baas(self, ctx, t, m, u, p, fp):
-        from titan.modules.baas.detector import SupabaseAuditModule
-        return await SupabaseAuditModule(http_client=getattr(ctx, "request", None)).scan(ctx, t, m, u, p, fp)
+        from titan.modules.baas.detector import BaasDetector
+        return await BaasDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_fuzzer(self, ctx, t, m, u, p, fp):
         from titan.modules.fuzzer.detector import FuzzerDetector
