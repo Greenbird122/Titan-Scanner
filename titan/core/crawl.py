@@ -120,6 +120,35 @@ class Crawler:
                 if result_data is not None:
                     queue.extend(result_data.get("new_queue_items", []))
 
+                # Schedule the attack module matrix on this page's
+                # discovered surface as a background task. This is the
+                # per-page dispatch the modularization dropped: the crawl
+                # discovered forms/links/APIs but nothing ever ran the
+                # modules against them (see engine._run_modules — the only
+                # production caller is this one). API-shaped pages are
+                # scanned through _run_api_modules like the pre-module
+                # engine did; HTML pages through the full matrix.
+                if result_data is not None and not e._driver_dead:
+                    if e._looks_like_api(current):
+                        _module_tasks.append(asyncio.ensure_future(
+                            e._run_api_modules(
+                                context, base_url, current, fingerprint,
+                            )
+                        ))
+                    else:
+                        page_forms = result_data.get("forms") or []
+                        page_links = result_data.get("links") or []
+                        page_apis = result_data.get("apis") or []
+                        if page_forms or page_links or page_apis:
+                            _module_tasks.append(asyncio.ensure_future(
+                                e._run_modules(
+                                    context, base_url,
+                                    page_forms, page_links, page_apis,
+                                    fingerprint, result,
+                                    route_score=result_data.get("route_score", 5),
+                                )
+                            ))
+
                 # Anomaly interrupt + route re-sort
                 if result_data and result_data.get("resp_status", 0) < 400:
                     self._handle_anomalies(context, current, depth, queue)
