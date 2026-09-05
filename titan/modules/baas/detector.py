@@ -10,7 +10,7 @@ Key improvements over standalone modules:
 4. Tests with different auth states (no auth, anon, user, admin)
 5. Chains findings into attack paths
 6. Sweeps the fake/proxied BaaS path family on the TARGET's own origin
-   (rest/v1, storage/v1, .json, functions/v1, auth/v1) with
+   (rest/v1 object listings, .json, storage/v1 object listings) with
    control-differentiation: a byte-identical response to a nonsense
    control path is a canned/honeypot surface and is demoted (no finding)
 
@@ -276,37 +276,44 @@ class BaasDetector:
         return findings
 
     async def _probe_firebase_rtdb_family(self, context, target: str, base: str) -> List[Finding]:
-        """Probe {base}/.json and {base}/{child}.json with control demotion."""
+        """Probe {base}/.json with control demotion.
+
+        Control is itself a .json-shaped path: a fake RTDB answers EVERY
+        .json path (root, child, nonsense) with one canned body, so root
+        and control are byte-identical and the surface is demoted. A real
+        open RTDB returns data at root and null at a nonsense child.
+        """
         findings: List[Finding] = []
-        ctl_url = f"{base}/{self.ON_ORIGIN_CONTROL_NAME}.json"
+        ctl_url = f"{base}/{self.ON_ORIGIN_CONTROL_NAME}/.json"
         ctl = await self._get_on_origin(context, ctl_url)
         ctl_body = self._normalize_body(ctl["body"]) if ctl else ""
 
-        for child in ["", "users", "admin", "settings", "config", "messages"]:
-            url = f"{base}/.json" if not child else f"{base}/{child}.json"
-            resp = await self._get_on_origin(context, url)
-            if not resp or resp["status"] != 200:
-                continue
+        url = f"{base}/.json"
+        resp = await self._get_on_origin(context, url)
+        if resp and resp["status"] == 200:
             norm = self._normalize_body(resp["body"])
-            if ctl and norm == ctl_body and self._looks_like_data(resp["body"]):
-                continue
-            if self._looks_like_data(resp["body"]):
+            canned = bool(ctl) and norm == ctl_body
+            if not canned and self._looks_like_data(resp["body"]):
                 findings.append(self._make_on_origin_finding(
                     target=target,
                     url=url,
                     name="firebase-rtdb-on-origin",
-                    detail=f"Firebase-RTDB-shaped .json endpoint on app origin exposes data (child='{child or '/'}')",
+                    detail="Firebase-RTDB-shaped .json endpoint on app origin exposes data",
                     evidence=resp["body"][:500],
                     severity=Severity.HIGH,
                     attack=AttackType.INFO_LEAK,
                     tags=["baas", "firebase", "on_origin", "rtdb"],
                 ))
-                # Root exposure is enough; avoid duplicate child findings.
-                break
         return findings
 
     async def _probe_storage_family(self, context, target: str, base: str) -> List[Finding]:
-        """Probe {base}/storage/v1/bucket and common bucket object paths."""
+        """Probe {base}/storage/v1 object listings with control demotion.
+
+        A bucket NAME listing alone is not a vulnerability (config noise
+        that honeypots plant). The real signal is OBJECT exposure: an
+        object path returning actual file data. Cross-bucket byte-identity
+        demotes a canned row served for every bucket.
+        """
         findings: List[Finding] = []
         prefixes = ["", "/api"]
         for prefix in prefixes:
@@ -314,26 +321,7 @@ class BaasDetector:
             ctl = await self._get_on_origin(context, ctl_url)
             ctl_body = self._normalize_body(ctl["body"]) if ctl else ""
 
-            # Bucket listing
-            list_url = f"{base}{prefix}/storage/v1/bucket"
-            resp = await self._get_on_origin(context, list_url)
-            if resp and resp["status"] == 200:
-                norm = self._normalize_body(resp["body"])
-                canned = ctl and norm == ctl_body
-                if not canned and self._looks_like_data(resp["body"]):
-                    findings.append(self._make_on_origin_finding(
-                        target=target,
-                        url=list_url,
-                        name="storage-bucket-list-on-origin",
-                        detail="Storage bucket listing served on app origin",
-                        evidence=resp["body"][:500],
-                        severity=Severity.HIGH,
-                        attack=AttackType.INFO_LEAK,
-                        tags=["baas", "storage", "on_origin", "buckets"],
-                    ))
-
-            # Common bucket object paths (public read). Cross-bucket
-            # byte-identity demotes a canned row served for every bucket.
+            # Object paths for common bucket names (public read).
             live_objs = []
             for bucket in self.ON_ORIGIN_COMMON_BUCKETS:
                 obj_url = f"{base}{prefix}/storage/v1/object/{bucket}/"
