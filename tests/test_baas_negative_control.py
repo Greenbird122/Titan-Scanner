@@ -147,6 +147,62 @@ def test_storage_family_byte_identical_buckets_demoted():
     assert findings == [], f"canned storage family produced findings: {findings}"
 
 
+def test_rtdb_every_json_path_canned_is_demoted():
+    """Live-honeypot trap: a fake RTDB answers EVERY path ending in /.json
+    (root, child, nonsense) with one canned body. Control is slash-shaped
+    ({control}/.json) so it is byte-identical to root -> demoted."""
+    BaasDetector.reset_sweep_cache()
+    base = "https://honeypot.test"
+    rtdb_body = '{"users":{"u1":{"name":"Guest"}},"posts":{"p1":{}},"meta":{"ok":true}}'
+    # Root AND the slash-shaped nonsense control both serve the canned DB.
+    routes = {
+        base + "/.json": (200, rtdb_body),
+        base + "/zz_titan_ctl_nonexistent_7f3a/.json": (200, rtdb_body),
+        # bare-nonsense .json (no slash) is the soft-404 SAME_BODY trap
+        base + "/zz_titan_ctl_nonexistent_7f3a.json": (200, HONEYPOT_BODY),
+    }
+    detector = BaasDetector(payload_smith=None, fingerprint=_hinted_fingerprint())
+    findings = _run(detector, _RouteContext(routes))
+    assert findings == [], f"canned .json family produced findings: {findings}"
+
+
+def test_rtdb_root_data_with_null_control_fires():
+    """A real open RTDB returns data at root and null at the slash-shaped
+    nonsense control — the differentiated surface fires."""
+    BaasDetector.reset_sweep_cache()
+    base = "https://live.test"
+    rtdb_body = '{"users":{"u1":{"name":"Real"}},"meta":{"ok":true}}'
+    routes = {
+        base + "/.json": (200, rtdb_body),
+        base + "/zz_titan_ctl_nonexistent_7f3a/.json": (200, "null"),
+    }
+    detector = BaasDetector(payload_smith=None, fingerprint=_hinted_fingerprint())
+    findings = _run(detector, _RouteContext(routes), target=base)
+    assert len(findings) >= 1, "differentiated live RTDB data should fire"
+    assert any("rtdb" in (f.tags or []) for f in findings)
+
+
+def test_storage_bucket_name_list_alone_is_not_a_finding():
+    """Live-honeypot trap: /storage/v1/bucket returns a plausible bucket
+    NAME list (config noise) while object paths return []. Bucket names
+    alone are not a vuln — object exposure is the signal."""
+    BaasDetector.reset_sweep_cache()
+    base = "https://honeypot.test"
+    routes = {
+        # bucket name list looks real but no object data behind it
+        base + "/storage/v1/bucket": (200, '[{"id":"public","public":true}]'),
+        base + "/api/storage/v1/bucket": (200, '[{"id":"public","public":true}]'),
+        base + "/storage/v1/zz_titan_ctl_nonexistent_7f3a": (200, HONEYPOT_BODY),
+        base + "/api/storage/v1/zz_titan_ctl_nonexistent_7f3a": (200, HONEYPOT_BODY),
+    }
+    for bucket in BaasDetector.ON_ORIGIN_COMMON_BUCKETS:
+        routes[base + f"/storage/v1/object/{bucket}/"] = (200, "[]")
+        routes[base + f"/api/storage/v1/object/{bucket}/"] = (200, "[]")
+    detector = BaasDetector(payload_smith=None, fingerprint=_hinted_fingerprint())
+    findings = _run(detector, _RouteContext(routes))
+    assert findings == [], f"bucket name list alone produced findings: {findings}"
+
+
 def test_sweep_runs_once_per_origin():
     """The module dispatches per endpoint; the origin sweep must not repeat."""
     BaasDetector.reset_sweep_cache()
