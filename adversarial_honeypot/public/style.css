@@ -1,0 +1,24 @@
+/* Real-looking CSS for the adversarial honeypot. The point is to look like
+   a real e-commerce site so the scanner's tech-fingerprinter thinks this is
+   a real Vercel-hosted Next/React/Supabase app. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #fff; --fg: #111; --muted: #666; --line: #e5e5e5;
+  --accent: #0066ff; --card: #f7f7f8;
+}
+body { font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--line); }
+.brand { font-weight: 800; font-size: 20px; text-decoration: none; color: var(--fg); }
+nav a { margin-left: 24px; text-decoration: none; color: var(--fg); }
+nav a:hover { color: var(--accent); }
+main { max-width: 1100px; margin: 0 auto; padding: 48px 32px; }
+.hero { text-align: center; padding: 64px 0; }
+.hero h1 { font-size: 48px; font-weight: 800; letter-spacing: -0.02em; }
+.hero p { color: var(--muted); margin: 16px 0 32px; font-size: 18px; }
+.cta { display: inline-block; background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+.cta:hover { opacity: 0.9; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
+.card { background: var(--card); padding: 32px; border-radius: 12px; text-align: center; text-decoration: none; color: var(--fg); font-weight: 600; transition: transform 0.2s; }
+.card:hover { transform: translateY(-2px); }
+footer { text-align: center; padding: 32px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 64px; }
