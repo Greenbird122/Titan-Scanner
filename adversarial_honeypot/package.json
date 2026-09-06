@@ -1,0 +1,10 @@
+{
+  "name": "acme-store-adversarial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Adversarial honeypot for testing Titan Scanner's negative-control verifier. Every endpoint is a trap: soft-404s, identical reflections, fake BaaS, lying headers, timing-equivalent. If the scanner reports findings here, those findings are FALSE POSITIVES.",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}
