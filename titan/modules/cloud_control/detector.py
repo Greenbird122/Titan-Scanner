@@ -277,4 +277,5 @@ class CloudControlDetector:
 
         prober = IMDSProber(providers=providers)
         report = await prober.probe(sink)
-        return report.findings
+        findings: list[dict[Any, Any]] = report.findings
+        return findings
