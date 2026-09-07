@@ -116,9 +116,14 @@ asyncio_mode = "auto"
 # ---------------------------------------------------------------------------
 [tool.coverage.run]
 source = ["titan"]
-omit = ["titan/local_lab/*", "tests/*"]
+omit = ["local_lab/*", "tests/*", "*/titan/transport/test_onion_scan.py"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 0
+# Same omit list as [tool.coverage.run] so the standalone `coverage report`
+# path (and the CI pytest --cov path) exclude the same files.
+omit = ["local_lab/*", "tests/*", "*/titan/transport/test_onion_scan.py"]
+# Measured floor is ~45% (full suite, 2026-09-07). Gated at 44 to absorb
+# run-to-run variance across CI Python versions; raise this over time.
+fail_under = 44
 

@@ -72,7 +72,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -e .
-          pip install pytest-timeout
+          pip install pytest-timeout pytest-cov
 
       # No `playwright install chromium`: the only Playwright import is lazy
       # (inside TitanEngine.scan), and no unit test launches a browser — all
@@ -81,7 +81,9 @@ jobs:
       - name: Run test suite
         # 120s per test: far above any normal test; a genuine hang is killed
         # here and reported by name. -p no:cacheprovider keeps the run hermetic.
-        run: python -m pytest -q --timeout=120 -p no:cacheprovider --junitxml=test-results.xml
+        # --cov=titan + fail_under in pyproject makes the coverage floor a gate:
+        # the job fails if coverage drops below the committed threshold.
+        run: python -m pytest -q --timeout=120 -p no:cacheprovider --junitxml=test-results.xml --cov=titan --cov-report=term
 
       - name: Summarize results
         if: always()

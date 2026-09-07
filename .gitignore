@@ -92,3 +92,4 @@ tools/pp-finder/
 tools/ppmap/
 tools/protoscan/
 tools/sspp-gadgets/
+.coverage
