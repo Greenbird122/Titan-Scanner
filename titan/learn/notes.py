@@ -18,7 +18,7 @@ Everything here is deterministic and unit-tested.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # ### F1 — CRITICAL · Title here        (also accepts - or – as separators)
 FINDING_HEADING_RE = re.compile(
@@ -31,7 +31,7 @@ SEVERITIES = {"critical", "high", "medium", "low", "info"}
 # (regex keywords, attack type) — ordered, first match wins. \b on storage
 # keeps "localStorage-only" (which means NO real storage) out of the public-
 # storage class.
-TITLE_TO_ATTACK: List[tuple] = [
+TITLE_TO_ATTACK: List[Tuple[Tuple[str, ...], str]] = [
     ((r"privilege escalation", r"self-declared role", r"mass assignment"), "Privilege Escalation"),
     ((r"idor", r"object reference", r"missing function-level auth"), "IDOR"),
     ((r"sql",), "SQLi"),
