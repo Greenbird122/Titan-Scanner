@@ -157,12 +157,13 @@ class TitanEngine(TransportMixin):
 
     def _authorization_status(self, target: str) -> str | None:
         from titan.core.authorization import authorize_target
-        return authorize_target(
+        status: str | None = authorize_target(
             target,
             consent_dir=self.config.get("exploit", {}).get("consent_dir", "consent"),
             practice_manifest=self.config.get("authorization", {}).get("practice_manifest"),
             key_path=self.config.get("exploit", {}).get("key_path"),
         )
+        return status
 
     def _has_consent(self, target: str) -> bool:
         try:
@@ -715,29 +716,6 @@ class TitanEngine(TransportMixin):
         )
         logger.info(f"[+] Interaction captured {len(api_endpoints)} API endpoints ({len(ws_urls)} websocket)")
         return api_endpoints
-
-    async def _extract_forms(self, page):
-        return await page.evaluate('''() => {
-            const forms = [];
-            for (const f of document.querySelectorAll('form')) {
-                const inputs = [];
-                for (const inp of f.querySelectorAll('input, textarea, select, [contenteditable="true"]')) {
-                    const isEditable = inp.getAttribute && inp.getAttribute('contenteditable') === 'true';
-                    inputs.push({
-                        name: inp.name || inp.id || inp.getAttribute('data-param') || '',
-                        type: inp.type || (isEditable ? 'richtext' : 'text'),
-                        value: inp.value || inp.innerText || '',
-                        tag: inp.tagName.toLowerCase()
-                    });
-                }
-                forms.push({
-                    action: f.action || window.location.href,
-                    method: (f.method || 'GET').toUpperCase(),
-                    inputs
-                });
-            }
-            return forms;
-        }''')
 
     async def _fill_and_submit_form(self, page, form: dict, base_url: str) -> None:
         inputs = form.get("inputs", [])

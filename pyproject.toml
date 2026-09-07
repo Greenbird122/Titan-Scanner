@@ -122,7 +122,6 @@ exclude = [
     "titan/core/auth.py",
     "titan/core/authorization.py",
     "titan/core/discovery.py",
-    "titan/core/engine.py",
     "titan/core/osint.py",
     "titan/core/stealth.py",
     "titan/core/transport_mixin.py",
@@ -224,10 +223,6 @@ follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.core.discovery"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.core.engine"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
