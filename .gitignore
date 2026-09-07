@@ -78,6 +78,9 @@ docs/archive/
 # Live-infrastructure probe scripts (hit real Supabase/Firebase — not for CI)
 scripts/probes/
 
+# Structured log output (created at import by titan/core/logger.py)
+titan_logs/
+
 # Build artifacts
 build/
 dist/

@@ -36,6 +36,7 @@ from titan.core.helpers import (
 from titan.core.crawl import Crawler
 from titan.core.modules_runner import ModuleRunner
 from titan.core.transport_mixin import TransportMixin
+from titan.core.logger import get_logger
 from titan.ai.payloadsmith import PayloadSmith
 from titan.integrations.interactsh import InteractshClient
 from titan.core.auth import AuthEngine
@@ -45,6 +46,8 @@ from titan.core.stealth import StealthEngine
 from titan.core.anomaly import AnomalyTracker
 from titan.verify.flows import apply_flows
 from titan.verify.role_aware import RoleAwareScanner
+
+logger = get_logger("engine")
 
 
 class TitanEngine(TransportMixin):
@@ -356,7 +359,7 @@ class TitanEngine(TransportMixin):
         if denial:
             result.errors.append(denial)
             result.finished_at = time.time()
-            print(f"[!] {denial}")
+            logger.warning(f"[!] {denial}")
             return result
 
         if self.config.get("governance", {}).get("enabled", True):
@@ -376,7 +379,7 @@ class TitanEngine(TransportMixin):
             result = await self._run_scan_pipeline(target, result)
         except asyncio.TimeoutError:
             result.errors.append("Scan timed out after 240s")
-            print("[!] Scan timed out")
+            logger.warning("[!] Scan timed out")
         except Exception as exc:
             import traceback
             traceback.print_exc()
@@ -399,9 +402,9 @@ class TitanEngine(TransportMixin):
             try:
                 from titan.reporting import SiteReportWriter
                 site_dir = SiteReportWriter(self.config.get("output_dir", "findings")).write(result)
-                print(f"[+] Site report written to {site_dir}")
+                logger.info(f"[+] Site report written to {site_dir}")
             except Exception as exc:
-                print(f"[!] Failed to write site report: {exc}")
+                logger.warning(f"[!] Failed to write site report: {exc}")
 
         # Transport cleanup
         await self._close_transport()
@@ -426,7 +429,7 @@ class TitanEngine(TransportMixin):
             page = await context.new_page()
             self._harden_page(page)
 
-            print(f"[+] Loading target: {target}")
+            logger.info(f"[+] Loading target: {target}")
             _goto_start = time.monotonic()
             response = await page.goto(target, wait_until="domcontentloaded", timeout=30000)
             _goto_elapsed = time.monotonic() - _goto_start
@@ -438,13 +441,13 @@ class TitanEngine(TransportMixin):
             headers = dict(response.headers) if response else {}
             body = await page.content()
             title = await page.title()
-            print(f"[+] Page title: {title}")
-            print(f"[+] Response status: {response.status if response else 'N/A'}")
+            logger.info(f"[+] Page title: {title}")
+            logger.info(f"[+] Response status: {response.status if response else 'N/A'}")
 
             if self._is_checkpoint(title, body, headers, response.status if response else 200):
                 result.errors.append(f"Security checkpoint blocked access: {title}")
                 self._coverage["checkpoint_blocked"] = True
-                print(f"[!] Checkpoint detected: {title}")
+                logger.warning(f"[!] Checkpoint detected: {title}")
                 result.finished_at = time.time()
                 await self._close_crawler(browser, context)
                 return result
@@ -452,12 +455,12 @@ class TitanEngine(TransportMixin):
             fingerprint = await self.fingerprinter.analyze(headers, body, target)
             fingerprint["interactsh"] = self.interactsh
             result.fingerprint = fingerprint
-            print(f"[+] Technologies detected: {fingerprint.get('technologies', [])[:10]}")
+            logger.info(f"[+] Technologies detected: {fingerprint.get('technologies', [])[:10]}")
 
             # Platform brain
             self._platform_brain = self._select_platform_brain(fingerprint, body, headers)
             if self._platform_brain is not None:
-                print(f"[+] Platform brain: {self._platform_brain.name}")
+                logger.info(f"[+] Platform brain: {self._platform_brain.name}")
                 for seed in self._platform_brain.extra_seed_urls(target):
                     if seed not in self.visited and self._is_in_scope(seed):
                         self.visited.add(seed)
@@ -468,11 +471,11 @@ class TitanEngine(TransportMixin):
 
             # Authentication
             if self.config.get("auth"):
-                print("[+] Attempting authentication...")
+                logger.info("[+] Attempting authentication...")
                 logged_in = await self.auth_engine.login(context, page, target)
                 if logged_in:
                     role_name = self.auth_engine.get_current_role() or "user"
-                    print(f"[+] Authenticated as {role_name}")
+                    logger.info(f"[+] Authenticated as {role_name}")
                     self._role_scanner.record_role(role_name)
                     auth_headers = self.auth_engine.get_auth_headers()
                     if auth_headers:
@@ -482,7 +485,7 @@ class TitanEngine(TransportMixin):
                         cookies=self.auth_engine.get_cookies(),
                     ))
                 else:
-                    print("[!] Authentication failed, continuing unauthenticated")
+                    logger.warning("[!] Authentication failed, continuing unauthenticated")
 
             # Crawl
             crawl_timeout = self.config.get("crawl", {}).get(
@@ -496,7 +499,7 @@ class TitanEngine(TransportMixin):
             if crawl_task in pending:
                 result.errors.append(f"Crawl timed out after {crawl_timeout}s")
                 self._coverage["crawl_timed_out"] = True
-                print("[!] Crawl timed out, proceeding with interaction")
+                logger.warning("[!] Crawl timed out, proceeding with interaction")
                 crawl_task.cancel()
                 try:
                     await asyncio.wait({crawl_task}, timeout=5)
@@ -525,7 +528,7 @@ class TitanEngine(TransportMixin):
                         except Exception:
                             pass
                     else:
-                        print("[+] SPA harness: skipped (no hash routes or SPA framework detected)")
+                        logger.info("[+] SPA harness: skipped (no hash routes or SPA framework detected)")
 
             # Multi-role testing
             await self._run_multi_role(context, page, target, fingerprint, result)
@@ -535,7 +538,7 @@ class TitanEngine(TransportMixin):
 
             # Identity matrix
             if len(self.session_pool) >= 2 and not self._driver_dead:
-                print(f"[+] Identity matrix: {len(self.session_pool)} identities")
+                logger.info(f"[+] Identity matrix: {len(self.session_pool)} identities")
                 for visited_url in list(self.visited)[:10]:
                     try:
                         identity_findings = await asyncio.wait_for(
@@ -618,7 +621,7 @@ class TitanEngine(TransportMixin):
         from urllib.parse import urlparse
         from titan.core.spa import select_runtime_apis
 
-        print(f"[+] Starting interaction on {base_url}")
+        logger.info(f"[+] Starting interaction on {base_url}")
         api_endpoints: list[str] = []
         try:
             await page.goto(base_url, wait_until="domcontentloaded", timeout=15000)
@@ -709,7 +712,7 @@ class TitanEngine(TransportMixin):
             captured_urls, ws_urls=ws_urls, base_url=base_url,
             scope_host=urlparse(self._scan_target).hostname or "",
         )
-        print(f"[+] Interaction captured {len(api_endpoints)} API endpoints ({len(ws_urls)} websocket)")
+        logger.info(f"[+] Interaction captured {len(api_endpoints)} API endpoints ({len(ws_urls)} websocket)")
         return api_endpoints
 
     async def _extract_forms(self, page):
@@ -782,9 +785,9 @@ class TitanEngine(TransportMixin):
             )
             routes = list(dict.fromkeys(routes))[:max_routes]
             if not routes:
-                print("[+] SPA harness: no route table hydrated")
+                logger.info("[+] SPA harness: no route table hydrated")
                 return
-            print(f"[+] SPA harness: walking {len(routes)} hydrated route(s)")
+            logger.info(f"[+] SPA harness: walking {len(routes)} hydrated route(s)")
             captured_total = 0
             for route in routes:
                 if self._driver_dead:
@@ -817,7 +820,7 @@ class TitanEngine(TransportMixin):
                             api_findings = []
                         result.findings.extend(api_findings)
                 captured_total += len(captured)
-            print(f"[+] SPA harness: {captured_total} runtime API endpoint(s) captured")
+            logger.info(f"[+] SPA harness: {captured_total} runtime API endpoint(s) captured")
         except (asyncio.TimeoutError, Exception):
             pass
         finally:
@@ -891,14 +894,14 @@ class TitanEngine(TransportMixin):
         roles = self.config.get("auth", {}).get("roles", [])
         if not roles or self._driver_dead:
             return
-        print(f"[+] Testing {len(roles)} additional roles...")
+        logger.info(f"[+] Testing {len(roles)} additional roles...")
         for role_creds in roles:
             try:
                 await self.auth_engine.logout(context, page, target)
                 logged_in = await self.auth_engine.login_as_role(context, page, target, role_creds)
                 if logged_in:
                     role_name = role_creds.get("role", "unknown")
-                    print(f"[+] Scanning as role: {role_name}")
+                    logger.info(f"[+] Scanning as role: {role_name}")
                     self._role_scanner.record_role(role_name)
                     auth_headers = self.auth_engine.get_auth_headers()
                     if auth_headers:
@@ -926,7 +929,7 @@ class TitanEngine(TransportMixin):
             return
         replay_count = 0
         replay_limit = min(len(self._gated_routes), 10)
-        print(f"[+] Session replay: re-scanning {replay_limit} gated routes with auth...")
+        logger.info(f"[+] Session replay: re-scanning {replay_limit} gated routes with auth...")
         for gated_url in list(self._gated_routes)[:replay_limit]:
             try:
                 _auth_hdrs = dict(self.auth_engine.get_auth_headers() or {})
@@ -941,7 +944,7 @@ class TitanEngine(TransportMixin):
                     if gated_resp:
                         gated_status = gated_resp.status
                 if gated_status == 200:
-                    print(f"    [+] REPLAY {gated_url} → {gated_status} (was 401/403, now open)")
+                    logger.info(f"    [+] REPLAY {gated_url} → {gated_status} (was 401/403, now open)")
                     replay_findings = await asyncio.wait_for(
                         self._modules._run_api_modules(context, target, gated_url, {}),
                         timeout=15,
@@ -953,7 +956,7 @@ class TitanEngine(TransportMixin):
             except Exception:
                 continue
         if replay_count:
-            print(f"    [i] Session replay: {replay_count} routes re-opened with auth")
+            logger.info(f"    [i] Session replay: {replay_count} routes re-opened with auth")
         self._coverage["replayed_gated"] = replay_count
 
     async def _run_optional_phases(self, target, result, page):
@@ -1011,12 +1014,12 @@ class TitanEngine(TransportMixin):
             detector = LLMDetector(channel, interactsh, llm_cfg)
             per_endpoint = float(llm_cfg.get("per_endpoint_timeout", 40))
             for ep in endpoints:
-                print(f"[+] LLM channel: probing {ep}")
+                logger.info(f"[+] LLM channel: probing {ep}")
                 try:
                     findings = await asyncio.wait_for(detector.scan(target, ep), timeout=per_endpoint)
                     result.findings.extend(findings)
                     if findings:
-                        print(f"    [+] Track C: {len(findings)} LLM findings on {ep}")
+                        logger.info(f"    [+] Track C: {len(findings)} LLM findings on {ep}")
                 except (asyncio.TimeoutError, Exception):
                     continue
         except Exception:
@@ -1031,7 +1034,7 @@ class TitanEngine(TransportMixin):
             storage_findings = await probe.scan(target, result.findings)
             result.findings.extend(storage_findings)
             if storage_findings:
-                print(f"[+] Track D: {len(storage_findings)} publicly listable bucket(s) found")
+                logger.info(f"[+] Track D: {len(storage_findings)} publicly listable bucket(s) found")
         except Exception:
             return
 
@@ -1047,9 +1050,9 @@ class TitanEngine(TransportMixin):
             )
             result.findings.extend(takeover_findings)
             if takeover_findings:
-                print(f"[+] Subdomain takeover: {len(takeover_findings)} vulnerable subdomain(s) found")
+                logger.info(f"[+] Subdomain takeover: {len(takeover_findings)} vulnerable subdomain(s) found")
         except Exception as exc:
-            print(f"[!] Subdomain takeover detection failed: {exc}")
+            logger.warning(f"[!] Subdomain takeover detection failed: {exc}")
 
     async def _probe_cloud_imds(self, target, result):
         ssrf_findings = [
@@ -1086,12 +1089,12 @@ class TitanEngine(TransportMixin):
             except Exception:
                 return (0, {}, "")
 
-        print("[+] Cloud IMDS probing through SSRF sink...")
+        logger.info("[+] Cloud IMDS probing through SSRF sink...")
         imds_findings = await prober.probe(_ssrf_sink)
         if imds_findings:
             result.findings.extend(imds_findings)
             critical = sum(1 for f in imds_findings if f.get("severity") == "critical")
-            print(f"[+] Cloud IMDS: {len(imds_findings)} finding(s) ({critical} critical)")
+            logger.info(f"[+] Cloud IMDS: {len(imds_findings)} finding(s) ({critical} critical)")
 
     async def _run_sbom_analysis(self, target, result, page=None):
         try:
@@ -1127,7 +1130,7 @@ class TitanEngine(TransportMixin):
                     result.findings.append(finding)
                 except Exception:
                     pass
-            print(f"[+] SBOM: {len(report.findings)} finding(s)")
+            logger.info(f"[+] SBOM: {len(report.findings)} finding(s)")
 
     async def _run_deep_audit(self, target, result):
         try:
@@ -1159,10 +1162,10 @@ class TitanEngine(TransportMixin):
                     )
                     result.findings.append(finding)
             verified = sum(1 for f in audit_result.findings if f.verified)
-            print(f"[+] Deep Audit: {len(audit_result.findings)} finding(s), {verified} verified")
+            logger.info(f"[+] Deep Audit: {len(audit_result.findings)} finding(s), {verified} verified")
         except Exception as exc:
             result.errors.append(f"Deep audit failed: {exc}")
-            print(f"[!] Deep audit: {exc}")
+            logger.warning(f"[!] Deep audit: {exc}")
 
     # ==================================================================
     # Post-scan phases (hostile, brain, evolution, anti-forensics, fleet)
@@ -1258,7 +1261,7 @@ class TitanEngine(TransportMixin):
         result.hostile = payload
         new_findings = findings_from_dicts(payload.get("findings", []))
         result.findings.extend(new_findings)
-        print(f"[+] Track G: {len(new_findings)} hostile-surface finding(s)")
+        logger.info(f"[+] Track G: {len(new_findings)} hostile-surface finding(s)")
 
     async def _apply_anti_forensics(self, target, result):
         af_cfg = self.config.get("stealth", {}).get("anti_forensics", {})
@@ -1275,7 +1278,7 @@ class TitanEngine(TransportMixin):
                 try:
                     sent = await af.decoys.inject(target, self._transport_http, count=int(af_cfg.get("decoy_count", 3)))
                     if sent:
-                        print(f"[+] Anti-forensics: {sent} decoy request(s) sent")
+                        logger.info(f"[+] Anti-forensics: {sent} decoy request(s) sent")
                 except Exception:
                     pass
             high_value = [f for f in result.findings if f.confidence >= 0.7 and f.payload][:5]
@@ -1287,10 +1290,10 @@ class TitanEngine(TransportMixin):
                         "original": finding.payload,
                         "variants": attack["polymorphic_payloads"],
                     })
-                print(f"[+] Anti-forensics: {len(report_data)} payload(s) polymorphized")
+                logger.info(f"[+] Anti-forensics: {len(report_data)} payload(s) polymorphized")
         except Exception as exc:
             result.errors.append(f"Anti-forensics failed: {exc}")
-            print(f"[!] Anti-forensics: {exc}")
+            logger.warning(f"[!] Anti-forensics: {exc}")
 
     async def _run_brain_loop(self, target, result):
         brain_cfg = self.config.get("brain", {})
@@ -1304,7 +1307,7 @@ class TitanEngine(TransportMixin):
         ]
         if not high_value:
             return
-        print(f"[+] Brain loop: {len(high_value)} high-value finding(s) to mutate")
+        logger.info(f"[+] Brain loop: {len(high_value)} high-value finding(s) to mutate")
         try:
             from titan.brain.loop import BrainLoop
             brain = BrainLoop(target=target)
@@ -1361,10 +1364,10 @@ class TitanEngine(TransportMixin):
                 except Exception:
                     pass
             if mutations_found:
-                print(f"[+] Brain loop: {mutations_found} mutations tested, {bypasses_found} bypass(es) found")
+                logger.info(f"[+] Brain loop: {mutations_found} mutations tested, {bypasses_found} bypass(es) found")
         except Exception as exc:
             result.errors.append(f"Brain loop failed: {exc}")
-            print(f"[!] Brain loop: {exc}")
+            logger.warning(f"[!] Brain loop: {exc}")
 
     def _build_variant_url(self, finding, variant: str) -> str | None:
         from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
@@ -1404,7 +1407,7 @@ class TitanEngine(TransportMixin):
         bypass_findings = [f for f in result.findings if "brain:bypass" in (f.tags or [])]
         if not bypass_findings:
             return
-        print(f"[+] Evolution engine: {len(bypass_findings)} bypass finding(s) to analyze")
+        logger.info(f"[+] Evolution engine: {len(bypass_findings)} bypass finding(s) to analyze")
         try:
             from titan.brain.evolution import EvolutionEngine
             engine = EvolutionEngine()
@@ -1426,15 +1429,15 @@ class TitanEngine(TransportMixin):
                             name=f"auto_{finding.attack_type.value.lower()}_{generated}",
                         )
                         if path:
-                            print(f"    [+] Evolution: wrote detector to {path}")
+                            logger.info(f"    [+] Evolution: wrote detector to {path}")
                             generated += 1
                 except Exception:
                     continue
             if generated:
-                print(f"[+] Evolution engine: {generated} detector(s) generated")
+                logger.info(f"[+] Evolution engine: {generated} detector(s) generated")
         except Exception as exc:
             result.errors.append(f"Evolution engine failed: {exc}")
-            print(f"[!] Evolution engine: {exc}")
+            logger.warning(f"[!] Evolution engine: {exc}")
 
     async def _run_exploit_modules(self, target, result):
         cfg = self.config.get("exploit", {})
@@ -1469,10 +1472,10 @@ class TitanEngine(TransportMixin):
             try:
                 await asyncio.wait_for(listener.start(), timeout=10)
                 started = True
-                print(f"[+] Track E: listener up at {listener.bound_url}")
+                logger.info(f"[+] Track E: listener up at {listener.bound_url}")
             except Exception as exc:
                 result.errors.append(f"Track E listener failed to start: {exc}")
-                print(f"[!] Track E: listener failed to start ({exc})")
+                logger.warning(f"[!] Track E: listener failed to start ({exc})")
 
         deadline = time.time() + budget
         sessions: list[dict[str, Any]] = []
@@ -1486,10 +1489,10 @@ class TitanEngine(TransportMixin):
                 return await asyncio.wait_for(coro, timeout=max(1.0, min(remaining, 60)))
             except (ConsentError, PlanningError, ExtractionError, PivotError, asyncio.TimeoutError) as exc:
                 result.errors.append(f"Track E {what}: skipped ({exc})")
-                print(f"    [!] Track E {what}: {exc}")
+                logger.warning(f"    [!] Track E {what}: {exc}")
             except Exception as exc:
                 result.errors.append(f"Track E {what}: failed ({exc})")
-                print(f"    [!] Track E {what}: {exc}")
+                logger.warning(f"    [!] Track E {what}: {exc}")
             return None
 
         def record(channel, store, extra=None):
@@ -1505,7 +1508,7 @@ class TitanEngine(TransportMixin):
             if extra:
                 entry.update(extra)
             sessions.append(entry)
-            print(f"    [+] Track E: {channel} session {entry['session_id']} staged")
+            logger.info(f"    [+] Track E: {channel} session {entry['session_id']} staged")
 
         for f in usable_findings(verified, target)[:max_per_type]:
             store = await guarded(
@@ -1547,7 +1550,7 @@ class TitanEngine(TransportMixin):
                 pass
         result.exploit_sessions = sessions
         if sessions:
-            print(f"[+] Track E: {len(sessions)} exploitation session(s) staged")
+            logger.info(f"[+] Track E: {len(sessions)} exploitation session(s) staged")
 
     async def _run_fleet_scan(self, target, result):
         fleet_cfg = self.config.get("fleet", {})
@@ -1556,7 +1559,7 @@ class TitanEngine(TransportMixin):
         try:
             from titan.fleet import FleetCoordinator, AgentType
         except ImportError:
-            print("[!] Fleet module not available — skipping")
+            logger.warning("[!] Fleet module not available — skipping")
             return
         discovered = list(self.visited)[:5]
         targets = [target] + [u for u in discovered if u != target and self._is_in_scope(u)]
@@ -1571,7 +1574,7 @@ class TitanEngine(TransportMixin):
         if not agent_types:
             agent_types = [AgentType.RECON, AgentType.IDENTITY, AgentType.LEARNING]
         budget = fleet_cfg.get("budget", 120.0)
-        print(f"[+] Fleet scan: {len(targets)} target(s), {len(agent_types)} agent type(s), budget={budget}s")
+        logger.info(f"[+] Fleet scan: {len(targets)} target(s), {len(agent_types)} agent type(s), budget={budget}s")
         coordinator = FleetCoordinator(
             max_concurrent=fleet_cfg.get("max_concurrent", 5),
             consent_dir=self.config.get("exploit", {}).get("consent_dir", "consent"),
@@ -1602,7 +1605,7 @@ class TitanEngine(TransportMixin):
         if fleet_result.mutations:
             result.mutations = getattr(result, "mutations", []) + fleet_result.mutations
         if fleet_count:
-            print(f"[+] Fleet: {fleet_count} new finding(s) merged")
+            logger.info(f"[+] Fleet: {fleet_count} new finding(s) merged")
 
     # ==================================================================
     # Verification & evidence gates
@@ -1612,7 +1615,7 @@ class TitanEngine(TransportMixin):
         from titan.verify.oracles import enforce_evidence
         ev_stats = enforce_evidence(result.findings)
         if ev_stats.get("demoted"):
-            print(f"[!] Evidence gate: demoted {ev_stats['demoted']} verified finding(s)")
+            logger.warning(f"[!] Evidence gate: demoted {ev_stats['demoted']} verified finding(s)")
 
         from titan.verify.auto_verify import AutoVerifier
         av = AutoVerifier()
@@ -1628,9 +1631,9 @@ class TitanEngine(TransportMixin):
                     elif f.verified:
                         verified_count += 1
             if demoted_count:
-                print(f"[!] Auto-verify: demoted {demoted_count} finding(s)")
+                logger.warning(f"[!] Auto-verify: demoted {demoted_count} finding(s)")
             if verified_count:
-                print(f"[+] Auto-verify: {verified_count} finding(s) passed")
+                logger.info(f"[+] Auto-verify: {verified_count} finding(s) passed")
 
         role_scanner = getattr(self, "_role_scanner", None)
         if isinstance(role_scanner, RoleAwareScanner):
@@ -1641,7 +1644,7 @@ class TitanEngine(TransportMixin):
                     if getattr(f, "metadata", {}).get("role_gated"):
                         role_adjusted += 1
             if role_adjusted:
-                print(f"[i] Role-aware: adjusted {role_adjusted} finding(s)")
+                logger.info(f"[i] Role-aware: adjusted {role_adjusted} finding(s)")
 
         platform_brain = getattr(self, "_platform_brain", None)
         if platform_brain is not None:
@@ -1663,7 +1666,7 @@ class TitanEngine(TransportMixin):
                     if others:
                         f.chain = list(dict.fromkeys(others))
             if chains:
-                print(f"[+] Track D: {len(chains)} attack chains composed")
+                logger.info(f"[+] Track D: {len(chains)} attack chains composed")
         except Exception as exc:
             result.errors.append(f"Chain analysis failed: {exc}")
 
@@ -1672,7 +1675,7 @@ class TitanEngine(TransportMixin):
             inf_engine = CrossDataInferenceEngine()
             result.inferences = [i.to_dict() for i in inf_engine.infer(result.findings)]
             if result.inferences:
-                print(f"[+] Inference: {len(result.inferences)} cross-data inference(s)")
+                logger.info(f"[+] Inference: {len(result.inferences)} cross-data inference(s)")
         except Exception as exc:
             result.errors.append(f"Inference failed: {exc}")
 
@@ -1682,7 +1685,7 @@ class TitanEngine(TransportMixin):
                 from titan.verify.ai_escalation import AIEscalator
                 esc = AIEscalator(ai_cfg)
                 result.ai_escalation = await esc.escalate(result.findings)
-                print(f"[+] AI escalation: {result.ai_escalation.get('sent', 0)} sent")
+                logger.info(f"[+] AI escalation: {result.ai_escalation.get('sent', 0)} sent")
             except Exception as exc:
                 result.errors.append(f"AI escalation failed: {exc}")
 
@@ -1753,7 +1756,7 @@ class TitanEngine(TransportMixin):
                     except Exception as exc:
                         if self._is_driver_death(exc):
                             self._driver_dead = True
-                            print("[!] Playwright driver died mid-matrix; aborting remaining groups")
+                            logger.warning("[!] Playwright driver died mid-matrix; aborting remaining groups")
                             for f in pending:
                                 if not f.done():
                                     f.cancel()
@@ -1876,7 +1879,7 @@ class TitanEngine(TransportMixin):
         if denial:
             result.errors.append(denial)
             result.finished_at = time.time()
-            print(f"[!] {denial}")
+            logger.warning(f"[!] {denial}")
             return result
 
         try:
@@ -1947,7 +1950,7 @@ class TitanEngine(TransportMixin):
             try:
                 seed_findings = await self._test_rest_api(context, target, seed, fingerprint)
                 result.findings.extend(seed_findings)
-                print(f"    [+] Seed {seed}: {len(seed_findings)} finding(s)")
+                logger.info(f"    [+] Seed {seed}: {len(seed_findings)} finding(s)")
             except Exception as exc:
                 result.errors.append(f"seed scan failed {seed}: {exc}")
 
