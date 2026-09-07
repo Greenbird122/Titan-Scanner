@@ -58,9 +58,9 @@ DEPLOYED ROUTES:
   "status": "debug_mode",
   "server": "nginx/1.31.4",
   "node_version": "v18.17.0",
-  "database": "mongodb://admin:password123@localhost:27017/educore",
-  "jwt_secret": "super-secret-key-do-not-share",
-  "aws_key": "AKIAIOSFODNN7EXAMPLE",
+  "database": "mongodb://admin:password123@localhost:27017/educore",  # pragma: allowlist secret
+  "jwt_secret": "super-secret-key-do-not-share",  # pragma: allowlist secret
+  "aws_key": "AKIAIOSFODNN7EXAMPLE",  # pragma: allowlist secret
   "note": "REMOVE BEFORE PRODUCTION"
 }
 ```

@@ -68,7 +68,7 @@ target files over 1000 LOC; no staged secrets.
 **Edits:**
 
 1. `local_lab/app.py` — replace
-   `app.secret_key = "supersecretkey"` with
+   `app.secret_key = "supersecretkey"` with  # pragma: allowlist secret
    ```python
    app.secret_key = os.environ.get("LOCAL_LAB_SECRET_KEY", secrets.token_hex(16))
    ```
