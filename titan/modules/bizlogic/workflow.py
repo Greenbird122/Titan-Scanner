@@ -14,11 +14,10 @@ This module tests:
 from __future__ import annotations
 
 import json
-import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -27,10 +26,10 @@ class WorkflowStep:
     name: str
     url: str
     method: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
     required: bool = True
     auth_required: bool = False
-    role_required: Optional[str] = None
+    role_required: str | None = None
 
 
 @dataclass
@@ -286,14 +285,14 @@ class WorkflowTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_step_skipping(
         self,
         target_url: str,
-        workflow: List[WorkflowStep],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        workflow: list[WorkflowStep],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for step skipping vulnerabilities."""
         findings = []
 
@@ -338,9 +337,9 @@ class WorkflowTester:
     async def test_role_confusion(
         self,
         target_url: str,
-        workflow: List[WorkflowStep],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        workflow: list[WorkflowStep],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for role confusion vulnerabilities."""
         findings = []
 
@@ -380,9 +379,9 @@ class WorkflowTester:
     async def test_concurrent_modification(
         self,
         target_url: str,
-        workflow: List[WorkflowStep],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        workflow: list[WorkflowStep],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for concurrent modification vulnerabilities — deep version.
 
         Tests:
@@ -472,9 +471,9 @@ class WorkflowTester:
     async def test_replay_attack(
         self,
         target_url: str,
-        workflow: List[WorkflowStep],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        workflow: list[WorkflowStep],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for replay attack vulnerabilities — deep version.
 
         Tests:
@@ -583,9 +582,9 @@ class WorkflowTester:
     async def test_state_manipulation(
         self,
         target_url: str,
-        workflow: List[WorkflowStep],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        workflow: list[WorkflowStep],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for workflow state manipulation vulnerabilities."""
         findings = []
 
@@ -639,9 +638,9 @@ class WorkflowTester:
     async def test_authorization_bypass(
         self,
         target_url: str,
-        workflow: List[WorkflowStep],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        workflow: list[WorkflowStep],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for authorization bypass vulnerabilities."""
         findings = []
 
@@ -684,9 +683,9 @@ class WorkflowTester:
         self,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        params: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request and return response."""
         try:
             import aiohttp
@@ -710,7 +709,7 @@ class WorkflowTester:
     def _should_require_previous_steps(
         self,
         current_step: WorkflowStep,
-        previous_steps: List[WorkflowStep],
+        previous_steps: list[WorkflowStep],
     ) -> bool:
         """Check if current step should require previous steps."""
         # If current step requires auth and previous steps set up auth
@@ -725,6 +724,6 @@ class WorkflowTester:
 
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings from this tester."""
         return self._findings

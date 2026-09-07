@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class Severity(Enum):
@@ -82,32 +81,32 @@ class Finding:
     param: str
     location: str
     payload: str
-    attack_type: Optional[AttackType] = None
+    attack_type: AttackType | None = None
     severity: Severity = Severity.UNCONFIRMED
     verified: bool = False
     confidence: float = 0.0
-    status: Optional[int] = None
-    headers: Dict[str, str] = field(default_factory=dict)
+    status: int | None = None
+    headers: dict[str, str] = field(default_factory=dict)
     body: str = ""
-    diffs: List[str] = field(default_factory=list)
+    diffs: list[str] = field(default_factory=list)
     baseline_body: str = ""
-    baseline_status: Optional[int] = None
+    baseline_status: int | None = None
     verification_body: str = ""
-    verification_status: Optional[int] = None
-    cvss_score: Optional[float] = None
+    verification_status: int | None = None
+    cvss_score: float | None = None
     cvss_vector: str = ""
     poc_curl: str = ""
     poc_python: str = ""
-    screenshot_path: Optional[str] = None
+    screenshot_path: str | None = None
     notes: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    chain: List[str] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    chain: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     # Track D (chain analysis) prerequisite: what this finding EXPOSES to an
     # attacker ("file_read", "creds", "url_fetch", "auth_bypass",
     # "code_exec", "data_leak", "oob", "client_exec"). Populated by
     # titan.verify.flows.apply_flows() at scan end.
-    flows: List[str] = field(default_factory=list)
+    flows: list[str] = field(default_factory=list)
     # SCAN-QUALITY M1 evidence grade: "confirmed" (strong oracle marker in
     # the diffs), "corroborated" (verified but no named strong marker),
     # "indicative" (weak signals only), "none". Assigned by
@@ -124,7 +123,7 @@ class Finding:
     # every finding is one of confirmed/suspicious/none, never mislabeled.
     tier: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "target": self.target,
             "url": self.url,
@@ -164,26 +163,26 @@ class ScanResult:
     target: str
     started_at: float
     finished_at: float = 0.0
-    findings: List[Finding] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
-    fingerprint: Dict[str, Any] = field(default_factory=dict)
-    config_snapshot: Dict[str, Any] = field(default_factory=dict)
-    ai_escalation: Dict[str, Any] = field(default_factory=dict)
+    findings: list[Finding] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    fingerprint: dict[str, Any] = field(default_factory=dict)
+    config_snapshot: dict[str, Any] = field(default_factory=dict)
+    ai_escalation: dict[str, Any] = field(default_factory=dict)
     # Track D — flow-typed attack chains (full path + per-hop evidence), each
     # an AttackChain.to_dict(). Populated by ChainAnalyzer after apply_flows.
-    chains: List[Dict[str, Any]] = field(default_factory=list)
+    chains: list[dict[str, Any]] = field(default_factory=list)
     # Cross-data inferences: higher-confidence chained findings produced by
     # CrossDataInferenceEngine after chain analysis.
-    inferences: List[Dict[str, Any]] = field(default_factory=list)
+    inferences: list[dict[str, Any]] = field(default_factory=list)
     # Track E — sessions auto-staged during the scan (rce-agent, webshell,
     # sqli-extraction channels). Each entry carries channel, session_id and the
     # session dir for attribution. Populated by _run_exploit_modules; empty
     # unless the operator enabled exploit and holds consent for the target.
-    exploit_sessions: List[Dict[str, Any]] = field(default_factory=list)
+    exploit_sessions: list[dict[str, Any]] = field(default_factory=list)
     # Track G — hostile & ad-monetized surface profile (profile + observed
     # intel + serialized hostile findings). Populated by the engine's hostile
     # pass; empty unless crawl.profile == hostile.
-    hostile: Dict[str, Any] = field(default_factory=dict)
+    hostile: dict[str, Any] = field(default_factory=dict)
     # PUSH-TO-100 A3 — coverage accounting. Populated by the engine at scan
     # end: `status` is "complete" when the scan provably covered the
     # discovered surface (queue drained, every discovered API ran the module
@@ -191,8 +190,8 @@ class ScanResult:
     # naming WHY (crawl budget, max_pages cap, depth cap, checkpoint,
     # driver death, API cap). Carries the raw counters so the operator can
     # audit the claim.
-    coverage: Dict[str, Any] = field(default_factory=dict)
-    manual_verification: List[Dict[str, Any]] = field(default_factory=list)
+    coverage: dict[str, Any] = field(default_factory=dict)
+    manual_verification: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def duration_seconds(self) -> float:
@@ -224,7 +223,7 @@ class ScanResult:
     def chain_count(self) -> int:
         return sum(1 for f in self.findings if f.chain)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "target": self.target,
             "started_at": self.started_at,

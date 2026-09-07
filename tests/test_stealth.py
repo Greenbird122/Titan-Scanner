@@ -1,6 +1,7 @@
 """Tests for stealth engine."""
 
 import pytest
+
 from titan.core.stealth import StealthEngine
 
 

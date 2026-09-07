@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +92,7 @@ class NetworkObserver:
         )
 
         try:
-            from scapy.all import sniff, IP, TCP, UDP
+            from scapy.all import IP, TCP, UDP, sniff
 
             start = time.time()
 

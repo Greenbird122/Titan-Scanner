@@ -1,7 +1,6 @@
 """Tests for PoC generator."""
 
-import pytest
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.core.poc import PoCGenerator
 
 

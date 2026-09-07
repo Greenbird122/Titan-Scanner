@@ -26,16 +26,14 @@ Features:
 from __future__ import annotations
 
 import base64
-import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
-
+from titan.core.models import AttackType, Finding, Severity
 
 # ── Credential & Key Extraction Patterns ─────────────────────────────────────
 # Provider-specific signatures first, then generic assignments
-_HARDCODED_PATTERNS: List[Tuple[str, str, Severity, float]] = [
+_HARDCODED_PATTERNS: list[tuple[str, str, Severity, float]] = [
     # Google API Key
     (r'AIza[0-9A-Za-z_\-]{12,}', "hardcoded_google_api_key", Severity.HIGH, 0.90),
     # Stripe Keys
@@ -62,7 +60,7 @@ _HARDCODED_PATTERNS: List[Tuple[str, str, Severity, float]] = [
     (r'(?i)["\']?(access[_-]?token|api[_-]?token|secret[_-]?token|auth[_-]?token|client[_-]?secret)["\']?\s*[:=]\s*["\'](?!eyJ)[A-Za-z0-9_\-]{12,}["\']', "hardcoded_token", Severity.HIGH, 0.80),
 ]
 
-_WEAK_ALGORITHMS: Dict[str, List[str]] = {
+_WEAK_ALGORITHMS: dict[str, list[str]] = {
     "md5": ["md5", "message-digest"],
     "sha1": ["sha1", "sha-1"],
     "des": ["des ", "des-", "tripledes"],
@@ -74,7 +72,7 @@ _WEAK_ALGORITHMS: Dict[str, List[str]] = {
 class CryptoDetector:
     """Production-grade Cryptographic Weakness and Credential Leak detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -88,9 +86,9 @@ class CryptoDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # Crypto audits inspect both parameters and parameterless bodies (/config, /env)
         crypto_params = [
@@ -120,9 +118,9 @@ class CryptoDetector:
         target: str,
         method: str,
         url: str,
-        param_name: Optional[str],
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        param_name: str | None,
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             if method.upper() == "GET":
                 baseline_resp = await context.request.get(
@@ -251,8 +249,8 @@ class CryptoDetector:
     # ------------------------------------------------------------------
 
     def _find_jwt_none(
-        self, target: str, url: str, resp: Any, body: str, status: Optional[int], method: str, param_label: str
-    ) -> Optional[Finding]:
+        self, target: str, url: str, resp: Any, body: str, status: int | None, method: str, param_label: str
+    ) -> Finding | None:
         jwt_pattern = re.compile(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]*')
         jwt_matches = jwt_pattern.findall(body)
         for jwt in jwt_matches:

@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional, Set
 from urllib.parse import urlparse
 
 # Project root (titan/core/authorization.py -> titan/ -> repo root). Manifest
@@ -46,7 +45,7 @@ def _host_of(target: str) -> str:
     return (urlparse(target).hostname or "").lower().rstrip(".")
 
 
-def resolve_manifest(manifest_path: Optional[str] = None) -> Path:
+def resolve_manifest(manifest_path: str | None = None) -> Path:
     """Resolve a configured manifest path to an absolute one (fail-closed)."""
     p = Path(manifest_path) if manifest_path else Path(DEFAULT_PRACTICE_MANIFEST)
     if not p.is_absolute():
@@ -54,7 +53,7 @@ def resolve_manifest(manifest_path: Optional[str] = None) -> Path:
     return p
 
 
-def practice_hosts(manifest_path: Optional[str] = None) -> Set[str]:
+def practice_hosts(manifest_path: str | None = None) -> set[str]:
     """Hostnames from the authorized-practice manifest.
 
     Returns an empty set on ANY failure (missing file, unreadable, bad JSON,
@@ -64,7 +63,7 @@ def practice_hosts(manifest_path: Optional[str] = None) -> Set[str]:
     p = resolve_manifest(manifest_path)
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001 - fail closed on any read/parse error
+    except Exception:
         return set()
     if isinstance(data, dict):
         hosts = data.get("hosts", [])
@@ -72,7 +71,7 @@ def practice_hosts(manifest_path: Optional[str] = None) -> Set[str]:
         hosts = data
     else:
         return set()
-    out: Set[str] = set()
+    out: set[str] = set()
     for h in hosts:
         h = str(h).strip().lower().rstrip(".")
         if h:
@@ -80,7 +79,7 @@ def practice_hosts(manifest_path: Optional[str] = None) -> Set[str]:
     return out
 
 
-def host_is_practice(host: str, hosts: Set[str]) -> bool:
+def host_is_practice(host: str, hosts: set[str]) -> bool:
     """Host matches a manifest entry exactly or as a subdomain."""
     host = (host or "").lower().rstrip(".")
     if not host or not hosts:
@@ -91,9 +90,9 @@ def host_is_practice(host: str, hosts: Set[str]) -> bool:
 def authorize_target(
     target: str,
     consent_dir: str = "consent",
-    practice_manifest: Optional[str] = None,
-    key_path: Optional[str] = None,
-) -> Optional[str]:
+    practice_manifest: str | None = None,
+    key_path: str | None = None,
+) -> str | None:
     """Return None if scanning ``target`` is authorized, else a denial reason.
 
     Consent lookup uses ``titan.exploit.consent.verify_consent`` (ed25519 +
@@ -122,7 +121,7 @@ def authorize_target(
                 key_path=Path(key_path) if key_path else DEFAULT_KEY_PATH,
             )
             return None
-        except Exception:  # noqa: BLE001 - any consent failure = not authorized
+        except Exception:
             pass
     if host_is_practice(host, practice_hosts(practice_manifest)):
         return None

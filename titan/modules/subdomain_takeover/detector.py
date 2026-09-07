@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import re
 import socket
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 try:
@@ -26,8 +26,7 @@ try:
 except ImportError:
     aiohttp = None  # graceful degrade — module can still do DNS-only checks
 
-from titan.core.models import Finding, Severity, AttackType
-
+from titan.core.models import AttackType, Finding, Severity
 
 # ─── Known-vulnerable CNAME targets ─────────────────────────────────
 # Each entry maps a CNAME suffix (or exact match) to the service name
@@ -38,7 +37,7 @@ from titan.core.models import Finding, Severity, AttackType
 # "http_fingerprint": list of strings — if ANY appears in the HTTP body
 #   of the CNAME target, the subdomain is likely claimable.
 
-VULNERABLE_SERVICES: List[Dict[str, Any]] = [
+VULNERABLE_SERVICES: list[dict[str, Any]] = [
     # ── Vercel ───────────────────────────────────────────────────────
     {
         "service": "Vercel",
@@ -436,7 +435,7 @@ class SubdomainTakeoverDetector:
 
     def __init__(self):
         # Build a fast lookup: cname_suffix → service entry
-        self._cnameservice: Dict[str, Dict[str, Any]] = {}
+        self._cnameservice: dict[str, dict[str, Any]] = {}
         for svc in VULNERABLE_SERVICES:
             for cname in svc["cnames"]:
                 self._cnameservice[cname.lower()] = svc
@@ -449,9 +448,9 @@ class SubdomainTakeoverDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        fingerprint: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        fingerprint: dict[str, Any],
+    ) -> list[Finding]:
         """Run subdomain takeover detection.
 
         This module is URL-agnostic — it discovers subdomains of the
@@ -459,7 +458,7 @@ class SubdomainTakeoverDetector:
         The ``url`` / ``params`` args are unused (module signature
         compatibility with the engine's module matrix).
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         root_domain = self._extract_root_domain(target)
         if not root_domain:
@@ -542,9 +541,9 @@ class SubdomainTakeoverDetector:
 
     # ── Subdomain enumeration ────────────────────────────────────────
 
-    async def _enumerate_subdomains(self, root_domain: str) -> List[str]:
+    async def _enumerate_subdomains(self, root_domain: str) -> list[str]:
         """Discover subdomains via crt.sh + DNS brute-force."""
-        subdomains: Set[str] = set()
+        subdomains: set[str] = set()
 
         # Method 1: crt.sh certificate transparency
         crt_subs = await self._crtsh_enum(root_domain)
@@ -560,9 +559,9 @@ class SubdomainTakeoverDetector:
 
         return sorted(subdomains)
 
-    async def _crtsh_enum(self, root_domain: str) -> Set[str]:
+    async def _crtsh_enum(self, root_domain: str) -> set[str]:
         """Query crt.sh for certificate transparency subdomains."""
-        subdomains: Set[str] = set()
+        subdomains: set[str] = set()
         if aiohttp is None:
             return subdomains
         try:
@@ -585,7 +584,7 @@ class SubdomainTakeoverDetector:
             pass
         return subdomains
 
-    async def _dns_bruteforce(self, root_domain: str) -> Set[str]:
+    async def _dns_bruteforce(self, root_domain: str) -> set[str]:
         """DNS brute-force common subdomain prefixes."""
         COMMON_PREFIXES = [
             "www", "api", "admin", "app", "auth", "blog", "cdn", "cms",
@@ -600,7 +599,7 @@ class SubdomainTakeoverDetector:
             "alpha", "demo", "sandbox", "preview", "stg", "prod",
             "production", "uat", "qa", "ci", "cd", "build", "deploy",
         ]
-        subdomains: Set[str] = set()
+        subdomains: set[str] = set()
         try:
             for prefix in COMMON_PREFIXES:
                 candidate = f"{prefix}.{root_domain}"
@@ -618,7 +617,7 @@ class SubdomainTakeoverDetector:
 
     # ── CNAME resolution ─────────────────────────────────────────────
 
-    async def _resolve_cname(self, hostname: str) -> Optional[str]:
+    async def _resolve_cname(self, hostname: str) -> str | None:
         """Resolve a hostname's CNAME record. Returns the canonical name or None."""
         try:
             # Try dnspython first
@@ -642,7 +641,7 @@ class SubdomainTakeoverDetector:
 
     # ── Service matching ─────────────────────────────────────────────
 
-    def _match_service(self, cname_target: str) -> Optional[Dict[str, Any]]:
+    def _match_service(self, cname_target: str) -> dict[str, Any] | None:
         """Match a CNAME target against the known-vulnerable services database."""
         cname_lower = cname_target.lower()
         for suffix, service_info in self._cnameservice.items():
@@ -656,7 +655,7 @@ class SubdomainTakeoverDetector:
         self,
         subdomain: str,
         cname_target: str,
-        service_info: Dict[str, Any],
+        service_info: dict[str, Any],
     ) -> bool:
         """Verify that the CNAME target is actually unclaimed.
 
@@ -725,7 +724,7 @@ class SubdomainTakeoverDetector:
 
     # ── Helpers ──────────────────────────────────────────────────────
 
-    def _extract_root_domain(self, target: str) -> Optional[str]:
+    def _extract_root_domain(self, target: str) -> str | None:
         """Extract the root domain from a target URL or hostname."""
         # Strip protocol
         if "://" in target:

@@ -18,10 +18,9 @@ from __future__ import annotations
 
 import html
 import json
-import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 _SEVERITY_ORDER = ["critical", "high", "medium", "low", "info", "unconfirmed"]
 _SEVERITY_COLORS = {
@@ -39,13 +38,13 @@ def _esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
 
-def _iso(epoch: Optional[float]) -> str:
+def _iso(epoch: float | None) -> str:
     if not epoch:
         return "n/a"
     return datetime.fromtimestamp(epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-def _load_json(path: Path) -> Optional[Dict[str, Any]]:
+def _load_json(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     try:
@@ -55,11 +54,11 @@ def _load_json(path: Path) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _finding_rows(site_dir: Path) -> List[Dict[str, Any]]:
+def _finding_rows(site_dir: Path) -> list[dict[str, Any]]:
     """Normalize findings.json into render-ready rows (defensive defaults)."""
     data = _load_json(site_dir / "findings.json") or {}
     raw_findings = data.get("findings") or []
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     for f in raw_findings:
         if not isinstance(f, dict):
             continue
@@ -101,7 +100,7 @@ def _severity_order_key(sev: str) -> int:
         return len(_SEVERITY_ORDER)
 
 
-def build_dashboard(site_dir: Path, out_path: Optional[Path] = None) -> Path:
+def build_dashboard(site_dir: Path, out_path: Path | None = None) -> Path:
     """Render the interactive dashboard for a site directory.
 
     Reads findings.json + scan_meta.json (optional). Writes ``dashboard.html``
@@ -117,7 +116,7 @@ def build_dashboard(site_dir: Path, out_path: Optional[Path] = None) -> Path:
     # findings.json by SiteReportWriter when the scan ran profile: hostile).
     hostile = _load_json(site_dir / "hostile.json") or {}
 
-    counts: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "unconfirmed": 0}
+    counts: dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "unconfirmed": 0}
     for r in rows:
         counts[r["severity"]] = counts.get(r["severity"], 0) + 1
     verified = sum(1 for r in rows if r["verified"])

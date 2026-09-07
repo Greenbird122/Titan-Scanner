@@ -46,13 +46,12 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
-
+from titan.core.models import AttackType, Finding, Severity
 
 # ── Privilege-Bearing Fields ─────────────────────────────────────────
-PRIVILEGE_FIELDS: List[Tuple[str, Any, str]] = [
+PRIVILEGE_FIELDS: list[tuple[str, Any, str]] = [
     # Top-priority admin/role flags
     ("role", "admin", "role=admin"),
     ("is_admin", True, "is_admin=true"),
@@ -99,7 +98,7 @@ PRIVILEGE_FIELDS: List[Tuple[str, Any, str]] = [
 ]
 
 # ── Nested Object Injection Payloads ─────────────────────────────────
-NESTED_INJECTIONS: List[Tuple[Dict, str]] = [
+NESTED_INJECTIONS: list[tuple[dict, str]] = [
     ({"user": {"role": "admin"}}, "nested_user_admin"),
     ({"user": {"is_admin": True}}, "nested_user_is_admin"),
     ({"profile": {"is_verified": True}}, "nested_profile_verified"),
@@ -110,7 +109,7 @@ NESTED_INJECTIONS: List[Tuple[Dict, str]] = [
 ]
 
 # ── Prototype Pollution Payloads ─────────────────────────────────────
-PROTO_POLLUTION: List[Tuple[Dict, str]] = [
+PROTO_POLLUTION: list[tuple[dict, str]] = [
     ({"__proto__": {"isAdmin": True}}, "proto_isAdmin"),
     ({"__proto__": {"role": "admin"}}, "proto_role"),
     ({"constructor": {"prototype": {"role": "admin"}}}, "constructor_prototype"),
@@ -119,7 +118,7 @@ PROTO_POLLUTION: List[Tuple[Dict, str]] = [
 ]
 
 # ── MongoDB Operator Injection ───────────────────────────────────────
-MONGO_OPERATORS: List[Tuple[Dict, str]] = [
+MONGO_OPERATORS: list[tuple[dict, str]] = [
     ({"$set": {"role": "admin"}}, "mongo_set_role"),
     ({"$unset": {"password": 1}}, "mongo_unset_password"),
     ({"$push": {"permissions": "admin"}}, "mongo_push_permissions"),
@@ -128,7 +127,7 @@ MONGO_OPERATORS: List[Tuple[Dict, str]] = [
 ]
 
 # ── Type Confusion Pairs ─────────────────────────────────────────────
-TYPE_CONFUSION: List[Tuple[str, Any, str]] = [
+TYPE_CONFUSION: list[tuple[str, Any, str]] = [
     ("role", "admin", "string_admin"),
     ("role", ["admin"], "array_admin"),
     ("role", {"$gt": ""}, "object_injection"),
@@ -145,7 +144,7 @@ TYPE_CONFUSION: List[Tuple[str, Any, str]] = [
 class MassAssignmentDetector:
     """Production-grade Mass Assignment detector with nested objects, type confusion, and prototype pollution."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -159,13 +158,13 @@ class MassAssignmentDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         # Only state-changing methods can accept mass assignment
         if method.upper() not in ("POST", "PUT", "PATCH"):
             return []
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         # ── Engine 1: Flat Privilege Field Injection ─────────────────
         for field, value, label in PRIVILEGE_FIELDS:
@@ -228,11 +227,11 @@ class MassAssignmentDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, Any],
+        all_params: dict[str, Any],
         field: str,
         value: Any,
         label: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             is_json, baseline_tree = self._parse_body(all_params)
 
@@ -308,10 +307,10 @@ class MassAssignmentDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, Any],
-        nested_payload: Dict,
+        all_params: dict[str, Any],
+        nested_payload: dict,
         label: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             is_json, baseline_tree = self._parse_body(all_params)
 
@@ -374,10 +373,10 @@ class MassAssignmentDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, Any],
-        payload: Dict,
+        all_params: dict[str, Any],
+        payload: dict,
         label: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             is_json, baseline_tree = self._parse_body(all_params)
 
@@ -433,10 +432,10 @@ class MassAssignmentDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, Any],
-        payload: Dict,
+        all_params: dict[str, Any],
+        payload: dict,
         label: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             is_json, baseline_tree = self._parse_body(all_params)
 
@@ -493,11 +492,11 @@ class MassAssignmentDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, Any],
+        all_params: dict[str, Any],
         field: str,
         value: Any,
         label: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             is_json, baseline_tree = self._parse_body(all_params)
 
@@ -570,7 +569,7 @@ class MassAssignmentDetector:
     # HELPERS
     # ------------------------------------------------------------------
 
-    def _parse_body(self, params: Dict[str, Any]) -> tuple:
+    def _parse_body(self, params: dict[str, Any]) -> tuple:
         """Parse body params as JSON or dict."""
         is_json = False
         tree = None
@@ -616,7 +615,7 @@ class MassAssignmentDetector:
         return str(value)
 
     @staticmethod
-    def _plain_value_strings(value: Any) -> List[str]:
+    def _plain_value_strings(value: Any) -> list[str]:
         """Extract plain (unserialized) value strings for baseline comparison.
 
         For a list value (e.g. role=["admin"]) returns each element's string

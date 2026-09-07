@@ -17,10 +17,10 @@ produce no finding.
 from __future__ import annotations
 
 import secrets
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 # Installed via page.add_init_script BEFORE any page JS runs. Wraps the
 # sinks, records every write into window.__titan_sinks__ as {sink, value}.
@@ -72,16 +72,16 @@ DANGEROUS_SINKS = {"innerHTML", "outerHTML", "document.write", "eval", "Function
 
 
 class DomXSSDetector:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, page, target: str, url: str, params: Dict[str, str], marker: Optional[str] = None) -> List[Finding]:
+    async def scan(self, page, target: str, url: str, params: dict[str, str], marker: str | None = None) -> list[Finding]:
         """``page`` is a real Playwright page (or a test double exposing
         add_init_script / goto / evaluate). ``marker`` is injectable so tests
         can script the page's behaviour deterministically."""
         marker = marker or ("titanmx" + secrets.token_hex(6))
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         try:
             await page.add_init_script(SINK_HOOK_JS)

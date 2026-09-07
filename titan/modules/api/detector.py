@@ -20,12 +20,10 @@ Features:
 from __future__ import annotations
 
 import json
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from titan.core.models import AttackType, Finding, Severity
-
 
 _SWAGGER_PATHS = (
     "/swagger.json", "/openapi.json", "/api-docs", "/v2/api-docs",
@@ -67,7 +65,7 @@ _HIDDEN_API_PATHS = (
 class APIDetector:
     """Production-grade API surface discovery and GraphQL security detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -77,9 +75,9 @@ class APIDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         base = self._base_url(target)
 
         # ── Engine 1: Swagger / OpenAPI Spec Discovery ─────────────────
@@ -110,7 +108,7 @@ class APIDetector:
 
     async def _probe_swagger(
         self, context, target: str, base: str, path: str
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         spec_url = urljoin(base, path)
         try:
             resp = await context.request.get(spec_url, headers={"Referer": target}, timeout=4000)
@@ -162,7 +160,7 @@ class APIDetector:
 
     async def _probe_graphql(
         self, context, target: str, base: str, path: str
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         gql_url = urljoin(base, path)
         try:
             # Introspection query
@@ -243,7 +241,7 @@ class APIDetector:
 
     async def _probe_hidden_path(
         self, context, target: str, base: str, path: str
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         probe_url = urljoin(base, path)
         try:
             resp = await context.request.get(probe_url, headers={"Referer": target}, timeout=3000)

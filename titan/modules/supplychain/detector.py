@@ -10,10 +10,8 @@ Probes the software supply chain from source to runtime:
 
 from __future__ import annotations
 
-import json
 import logging
 import re
-from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +171,8 @@ class SupplyChainDetector:
 
     def _check_registry_exists(self, package_name: str, registry: str) -> bool:
         """Check if a package exists on the public registry."""
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             if registry == "npm":

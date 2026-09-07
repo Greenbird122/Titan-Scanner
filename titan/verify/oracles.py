@@ -14,17 +14,17 @@ from __future__ import annotations
 import html
 import json
 import re
+from collections.abc import Iterable
 from difflib import SequenceMatcher
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 from urllib.parse import quote, quote_plus, unquote, unquote_plus
-
 
 # ─── Error-class extraction ─────────────────────────────────────────────────
 # Error classes are *behavioral* signatures: they indicate the parameter
 # reached a dangerous sink (SQL interpreter, filesystem, XML parser, shell),
 # not which specific payload triggered it. Framework-agnostic.
 
-ERROR_CLASSES: Dict[str, List[str]] = {
+ERROR_CLASSES: dict[str, list[str]] = {
     "sql": [
         r"sql\s+syntax", r"mysql_fetch", r"ora-\d{4,5}", r"postgresql",
         r"sqlstate", r"unclosed quotation mark", r"quoted string not properly terminated",
@@ -60,7 +60,7 @@ ERROR_CLASSES: Dict[str, List[str]] = {
     ],
 }
 
-_ERROR_CACHE: Dict[str, re.Pattern] = {}
+_ERROR_CACHE: dict[str, re.Pattern] = {}
 
 
 def _compile(pattern: str) -> re.Pattern:
@@ -69,12 +69,12 @@ def _compile(pattern: str) -> re.Pattern:
     return _ERROR_CACHE[pattern]
 
 
-def extract_error_classes(body: str) -> List[str]:
+def extract_error_classes(body: str) -> list[str]:
     """Return the list of error classes (sql, filesystem, xml, ...) present in a body."""
     if not body:
         return []
     lower = body.lower()
-    found: List[str] = []
+    found: list[str] = []
     for name, patterns in ERROR_CLASSES.items():
         for pattern in patterns:
             try:
@@ -86,7 +86,7 @@ def extract_error_classes(body: str) -> List[str]:
     return found
 
 
-def extract_new_error_classes(baseline_body: str, test_body: str) -> List[str]:
+def extract_new_error_classes(baseline_body: str, test_body: str) -> list[str]:
     """Return error classes that appear in the test response but NOT in the
     baseline response. This is the baseline-diffing oracle: if the page's own
     JavaScript contains "exception" or "java" (Moodle YUI, React, Angular),
@@ -122,7 +122,7 @@ def is_baseline_identical(baseline_body: str, test_body: str) -> bool:
 
 # ─── Structural JSON differential ────────────────────────────────────────────
 
-def json_differential(baseline_body: str, test_body: str) -> List[str]:
+def json_differential(baseline_body: str, test_body: str) -> list[str]:
     """Structural diff between two JSON documents.
 
     Returns typed signals: ``json:value_changed:path`` (strongest),
@@ -134,7 +134,7 @@ def json_differential(baseline_body: str, test_body: str) -> List[str]:
         test = json.loads(test_body)
     except Exception:
         return []
-    signals: List[str] = []
+    signals: list[str] = []
 
     def walk(bv: Any, tv: Any, path: str = "<root>") -> None:
         if type(bv) is not type(tv):
@@ -164,7 +164,7 @@ def json_differential(baseline_body: str, test_body: str) -> List[str]:
     return signals
 
 
-def json_value_changes(baseline_body: str, test_body: str) -> List[Tuple[str, Any, Any]]:
+def json_value_changes(baseline_body: str, test_body: str) -> list[tuple[str, Any, Any]]:
     """Return ``(path, old_value, new_value)`` for every scalar field whose
     value changed between two JSON documents.
 
@@ -177,7 +177,7 @@ def json_value_changes(baseline_body: str, test_body: str) -> List[Tuple[str, An
         test = json.loads(test_body)
     except Exception:
         return []
-    changes: List[Tuple[str, Any, Any]] = []
+    changes: list[tuple[str, Any, Any]] = []
 
     def walk(bv: Any, tv: Any, path: str = "<root>") -> None:
         if type(bv) is not type(tv):
@@ -204,7 +204,7 @@ def json_value_changes(baseline_body: str, test_body: str) -> List[Tuple[str, An
 # signal (OOB hit, file-content leak) is sufficient to *verify*; stacking weak
 # signals raises confidence without ever crossing into "verified" on its own.
 
-WEIGHTS: Dict[str, float] = {
+WEIGHTS: dict[str, float] = {
     "oob_confirmed": 1.0,       # out-of-band callback observed — conclusive
     "content_leak": 0.9,        # known file/secret content appeared in body
     "sanity_pair": 0.85,        # positive vs negative control differ → boolean oracle
@@ -239,7 +239,7 @@ STRONG_SIGNALS = {
 ECHO_NOISE_RATIO = 0.95
 
 
-def payload_encodings(payload: str) -> List[str]:
+def payload_encodings(payload: str) -> list[str]:
     """All the ways a server can reflect a submitted value back into a
     response body: raw, fully/minimally URL-encoded, plus-as-space, and
     HTML-entity-escaped. Longest form first so nested encodings strip fully.
@@ -369,7 +369,7 @@ def is_echo_differential(test_body: str, opp_body: str, payload: str, opposite: 
     return _is_echo_only(a, b)
 
 
-def score_signals(signals: Iterable[str]) -> Tuple[float, bool, List[str]]:
+def score_signals(signals: Iterable[str]) -> tuple[float, bool, list[str]]:
     """Combine evidence signals into (confidence, verified, matched).
 
     Duplicate signals are deduped: noisy-OR must not count the same evidence
@@ -455,7 +455,7 @@ def grade_finding(finding) -> str:
     return "none"
 
 
-def enforce_evidence(findings: list) -> Dict[str, int]:
+def enforce_evidence(findings: list) -> dict[str, int]:
     """Attach an evidence grade to every finding and auto-demote weak ones.
 
     Demotion rule (SCAN-QUALITY spec D9): an injection-family finding marked
@@ -464,7 +464,7 @@ def enforce_evidence(findings: list) -> Dict[str, int]:
     verifies. Returns ``{"graded": n, "demoted": n, "capped": n}``.
     """
     from titan.core.models import Severity
-    stats: Dict[str, int] = {"graded": 0, "demoted": 0, "capped": 0, "suspicious": 0}
+    stats: dict[str, int] = {"graded": 0, "demoted": 0, "capped": 0, "suspicious": 0}
     for f in findings:
         grade = grade_finding(f)
         f.evidence = grade

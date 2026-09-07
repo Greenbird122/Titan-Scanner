@@ -6,10 +6,10 @@ Default: http://localhost:8080
 """
 
 import os
+
 import pytest
 
 from titan.core.engine import TitanEngine
-from titan.core.models import Severity
 
 
 @pytest.fixture

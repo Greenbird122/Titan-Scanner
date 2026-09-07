@@ -17,7 +17,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 def _utc_now() -> str:
@@ -36,16 +36,16 @@ class LogEntry:
     level: str  # "info", "warning", "error", "debug"
     category: str  # "test", "finding", "coverage", "error"
     message: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 
 class TitanLogger:
     """Structured logger for Titan."""
 
-    def __init__(self, log_dir: Optional[str] = None, verbose: bool = False):
+    def __init__(self, log_dir: str | None = None, verbose: bool = False):
         self.log_dir = log_dir or "titan_logs"
         self.verbose = verbose
-        self._entries: List[LogEntry] = []
+        self._entries: list[LogEntry] = []
         os.makedirs(self.log_dir, exist_ok=True)
 
     def log_test(
@@ -128,7 +128,7 @@ class TitanLogger:
     def log_warning(
         self,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> None:
         """Log a warning."""
         entry = LogEntry(
@@ -144,7 +144,7 @@ class TitanLogger:
     def log_error(
         self,
         error: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> None:
         """Log an error."""
         entry = LogEntry(
@@ -157,7 +157,7 @@ class TitanLogger:
         self._entries.append(entry)
         self._print_entry(entry)
 
-    def log_info(self, message: str, data: Optional[Dict[str, Any]] = None) -> None:
+    def log_info(self, message: str, data: dict[str, Any] | None = None) -> None:
         """Log general info."""
         entry = LogEntry(
             timestamp=_utc_now(),
@@ -170,7 +170,7 @@ class TitanLogger:
         if self.verbose:
             self._print_entry(entry)
 
-    def save(self, filename: Optional[str] = None) -> str:
+    def save(self, filename: str | None = None) -> str:
         """Save logs to file."""
         if filename is None:
             filename = f"titan_{int(time.time())}.jsonl"
@@ -190,9 +190,9 @@ class TitanLogger:
 
     def get_entries(
         self,
-        level: Optional[str] = None,
-        category: Optional[str] = None,
-    ) -> List[LogEntry]:
+        level: str | None = None,
+        category: str | None = None,
+    ) -> list[LogEntry]:
         """Get log entries with optional filtering."""
         entries = self._entries
         if level:
@@ -201,11 +201,11 @@ class TitanLogger:
             entries = [e for e in entries if e.category == category]
         return entries
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get log summary."""
         total = len(self._entries)
-        by_level: Dict[str, int] = {}
-        by_category: Dict[str, int] = {}
+        by_level: dict[str, int] = {}
+        by_category: dict[str, int] = {}
         for entry in self._entries:
             by_level[entry.level] = by_level.get(entry.level, 0) + 1
             by_category[entry.category] = by_category.get(entry.category, 0) + 1

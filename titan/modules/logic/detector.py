@@ -56,15 +56,13 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlencode
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.verify import BaselineAnalyzer
-
+from titan.core.models import AttackType, Finding, Severity
 
 # ── Parameter Tampering Value Probes ──────────────────────────────────
-_LOGIC_TAMPER_PROBES: Tuple[Tuple[str, str, str], ...] = (
+_LOGIC_TAMPER_PROBES: tuple[tuple[str, str, str], ...] = (
     ("-1", "Negative value accepted", "logic:negative_value"),
     ("0", "Zero / Free value accepted", "logic:zero_value"),
     ("-0.01", "Fractional negative amount accepted", "logic:fractional_negative"),
@@ -78,7 +76,7 @@ _LOGIC_TAMPER_PROBES: Tuple[Tuple[str, str, str], ...] = (
 )
 
 # ── Type Confusion Probes ────────────────────────────────────────────
-_TYPE_CONFUSION_PROBES: Tuple[Tuple[str, Any, str], ...] = (
+_TYPE_CONFUSION_PROBES: tuple[tuple[str, Any, str], ...] = (
     ("null", None, "logic:null_type"),
     ("true", True, "logic:boolean_true"),
     ("false", False, "logic:boolean_false"),
@@ -92,7 +90,7 @@ _TYPE_CONFUSION_PROBES: Tuple[Tuple[str, Any, str], ...] = (
 )
 
 # ── Coupon / Discount Probes ─────────────────────────────────────────
-_COUPON_PROBES: Tuple[Tuple[str, str, str], ...] = (
+_COUPON_PROBES: tuple[tuple[str, str, str], ...] = (
     # Negative discount (refund injection)
     ("-100", "logic:negative_discount"),
     ("-99999", "logic:large_negative_discount"),
@@ -110,7 +108,7 @@ _COUPON_PROBES: Tuple[Tuple[str, str, str], ...] = (
 )
 
 # ── Currency Switch Probes ───────────────────────────────────────────
-_CURRENCY_SWITCHES: Tuple[Tuple[str, str], ...] = (
+_CURRENCY_SWITCHES: tuple[tuple[str, str], ...] = (
     ("KES", "USD"),  # Weak currency → strong currency
     ("USD", "KES"),  # Strong currency → weak currency (if pricing differs)
     ("NGN", "USD"),  # NGN → USD
@@ -119,14 +117,14 @@ _CURRENCY_SWITCHES: Tuple[Tuple[str, str], ...] = (
 )
 
 # ── Workflow State Manipulation ───────────────────────────────────────
-_WORKFLOW_STATES: Tuple[str, ...] = (
+_WORKFLOW_STATES: tuple[str, ...] = (
     "confirmed", "completed", "paid", "delivered", "active",
     "approved", "verified", "published", "resolved", "closed",
     "admin", "superadmin", "owner", "sysadmin",
 )
 
 # ── Subscription Plan Probes ─────────────────────────────────────────
-_PLAN_PROBES: Tuple[Tuple[str, str, str], ...] = (
+_PLAN_PROBES: tuple[tuple[str, str, str], ...] = (
     ("enterprise", "logic:plan_upgrade_bypass"),
     ("premium", "logic:plan_premium_bypass"),
     ("admin", "logic:plan_admin_bypass"),
@@ -151,7 +149,7 @@ _BIZ_PARAMS = {
 class LogicDetector:
     """Production-grade Business Logic, Parameter Tampering, and Workflow Bypass detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -165,9 +163,9 @@ class LogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # Test all parameters (no keyword exclusion)
         param_keys = list(params.keys()) if params else ["amount"]
@@ -262,8 +260,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             def _req(val: str):
                 p = dict(all_params)
@@ -281,8 +279,8 @@ class LogicDetector:
                 resp = await _req(test_val)
                 body = await resp.text()
 
-                signals: List[str] = []
-                diffs: List[str] = []
+                signals: list[str] = []
+                diffs: list[str] = []
 
                 # Oracle 1: Tampered value reflected in processed output
                 if (
@@ -353,8 +351,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             def _req(val):
                 p = dict(all_params)
@@ -381,11 +379,7 @@ class LogicDetector:
                 # 3. Object accepted where scalar expected
                 # 4. Boolean accepted where numeric expected
                 interesting = False
-                if test_val == "null" and resp.status == 200 and len(body) > 10:
-                    interesting = True
-                elif test_val == "[]" and resp.status == 200:
-                    interesting = True
-                elif test_val == "{}" and resp.status == 200:
+                if (test_val == "null" and resp.status == 200 and len(body) > 10) or (test_val == "[]" and resp.status == 200) or (test_val == "{}" and resp.status == 200):
                     interesting = True
                 elif test_val in ("true", "false") and resp.status == 200:
                     # Check if boolean was processed differently
@@ -430,8 +424,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             baseline_resp = await self._send(context, method, url, all_params, target)
             baseline_body = await baseline_resp.text()
@@ -516,8 +510,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             # Get baseline with original currency
             original_currency = all_params.get(param_name, "KES")
@@ -574,8 +568,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             baseline_resp = await self._send(context, method, url, all_params, target)
             baseline_body = await baseline_resp.text()
@@ -627,8 +621,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             baseline_resp = await self._send(context, method, url, all_params, target)
             baseline_body = await baseline_resp.text()
@@ -685,8 +679,8 @@ class LogicDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             baseline_resp = await self._send(context, method, url, all_params, target)
             baseline_body = await baseline_resp.text()
@@ -754,8 +748,8 @@ class LogicDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         """Test HPP (HTTP Parameter Pollution) — send duplicate params with different values.
 
         Some backends use the first value, others the last. If the behavior
@@ -824,7 +818,7 @@ class LogicDetector:
     # HTTP HELPER
     # ------------------------------------------------------------------
 
-    async def _send(self, context, method: str, url: str, params: Dict[str, str], target: str):
+    async def _send(self, context, method: str, url: str, params: dict[str, str], target: str):
         if method.upper() == "GET":
             return await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
         return await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)

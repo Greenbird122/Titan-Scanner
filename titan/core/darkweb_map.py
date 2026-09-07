@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +112,8 @@ class DarkWebMapper:
 
         try:
             # Use Tor transport for .onion
-            from titan.transport.tor import TorTransport
             from titan.transport.base import AttackRequest, RequestMethod
+            from titan.transport.tor import TorTransport
 
             transport = TorTransport()
 

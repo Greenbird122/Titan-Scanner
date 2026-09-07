@@ -13,7 +13,6 @@ BaasDetector (the class that exists), not the renamed SupabaseAuditModule.
 """
 import asyncio
 
-from titan.core.models import AttackType, Finding, Severity
 from titan.modules.baas.detector import BaasDetector
 
 HONEYPOT_BODY = '[{"id":1,"guest":true,"message":"canned demo row","role":"USER"}]'

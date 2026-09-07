@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from titan.learn.notes import mine_findings_md_file
 
@@ -39,7 +39,7 @@ HEADER_MISS_RE = re.compile(r"missing:([A-Za-z-]+)", re.I)
 def _notes_text(slug: str, root: Path) -> str:
     """Concatenate the human notes an auditor left about a site: scan_meta
     recheck notes + the deep-audit FINDINGS.md if present."""
-    parts: List[str] = []
+    parts: list[str] = []
     meta = root / slug / "scan_meta.json"
     if meta.exists():
         try:
@@ -68,16 +68,16 @@ def _platform(target: str, slug: str) -> str:
     return slug.split("-")[0] if slug else "other"
 
 
-def build_profile(slug: str, root: Path, scoreboard_rounds: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def build_profile(slug: str, root: Path, scoreboard_rounds: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Pure: one site's trend profile from its ledger entries."""
     fpath = root / slug / "findings.json"
-    data: Dict[str, Any] = {}
+    data: dict[str, Any] = {}
     if fpath.exists():
         try:
             data = json.loads(fpath.read_text(encoding="utf-8"))
         except Exception:
             data = {}
-    meta: Dict[str, Any] = {}
+    meta: dict[str, Any] = {}
     mpath = root / slug / "scan_meta.json"
     if mpath.exists():
         try:
@@ -126,8 +126,8 @@ def build_profile(slug: str, root: Path, scoreboard_rounds: Optional[List[Dict[s
         or "content-security-policy" in missing_headers,
         "clickjackable": "x-frame-options" in missing_headers
         or "clickjack" in notes_l or "frameable" in notes_l,
-        "hsts_present": "strict-transport-security" not in missing_headers
-        and "hsts" in notes_l or "strict-transport-security" in notes_l,
+        "hsts_present": ("strict-transport-security" not in missing_headers
+        and "hsts" in notes_l) or "strict-transport-security" in notes_l,
         # Note-text signals are guarded against discussion-of-a-control reading
         # as a finding: "bucket not listable" is not public storage, "client-side
         # auth shell" describing a hosting platform is not the site's bypass,
@@ -170,10 +170,10 @@ def build_profile(slug: str, root: Path, scoreboard_rounds: Optional[List[Dict[s
     }
 
 
-def build_profiles(findings_root: str = "findings", scoreboard_path: str = "purple/scoreboard.json") -> List[Dict[str, Any]]:
+def build_profiles(findings_root: str = "findings", scoreboard_path: str = "purple/scoreboard.json") -> list[dict[str, Any]]:
     """Pure: profiles for every site in the ledger."""
     root = Path(findings_root)
-    rounds: List[Dict[str, Any]] = []
+    rounds: list[dict[str, Any]] = []
     sp = Path(scoreboard_path)
     if sp.exists():
         try:
@@ -196,9 +196,9 @@ def build_profiles(findings_root: str = "findings", scoreboard_path: str = "purp
 # grouping + anomalies
 # ---------------------------------------------------------------------------
 
-def find_trend_groups(profiles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def find_trend_groups(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Signals shared by >= 2 sites — the trends the estate repeats."""
-    groups: List[Dict[str, Any]] = []
+    groups: list[dict[str, Any]] = []
     signal_names = sorted({s for p in profiles for s in p["signals"] if p["signals"][s]})
     for sig in signal_names:
         members = [p["slug"] for p in profiles if p["signals"].get(sig)]
@@ -214,9 +214,9 @@ def find_trend_groups(profiles: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return groups
 
 
-def flag_anomalies(profiles: List[Dict[str, Any]], groups: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def flag_anomalies(profiles: list[dict[str, Any]], groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Pure: the three anomaly classes."""
-    anomalies: List[Dict[str, Any]] = []
+    anomalies: list[dict[str, Any]] = []
     by_slug = {p["slug"]: p for p in profiles}
     group_sigs = {g["signal"] for g in groups}
 
@@ -233,7 +233,7 @@ def flag_anomalies(profiles: List[Dict[str, Any]], groups: List[Dict[str, Any]])
 
     # platform — a site deviating from its platform peers on a control
     controls = ("missing_csp", "clickjackable", "hsts_present")
-    platforms: Dict[str, List[Dict[str, Any]]] = {}
+    platforms: dict[str, list[dict[str, Any]]] = {}
     for p in profiles:
         platforms.setdefault(p["platform"], []).append(p)
     for plat, members in platforms.items():
@@ -281,7 +281,7 @@ def flag_anomalies(profiles: List[Dict[str, Any]], groups: List[Dict[str, Any]])
 # rendering
 # ---------------------------------------------------------------------------
 
-def render_profiles_table(profiles: List[Dict[str, Any]]) -> str:
+def render_profiles_table(profiles: list[dict[str, Any]]) -> str:
     lines = [
         "| Site | Platform | Findings | Verified | Crit | High | Signals |",
         "|---|---|---|---|---|---|---|",
@@ -295,7 +295,7 @@ def render_profiles_table(profiles: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def render_trends(profiles: List[Dict[str, Any]], groups: List[Dict[str, Any]], anomalies: List[Dict[str, Any]]) -> str:
+def render_trends(profiles: list[dict[str, Any]], groups: list[dict[str, Any]], anomalies: list[dict[str, Any]]) -> str:
     lines = [
         "# Estate trends & anomalies",
         "",
@@ -335,7 +335,7 @@ def render_trends(profiles: List[Dict[str, Any]], groups: List[Dict[str, Any]], 
     return "\n".join(lines)
 
 
-def write_trends(profiles, groups, anomalies, out_dir: str = "findings") -> Tuple[Path, Path]:
+def write_trends(profiles, groups, anomalies, out_dir: str = "findings") -> tuple[Path, Path]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     md = out / "TRENDS.md"

@@ -16,9 +16,9 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -26,8 +26,8 @@ class RateLimitPayload:
     """A rate limit bypass payload."""
     name: str
     technique: str
-    headers: Dict[str, str]
-    params: Dict[str, str]
+    headers: dict[str, str]
+    params: dict[str, str]
     severity: Severity
     confidence: float
 
@@ -136,15 +136,15 @@ class RateLimitBypassTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_bypass(
         self,
         target_url: str,
         url: str,
         method: str = "GET",
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test rate limit bypass techniques."""
         findings = []
 
@@ -219,8 +219,8 @@ class RateLimitBypassTester:
         self,
         url: str,
         method: str,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         try:
             import aiohttp
             async with aiohttp.ClientSession() as session:
@@ -230,5 +230,5 @@ class RateLimitBypassTester:
         except Exception:
             return None
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

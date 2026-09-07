@@ -14,7 +14,7 @@ This module:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from titan.modules.coverage.tracker import CoverageTracker
 
@@ -69,9 +69,9 @@ class GapIdentifier:
 
     def identify(
         self,
-        expected_endpoints: Optional[List[str]] = None,
-        expected_attack_types: Optional[List[str]] = None,
-    ) -> List[CoverageGap]:
+        expected_endpoints: list[str] | None = None,
+        expected_attack_types: list[str] | None = None,
+    ) -> list[CoverageGap]:
         """Identify all coverage gaps."""
         gaps = []
 
@@ -91,8 +91,8 @@ class GapIdentifier:
 
     def _identify_endpoint_gaps(
         self,
-        expected: Optional[List[str]],
-    ) -> List[CoverageGap]:
+        expected: list[str] | None,
+    ) -> list[CoverageGap]:
         """Identify untested endpoints."""
         gaps = []
         tested = set(self.tracker.get_endpoints())
@@ -122,8 +122,8 @@ class GapIdentifier:
 
     def _identify_attack_type_gaps(
         self,
-        expected: Optional[List[str]],
-    ) -> List[CoverageGap]:
+        expected: list[str] | None,
+    ) -> list[CoverageGap]:
         """Identify untested attack types."""
         gaps = []
         tested = set(self.tracker.get_attack_types())
@@ -139,7 +139,7 @@ class GapIdentifier:
                 gaps.append(CoverageGap(
                     gap_type="attack_type",
                     description=f"Attack type not tested: {attack_type}",
-                    reason=f"Attack type was in scope but not executed",
+                    reason="Attack type was in scope but not executed",
                     severity=severity,
                     recommendation=f"Run {attack_type} tests against all endpoints",
                 ))
@@ -169,9 +169,9 @@ class GapIdentifier:
 
     def _identify_combination_gaps(
         self,
-        expected_endpoints: Optional[List[str]],
-        expected_attack_types: Optional[List[str]],
-    ) -> List[CoverageGap]:
+        expected_endpoints: list[str] | None,
+        expected_attack_types: list[str] | None,
+    ) -> list[CoverageGap]:
         """Identify untested endpoint×attack_type combinations."""
         gaps = []
 
@@ -184,7 +184,7 @@ class GapIdentifier:
 
         if len(untested) > 0:
             # Group by endpoint
-            endpoint_gaps: Dict[str, List[str]] = {}
+            endpoint_gaps: dict[str, list[str]] = {}
             for endpoint, attack_type in untested:
                 if endpoint not in endpoint_gaps:
                     endpoint_gaps[endpoint] = []
@@ -214,14 +214,14 @@ class GapIdentifier:
 
         return gaps
 
-    def get_gaps_by_severity(self, gaps: List[CoverageGap]) -> Dict[str, List[CoverageGap]]:
+    def get_gaps_by_severity(self, gaps: list[CoverageGap]) -> dict[str, list[CoverageGap]]:
         """Group gaps by severity."""
-        result: Dict[str, List[CoverageGap]] = {"high": [], "medium": [], "low": []}
+        result: dict[str, list[CoverageGap]] = {"high": [], "medium": [], "low": []}
         for gap in gaps:
             result[gap.severity].append(gap)
         return result
 
-    def get_gap_summary(self, gaps: List[CoverageGap]) -> Dict[str, Any]:
+    def get_gap_summary(self, gaps: list[CoverageGap]) -> dict[str, Any]:
         """Get summary of gaps."""
         by_severity = self.get_gaps_by_severity(gaps)
 
@@ -259,9 +259,9 @@ class GapIdentifier:
             ],
         }
 
-    def get_effort_estimate(self, gaps: List[CoverageGap]) -> Dict[str, Any]:
+    def get_effort_estimate(self, gaps: list[CoverageGap]) -> dict[str, Any]:
         """Estimate effort to close all gaps."""
-        effort_by_type: Dict[str, int] = {}
+        effort_by_type: dict[str, int] = {}
         for gap in gaps:
             for attack_type, minutes in self.EFFORT_MAP.items():
                 if attack_type in gap.description.lower():
@@ -276,7 +276,7 @@ class GapIdentifier:
             "estimated_days": round(total / 480, 1),  # 8 hours/day
         }
 
-    def get_risk_ranking(self, gaps: List[CoverageGap]) -> List[Dict[str, Any]]:
+    def get_risk_ranking(self, gaps: list[CoverageGap]) -> list[dict[str, Any]]:
         """Rank gaps by risk priority."""
         ranked = []
         for gap in gaps:

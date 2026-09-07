@@ -10,24 +10,21 @@ This module goes beyond simple signature detection to:
 
 from __future__ import annotations
 
-import asyncio
-import json
 import re
-import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 @dataclass
 class WAFFingerprint:
     """Detailed WAF fingerprint."""
     name: str
-    version: Optional[str] = None
-    tier: Optional[str] = None  # free, enterprise, custom
-    rules: List[str] = field(default_factory=list)
-    bypass_strategies: List[str] = field(default_factory=list)
-    blocked_patterns: List[str] = field(default_factory=list)
-    successful_bypasses: List[str] = field(default_factory=list)
+    version: str | None = None
+    tier: str | None = None  # free, enterprise, custom
+    rules: list[str] = field(default_factory=list)
+    bypass_strategies: list[str] = field(default_factory=list)
+    blocked_patterns: list[str] = field(default_factory=list)
+    successful_bypasses: list[str] = field(default_factory=list)
     confidence: float = 0.0
     detection_method: str = ""
     scan_count: int = 0
@@ -326,8 +323,8 @@ class WAFFingerprinter:
     }
 
     def __init__(self):
-        self.fingerprints: Dict[str, WAFFingerprint] = {}
-        self._scan_history: List[Dict[str, Any]] = []
+        self.fingerprints: dict[str, WAFFingerprint] = {}
+        self._scan_history: list[dict[str, Any]] = []
 
     async def fingerprint_waf(
         self,
@@ -361,7 +358,7 @@ class WAFFingerprinter:
         self,
         target_url: str,
         response_func,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Send probe requests to identify WAF."""
         probes = []
 
@@ -415,7 +412,7 @@ class WAFFingerprinter:
 
         return probes
 
-    def _analyze_probes(self, probes: List[Dict[str, Any]]) -> WAFFingerprint:
+    def _analyze_probes(self, probes: list[dict[str, Any]]) -> WAFFingerprint:
         """Analyze probe results to identify WAF."""
         fingerprint = WAFFingerprint(name="unknown")
 
@@ -453,8 +450,8 @@ class WAFFingerprinter:
     def _classify_tier(
         self,
         fingerprint: WAFFingerprint,
-        probes: List[Dict[str, Any]],
-    ) -> Optional[str]:
+        probes: list[dict[str, Any]],
+    ) -> str | None:
         """Classify WAF tier based on response patterns."""
         if fingerprint.name not in self.WAF_SIGNATURES:
             return None
@@ -490,8 +487,8 @@ class WAFFingerprinter:
         self,
         waf_name: str,
         attack_type: str,
-        tier: Optional[str] = None,
-    ) -> List[str]:
+        tier: str | None = None,
+    ) -> list[str]:
         """Get bypass payloads for a specific WAF and attack type."""
         payloads = []
 
@@ -515,8 +512,8 @@ class WAFFingerprinter:
     def update_from_scan(
         self,
         waf_name: str,
-        blocked_patterns: List[str],
-        successful_bypasses: List[str],
+        blocked_patterns: list[str],
+        successful_bypasses: list[str],
     ) -> None:
         """Update WAF profile from scan results."""
         if waf_name not in self.fingerprints:
@@ -538,6 +535,6 @@ class WAFFingerprinter:
         if len(fingerprint.successful_bypasses) > 100:
             fingerprint.successful_bypasses = fingerprint.successful_bypasses[-100:]
 
-    def get_fingerprint(self, target_url: str) -> Optional[WAFFingerprint]:
+    def get_fingerprint(self, target_url: str) -> WAFFingerprint | None:
         """Get WAF fingerprint for a target."""
         return self.fingerprints.get(target_url)

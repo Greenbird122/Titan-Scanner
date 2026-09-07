@@ -14,11 +14,10 @@ This module:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -28,7 +27,7 @@ class CloudPayload:
     provider: str
     endpoint: str
     method: str
-    headers: Dict[str, str]
+    headers: dict[str, str]
     expected_effect: str
     severity: Severity
     confidence: float
@@ -184,9 +183,9 @@ class CloudSecurityTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
-    async def test_aws(self, target_url: str) -> List[Finding]:
+    async def test_aws(self, target_url: str) -> list[Finding]:
         """Test AWS metadata endpoints."""
         findings = []
         for payload in self.AWS_METADATA_PAYLOADS:
@@ -217,7 +216,7 @@ class CloudSecurityTester:
         self._findings.extend(findings)
         return findings
 
-    async def test_gcp(self, target_url: str) -> List[Finding]:
+    async def test_gcp(self, target_url: str) -> list[Finding]:
         """Test GCP metadata endpoints."""
         findings = []
         for payload in self.GCP_METADATA_PAYLOADS:
@@ -248,7 +247,7 @@ class CloudSecurityTester:
         self._findings.extend(findings)
         return findings
 
-    async def test_azure(self, target_url: str) -> List[Finding]:
+    async def test_azure(self, target_url: str) -> list[Finding]:
         """Test Azure metadata endpoints."""
         findings = []
         for payload in self.AZURE_METADATA_PAYLOADS:
@@ -279,7 +278,7 @@ class CloudSecurityTester:
         self._findings.extend(findings)
         return findings
 
-    async def test_all_cloud(self, target_url: str) -> List[Finding]:
+    async def test_all_cloud(self, target_url: str) -> list[Finding]:
         """Test all cloud providers."""
         findings = []
         findings.extend(await self.test_aws(target_url))
@@ -287,7 +286,7 @@ class CloudSecurityTester:
         findings.extend(await self.test_azure(target_url))
         return findings
 
-    async def _send_request(self, url: str, method: str, headers: Dict[str, str]) -> Optional[Dict[str, Any]]:
+    async def _send_request(self, url: str, method: str, headers: dict[str, str]) -> dict[str, Any] | None:
         try:
             import aiohttp
             async with aiohttp.ClientSession() as session:
@@ -296,7 +295,7 @@ class CloudSecurityTester:
         except Exception:
             return None
 
-    def _check_metadata(self, response: Dict[str, Any], payload: CloudPayload) -> bool:
+    def _check_metadata(self, response: dict[str, Any], payload: CloudPayload) -> bool:
         status = response.get("status", 0)
         body = response.get("body", "")
         if status == 200 and body and body not in ("null", ""):
@@ -305,5 +304,5 @@ class CloudSecurityTester:
             return True
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

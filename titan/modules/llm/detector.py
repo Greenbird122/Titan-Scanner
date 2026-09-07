@@ -25,7 +25,7 @@ Checks (each independently toggled, each degrades to nothing on failure):
 from __future__ import annotations
 
 import secrets
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.core.models import AttackType, Finding, Severity
 from titan.modules.llm.payloads import (
@@ -52,7 +52,7 @@ class LLMDetector:
         self,
         channel,
         interactsh=None,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ):
         self.channel = channel
         self.interactsh = interactsh
@@ -60,8 +60,8 @@ class LLMDetector:
         self.trials = int(self.config.get("trials", _DEFAULT_TRIALS))
         self.min_agree = int(self.config.get("min_agree", _DEFAULT_MIN_AGREE))
 
-    async def scan(self, target: str, endpoint: str) -> List[Finding]:
-        findings: List[Finding] = []
+    async def scan(self, target: str, endpoint: str) -> list[Finding]:
+        findings: list[Finding] = []
         checks = self.config.get("checks", {})
         if checks.get("prompt_injection", True):
             findings.extend(await self._check_prompt_injection(target, endpoint))
@@ -75,7 +75,7 @@ class LLMDetector:
 
     # ── per-check runners ────────────────────────────────────────────────────
 
-    async def _check_prompt_injection(self, target: str, endpoint: str) -> List[Finding]:
+    async def _check_prompt_injection(self, target: str, endpoint: str) -> list[Finding]:
         for builder in PROMPT_INJECTION_BUILDERS:
             marker = "TITANCMD" + secrets.token_hex(6).upper()
             spec = builder(marker)
@@ -93,7 +93,7 @@ class LLMDetector:
                 )]
         return []
 
-    async def _check_system_leak(self, target: str, endpoint: str) -> List[Finding]:
+    async def _check_system_leak(self, target: str, endpoint: str) -> list[Finding]:
         for probe in SYSTEM_LEAK_PROBES:
             trials, replies = [], []
             for _ in range(self.trials):
@@ -109,7 +109,7 @@ class LLMDetector:
                 )]
         return []
 
-    async def _check_data_exfil(self, target: str, endpoint: str) -> List[Finding]:
+    async def _check_data_exfil(self, target: str, endpoint: str) -> list[Finding]:
         if self.interactsh is None:
             return []
         registered = await self.interactsh.register()
@@ -137,7 +137,7 @@ class LLMDetector:
                 )]
         return []
 
-    async def _check_agency(self, target: str, endpoint: str) -> List[Finding]:
+    async def _check_agency(self, target: str, endpoint: str) -> list[Finding]:
         marker = "TITANTOOL" + secrets.token_hex(4).upper()
         for probe in build_agency_probes(marker):
             trials, replies = [], []
@@ -164,9 +164,9 @@ class LLMDetector:
         severity: Severity,
         confidence: float,
         probe: str,
-        trials: List[Dict[str, Any]],
-        verdict: Dict[str, Any],
-        replies: List[str],
+        trials: list[dict[str, Any]],
+        verdict: dict[str, Any],
+        replies: list[str],
         param: str,
         note: str,
     ) -> Finding:

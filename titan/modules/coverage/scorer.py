@@ -11,9 +11,9 @@ Calculates a meaningful coverage score based on:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.modules.coverage.tracker import CoverageTracker, CoverageMatrix
+from titan.modules.coverage.tracker import CoverageMatrix, CoverageTracker
 
 
 @dataclass
@@ -26,7 +26,7 @@ class CoverageScore:
     depth_score: float  # 0-100
     quality_score: float  # 0-100
     grade: str  # A, B, C, D, F
-    breakdown: Dict[str, Any]
+    breakdown: dict[str, Any]
 
 
 class CoverageScorer:
@@ -53,12 +53,12 @@ class CoverageScorer:
 
     def __init__(self, tracker: CoverageTracker):
         self.tracker = tracker
-        self._history: List[CoverageScore] = []
+        self._history: list[CoverageScore] = []
 
     def calculate(
         self,
-        expected_endpoints: Optional[List[str]] = None,
-        expected_attack_types: Optional[List[str]] = None,
+        expected_endpoints: list[str] | None = None,
+        expected_attack_types: list[str] | None = None,
     ) -> CoverageScore:
         """Calculate comprehensive coverage score."""
         matrix = self.tracker.get_matrix()
@@ -159,7 +159,7 @@ class CoverageScorer:
     def _calculate_endpoint_score(
         self,
         matrix: CoverageMatrix,
-        expected: Optional[List[str]],
+        expected: list[str] | None,
     ) -> float:
         """Calculate endpoint coverage score."""
         if expected:
@@ -175,7 +175,7 @@ class CoverageScorer:
     def _calculate_attack_type_score(
         self,
         matrix: CoverageMatrix,
-        expected: Optional[List[str]],
+        expected: list[str] | None,
     ) -> float:
         """Calculate attack type coverage score."""
         if expected:
@@ -205,7 +205,7 @@ class CoverageScorer:
         # Score: 1 test = 50%, 2 tests = 75%, 3+ tests = 100%
         return min(avg_tests * 33.3, 100)
 
-    def _calculate_quality_score(self, summary: Dict[str, Any]) -> float:
+    def _calculate_quality_score(self, summary: dict[str, Any]) -> float:
         """Calculate quality score (findings confirmed)."""
         total = summary.get("total_tests", 0)
         if total == 0:
@@ -217,7 +217,7 @@ class CoverageScorer:
         """Calculate risk-weighted coverage score."""
         return self.tracker.get_risk_score()
 
-    def _calculate_trend(self, current_score: float) -> Dict[str, Any]:
+    def _calculate_trend(self, current_score: float) -> dict[str, Any]:
         """Calculate score trend from history."""
         if len(self._history) < 2:
             return {
@@ -252,7 +252,7 @@ class CoverageScorer:
                 return grade
         return "F"
 
-    def to_dict(self, score: CoverageScore) -> Dict[str, Any]:
+    def to_dict(self, score: CoverageScore) -> dict[str, Any]:
         """Convert score to dict."""
         return {
             "overall_score": score.overall_score,
@@ -260,7 +260,7 @@ class CoverageScorer:
             "breakdown": score.breakdown,
         }
 
-    def get_history(self) -> List[Dict[str, Any]]:
+    def get_history(self) -> list[dict[str, Any]]:
         """Get score history."""
         return [
             {"score": s.overall_score, "grade": s.grade}

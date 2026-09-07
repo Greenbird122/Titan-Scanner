@@ -19,9 +19,7 @@ from titan.modules.supplychain.sbom import (
     DependencyInfo,
     SBOMAnalyzer,
     SBOMReport,
-    ScriptTag,
 )
-
 
 # ---------------------------------------------------------------------------
 # SBOMAnalyzer tests

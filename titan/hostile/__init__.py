@@ -21,18 +21,18 @@ from titan.hostile import offense, profiler
 from titan.hostile.intel import IntelDB, ObservedIntel
 from titan.hostile.profiler import analyze
 
-__all__ = ["run_pass", "IntelDB", "ObservedIntel", "analyze", "offense", "profiler"]
+__all__ = ["IntelDB", "ObservedIntel", "analyze", "offense", "profiler", "run_pass"]
 
 
 async def run_pass(
-    html_samples: List[Dict[str, str]],
+    html_samples: list[dict[str, str]],
     base_url: str,
     target: str = "",
     session=None,
     consented: bool = False,
-    prior_observed: Optional[Dict[str, Any]] = None,
+    prior_observed: dict[str, Any] | None = None,
     block_private: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the full hostile-surface pass over one or more page samples.
 
     Args:
@@ -55,14 +55,14 @@ async def run_pass(
     intel = IntelDB()
     observed = ObservedIntel()
 
-    pages: List[Dict[str, Any]] = []
-    merged_origins: Dict[str, Dict[str, Any]] = {}
-    merged_counts: Dict[str, int] = {}
-    merged_clickbait: Optional[Dict[str, Any]] = None
-    all_cloaks: List[Dict[str, Any]] = []
-    all_miners: List[Dict[str, Any]] = []
-    all_push: List[Dict[str, Any]] = []
-    all_mechanics: List[Dict[str, Any]] = []
+    pages: list[dict[str, Any]] = []
+    merged_origins: dict[str, dict[str, Any]] = {}
+    merged_counts: dict[str, int] = {}
+    merged_clickbait: dict[str, Any] | None = None
+    all_cloaks: list[dict[str, Any]] = []
+    all_miners: list[dict[str, Any]] = []
+    all_push: list[dict[str, Any]] = []
+    all_mechanics: list[dict[str, Any]] = []
 
     for sample in html_samples or []:
         html = sample.get("html", "")
@@ -118,7 +118,7 @@ async def run_pass(
         "mechanics": all_mechanics,
     }
 
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     findings.extend(offense.cleartext_findings(profile, target))
     findings.extend(offense.sri_findings(profile, target))
     findings.extend(offense._category_findings(profile, target))
@@ -140,9 +140,9 @@ async def run_pass(
     }
 
 
-def _dedupe_signals(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _dedupe_signals(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set = set()
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for s in signals:
         key = s.get("oracle", "")
         if key in seen:
@@ -152,10 +152,10 @@ def _dedupe_signals(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
-def findings_from_dicts(rows: List[Dict[str, Any]]) -> List[Finding]:
+def findings_from_dicts(rows: list[dict[str, Any]]) -> list[Finding]:
     """Rebuild Finding objects from serialized dicts (engine + CLI use this)."""
     from titan.core.models import AttackType, Severity
-    out: List[Finding] = []
+    out: list[Finding] = []
     for d in rows:
         f = Finding(
             target=d.get("target", ""),

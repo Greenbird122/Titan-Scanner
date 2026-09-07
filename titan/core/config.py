@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -18,20 +18,20 @@ class TargetConfig:
     """Configuration for a single target."""
     url: str
     name: str = ""
-    auth_headers: Dict[str, str] = field(default_factory=dict)
-    scope: List[str] = field(default_factory=list)  # endpoints to test
-    exclude: List[str] = field(default_factory=list)  # endpoints to skip
+    auth_headers: dict[str, str] = field(default_factory=dict)
+    scope: list[str] = field(default_factory=list)  # endpoints to test
+    exclude: list[str] = field(default_factory=list)  # endpoints to skip
     deep: bool = False
     max_tests: int = 1000
     timeout: int = 30
-    tags: List[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
 class TitanConfig:
     """Full Titan configuration."""
-    targets: List[TargetConfig]
-    global_auth: Dict[str, str] = field(default_factory=dict)
+    targets: list[TargetConfig]
+    global_auth: dict[str, str] = field(default_factory=dict)
     coverage_threshold: float = 70.0
     parallel: bool = False
     verbose: bool = False
@@ -45,7 +45,7 @@ class ConfigManager:
         """Load config from file."""
         ext = os.path.splitext(filepath)[1].lower()
 
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             if ext in (".yaml", ".yml"):
                 return self._load_yaml(f.read())
             elif ext == ".json":
@@ -79,7 +79,7 @@ class ConfigManager:
         data = json.loads(content)
         return self._dict_to_config(data)
 
-    def _dict_to_config(self, data: Dict[str, Any]) -> TitanConfig:
+    def _dict_to_config(self, data: dict[str, Any]) -> TitanConfig:
         """Convert dict to TitanConfig."""
         targets = []
         for t in data.get("targets", []):
@@ -104,7 +104,7 @@ class ConfigManager:
             output_dir=data.get("output_dir", "titan_output"),
         )
 
-    def _config_to_dict(self, config: TitanConfig) -> Dict[str, Any]:
+    def _config_to_dict(self, config: TitanConfig) -> dict[str, Any]:
         """Convert TitanConfig to dict."""
         return {
             "targets": [
@@ -128,7 +128,7 @@ class ConfigManager:
             "output_dir": config.output_dir,
         }
 
-    def _dict_to_yaml(self, data: Dict[str, Any]) -> str:
+    def _dict_to_yaml(self, data: dict[str, Any]) -> str:
         """Convert dict to YAML string."""
         try:
             import yaml
@@ -137,9 +137,9 @@ class ConfigManager:
         except ImportError:
             return self._simple_yaml_dump(data)
 
-    def _parse_simple_yaml(self, content: str) -> Dict[str, Any]:
+    def _parse_simple_yaml(self, content: str) -> dict[str, Any]:
         """Parse simple YAML without PyYAML."""
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
         current_key = None
         for line in content.split("\n"):
             stripped = line.strip()
@@ -156,7 +156,7 @@ class ConfigManager:
                     result[key] = {}
         return result
 
-    def _simple_yaml_dump(self, data: Dict[str, Any], indent: int = 0) -> str:
+    def _simple_yaml_dump(self, data: dict[str, Any], indent: int = 0) -> str:
         """Simple YAML dump without PyYAML."""
         lines = []
         prefix = "  " * indent

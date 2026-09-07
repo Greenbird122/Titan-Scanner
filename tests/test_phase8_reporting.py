@@ -6,11 +6,16 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from titan.core.models import (
-    AttackType, Finding, ScanResult, Severity,
+    Finding,
+    ScanResult,
+    Severity,
 )
 from titan.reporting import (
-    SiteReportWriter, estate_rollup, remediation_rollup,
-    generate_remediation, REMEDIATION_MAP, site_slug,
+    REMEDIATION_MAP,
+    SiteReportWriter,
+    estate_rollup,
+    generate_remediation,
+    remediation_rollup,
 )
 
 
@@ -85,7 +90,8 @@ class TestExecutiveSummaryEnhancements:
     def test_estate_comparison_shows_when_data_exists(self):
         """Report shows estate comparison when sites.json exists."""
         # Create a temporary findings dir with sites.json
-        import tempfile, shutil
+        import shutil
+        import tempfile
         tmp = Path(tempfile.mkdtemp())
         try:
             sites = {"sites": [
@@ -118,7 +124,8 @@ class TestEstateRollup:
 
     def test_empty_estate(self):
         """Empty findings dir produces valid report."""
-        import tempfile, shutil
+        import shutil
+        import tempfile
         tmp = Path(tempfile.mkdtemp())
         try:
             report = estate_rollup(str(tmp))
@@ -128,7 +135,8 @@ class TestEstateRollup:
 
     def test_estate_with_sites(self):
         """Estate rollup aggregates findings across sites."""
-        import tempfile, shutil
+        import shutil
+        import tempfile
         tmp = Path(tempfile.mkdtemp())
         try:
             # Create sites index
@@ -179,7 +187,8 @@ class TestEstateRollup:
 
     def test_cross_site_patterns(self):
         """Patterns appearing on 3+ sites are highlighted."""
-        import tempfile, shutil
+        import shutil
+        import tempfile
         tmp = Path(tempfile.mkdtemp())
         try:
             sites = {"sites": [
@@ -238,7 +247,8 @@ class TestRemediationPatches:
 
     def test_remediation_rollup_empty(self):
         """Empty estate produces valid remediation report."""
-        import tempfile, shutil
+        import shutil
+        import tempfile
         tmp = Path(tempfile.mkdtemp())
         try:
             report = remediation_rollup(str(tmp))
@@ -248,7 +258,8 @@ class TestRemediationPatches:
 
     def test_remediation_rollup_with_findings(self):
         """Remediation rollup groups patches by frequency."""
-        import tempfile, shutil
+        import shutil
+        import tempfile
         tmp = Path(tempfile.mkdtemp())
         try:
             sites = {"sites": [

@@ -7,10 +7,8 @@ tested directly. ResponseAnalyzer re-exposes these as class attributes, so
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 # WAF rule patterns — what triggered the block
-WAF_RULE_PATTERNS: Dict[str, List[str]] = {
+WAF_RULE_PATTERNS: dict[str, list[str]] = {
     "sql_injection": [
         "union", "select", "from", "where", "order by",
         "insert", "update", "delete", "drop", "create",
@@ -35,7 +33,7 @@ WAF_RULE_PATTERNS: Dict[str, List[str]] = {
 }
 
 # WAF fingerprinting payloads — send these to identify the WAF
-WAF_FINGERPRINT_PAYLOADS: List[str] = [
+WAF_FINGERPRINT_PAYLOADS: list[str] = [
     # SQL injection test
     "' OR '1'='1",
     # XSS test
@@ -49,7 +47,7 @@ WAF_FINGERPRINT_PAYLOADS: List[str] = [
 ]
 
 # Error message patterns → database dialect
-ERROR_DIALECT_PATTERNS: Dict[str, List[str]] = {
+ERROR_DIALECT_PATTERNS: dict[str, list[str]] = {
     "mysql": [
         "mysql", "mariadb", "you have an error in your sql syntax",
         "warning: mysql", "mysql_fetch", "mysql_num_rows",

@@ -13,12 +13,11 @@ This module:
 
 from __future__ import annotations
 
-import asyncio
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -27,7 +26,7 @@ class ConfusionPayload:
     name: str
     content_type: str
     body: str
-    method_override: Optional[str]
+    method_override: str | None
     severity: Severity
     confidence: float
 
@@ -179,16 +178,16 @@ class ConfusionTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_content_type_confusion(
         self,
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Content-Type switching."""
         findings = []
 
@@ -244,9 +243,9 @@ class ConfusionTester:
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test HTTP method override."""
         findings = []
 
@@ -307,9 +306,9 @@ class ConfusionTester:
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test header-based confusion."""
         findings = []
 
@@ -391,5 +390,5 @@ class ConfusionTester:
         except Exception:
             return None
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

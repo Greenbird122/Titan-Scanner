@@ -11,18 +11,17 @@ enters an interactive session for browsing, filtering, and replaying findings.
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from titan.core.models import Finding, ScanResult
 
 
-def _load_finding(raw: Dict[str, Any]) -> Finding:
+def _load_finding(raw: dict[str, Any]) -> Finding:
     def _to_enum(cls, val):
         if isinstance(val, str):
             try:
@@ -83,14 +82,14 @@ def _load_finding(raw: Dict[str, Any]) -> Finding:
     )
 
 
-def _load_scan(dir_path: Path) -> tuple[ScanResult, Dict[str, Any]]:
+def _load_scan(dir_path: Path) -> tuple[ScanResult, dict[str, Any]]:
     findings_path = dir_path / "findings.json"
     meta_path = dir_path / "scan_meta.json"
 
     if not findings_path.exists():
         raise FileNotFoundError(f"no findings.json in {dir_path}")
 
-    with open(findings_path, "r", encoding="utf-8") as f:
+    with open(findings_path, encoding="utf-8") as f:
         data = json.load(f)
 
     raw_findings = data.get("findings", [])
@@ -98,7 +97,7 @@ def _load_scan(dir_path: Path) -> tuple[ScanResult, Dict[str, Any]]:
 
     meta = {}
     if meta_path.exists():
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)
 
     result = ScanResult(
@@ -125,7 +124,7 @@ class TitanREPL:
         self.scan_dir = scan_dir
         self.result, self.meta = _load_scan(scan_dir)
         self.findings = self.result.findings
-        self._filtered: List[Finding] = list(self.findings)
+        self._filtered: list[Finding] = list(self.findings)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -149,7 +148,7 @@ class TitanREPL:
         if f.poc_curl:
             print(f"        poc: {f.poc_curl[:120]}")
 
-    def _finding_by_id(self, raw: str) -> Optional[Finding]:
+    def _finding_by_id(self, raw: str) -> Finding | None:
         try:
             idx = int(raw)
         except ValueError:
@@ -162,7 +161,7 @@ class TitanREPL:
     # Commands
     # ------------------------------------------------------------------
 
-    def cmd_help(self, _args: List[str]) -> None:
+    def cmd_help(self, _args: list[str]) -> None:
         print("Commands:")
         print("  ls, list               list all findings")
         print("  show <id>              show finding details")
@@ -175,14 +174,14 @@ class TitanREPL:
         print("  count                  show finding counts")
         print("  quit, exit             exit")
 
-    def cmd_list(self, _args: List[str]) -> None:
+    def cmd_list(self, _args: list[str]) -> None:
         if not self._filtered:
             print("[i] no findings (check filters)")
             return
         for i, f in enumerate(self._filtered):
             self._print_finding(i, f)
 
-    def cmd_show(self, args: List[str]) -> None:
+    def cmd_show(self, args: list[str]) -> None:
         if not args:
             print("[!] usage: show <id>")
             return
@@ -214,7 +213,7 @@ class TitanREPL:
         if f.notes:
             print(f"notes:     {f.notes}")
 
-    def cmd_filter(self, args: List[str]) -> None:
+    def cmd_filter(self, args: list[str]) -> None:
         if not args:
             print("[!] usage: filter <severity|type> <value>")
             return
@@ -246,11 +245,11 @@ class TitanREPL:
             return
         print(f"[+] filtered to {len(self._filtered)} findings")
 
-    def cmd_reset(self, _args: List[str]) -> None:
+    def cmd_reset(self, _args: list[str]) -> None:
         self._refresh_filtered()
         print(f"[+] reset ({len(self._filtered)} findings)")
 
-    def cmd_meta(self, _args: List[str]) -> None:
+    def cmd_meta(self, _args: list[str]) -> None:
         print(f"target:    {self.meta.get('target', '?')}")
         print(f"duration:  {self.meta.get('duration_seconds', '?')}s")
         print(f"findings:  {self.meta.get('findings', '?')}")
@@ -268,7 +267,7 @@ class TitanREPL:
                   f"origins={hostile.get('origins', 0)} "
                   f"findings={hostile.get('hostile_findings', 0)}")
 
-    def cmd_repro(self, args: List[str]) -> None:
+    def cmd_repro(self, args: list[str]) -> None:
         if not args:
             print("[!] usage: repro <id>")
             return
@@ -305,7 +304,7 @@ class TitanREPL:
             except Exception as e:
                 print(f"[!] repro failed: {e}")
 
-    def cmd_poc(self, args: List[str]) -> None:
+    def cmd_poc(self, args: list[str]) -> None:
         if not args:
             print("[!] usage: poc <id>")
             return
@@ -320,7 +319,7 @@ class TitanREPL:
         if f.poc_python:
             print(f"python: {f.poc_python}")
 
-    def cmd_count(self, _args: List[str]) -> None:
+    def cmd_count(self, _args: list[str]) -> None:
         from collections import Counter
         sev = Counter(f.severity.value for f in self.findings)
         types = Counter(f.attack_type.value for f in self.findings if f.attack_type)
@@ -338,7 +337,7 @@ class TitanREPL:
     def run(self) -> None:
         print(f"[+] Titan REPL — {self.scan_dir}")
         print(f"[+] {len(self.findings)} findings loaded")
-        print(f"[+] type 'help' for commands, 'quit' to exit\n")
+        print("[+] type 'help' for commands, 'quit' to exit\n")
 
         while True:
             try:

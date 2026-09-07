@@ -18,11 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
-
-from titan.core.models import AttackType, Finding, Severity
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

@@ -81,55 +81,33 @@ class WebSocketTransport(Transport):
 
         try:
             timeout_obj = aiohttp.ClientTimeout(total=self.timeout)
-            async with aiohttp.ClientSession(timeout=timeout_obj) as session:
-                async with session.ws_connect(
-                    ws_url,
-                    headers=request.headers,
-                    timeout=timeout_obj,
-                ) as ws:
-                    # Send the message
-                    message = request.body or b""
-                    if isinstance(message, str):
-                        await ws.send_str(message)
-                    else:
-                        await ws.send_bytes(message)
+            async with aiohttp.ClientSession(timeout=timeout_obj) as session, session.ws_connect(
+                ws_url,
+                headers=request.headers,
+                timeout=timeout_obj,
+            ) as ws:
+                # Send the message
+                message = request.body or b""
+                if isinstance(message, str):
+                    await ws.send_str(message)
+                else:
+                    await ws.send_bytes(message)
 
-                    # Wait for response (with timeout)
-                    try:
-                        msg = await asyncio.wait_for(
-                            ws.receive(),
-                            timeout=self.timeout,
-                        )
-                        if msg.type == aiohttp.WSMsgType.TEXT:
-                            body = msg.data.encode()
-                        elif msg.type == aiohttp.WSMsgType.BINARY:
-                            body = msg.data
-                        elif msg.type in (
-                            aiohttp.WSMsgType.ERROR,
-                            aiohttp.WSMsgType.CLOSED,
-                        ):
-                            error = str(ws.exception()) if ws.exception() else "Connection closed"
-                            return AttackResponse(
-                                status=0,
-                                headers={},
-                                body=b"",
-                                elapsed=time.time() - start,
-                                url=ws_url,
-                                protocol="websocket",
-                                error=error,
-                            )
-                        else:
-                            body = b""
-
-                        return AttackResponse(
-                            status=200,
-                            headers={"ws-type": str(msg.type)},
-                            body=body,
-                            elapsed=time.time() - start,
-                            url=ws_url,
-                            protocol="websocket",
-                        )
-                    except asyncio.TimeoutError:
+                # Wait for response (with timeout)
+                try:
+                    msg = await asyncio.wait_for(
+                        ws.receive(),
+                        timeout=self.timeout,
+                    )
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        body = msg.data.encode()
+                    elif msg.type == aiohttp.WSMsgType.BINARY:
+                        body = msg.data
+                    elif msg.type in (
+                        aiohttp.WSMsgType.ERROR,
+                        aiohttp.WSMsgType.CLOSED,
+                    ):
+                        error = str(ws.exception()) if ws.exception() else "Connection closed"
                         return AttackResponse(
                             status=0,
                             headers={},
@@ -137,8 +115,29 @@ class WebSocketTransport(Transport):
                             elapsed=time.time() - start,
                             url=ws_url,
                             protocol="websocket",
-                            error="No response within timeout",
+                            error=error,
                         )
+                    else:
+                        body = b""
+
+                    return AttackResponse(
+                        status=200,
+                        headers={"ws-type": str(msg.type)},
+                        body=body,
+                        elapsed=time.time() - start,
+                        url=ws_url,
+                        protocol="websocket",
+                    )
+                except asyncio.TimeoutError:
+                    return AttackResponse(
+                        status=0,
+                        headers={},
+                        body=b"",
+                        elapsed=time.time() - start,
+                        url=ws_url,
+                        protocol="websocket",
+                        error="No response within timeout",
+                    )
 
         except Exception as e:
             return AttackResponse(

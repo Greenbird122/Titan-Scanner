@@ -4,16 +4,17 @@ Run: python local_lab/app.py
 Then scan: http://localhost:5000
 """
 
-from flask import Flask, request, jsonify, make_response, send_from_directory
-import jwt
-import re
 import os
+import re
 import secrets
 import shutil
 import subprocess
 import sys
 import time
 import uuid
+
+import jwt
+from flask import Flask, jsonify, make_response, request, send_from_directory
 
 app = Flask(__name__)
 try:
@@ -212,7 +213,7 @@ def lfi():
     # differential cancels out. The traversal sink is unchanged.
     try:
         base = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(base, file), "r") as f:
+        with open(os.path.join(base, file)) as f:
             return f.read()
     except Exception as e:
         return str(e)

@@ -12,10 +12,9 @@ This module:
 
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from titan.modules.coverage.tracker import CoverageTracker, TestRecord
 
@@ -26,10 +25,10 @@ class ScanSnapshot:
     scan_id: str
     timestamp: str
     target: str
-    endpoints: List[str]
-    attack_types: List[str]
-    records: List[TestRecord]
-    summary: Dict[str, Any]
+    endpoints: list[str]
+    attack_types: list[str]
+    records: list[TestRecord]
+    summary: dict[str, Any]
     risk_score: float
 
 
@@ -39,12 +38,12 @@ class ComparisonResult:
     scan_a_id: str
     scan_b_id: str
     overall_change: float  # positive = improved
-    new_endpoints: List[str]
-    removed_endpoints: List[str]
-    new_attack_types: List[str]
-    removed_attack_types: List[str]
-    improved_combinations: List[Tuple[str, str]]
-    regressed_combinations: List[Tuple[str, str]]
+    new_endpoints: list[str]
+    removed_endpoints: list[str]
+    new_attack_types: list[str]
+    removed_attack_types: list[str]
+    improved_combinations: list[tuple[str, str]]
+    regressed_combinations: list[tuple[str, str]]
     coverage_delta: float
     risk_delta: float
     summary: str
@@ -54,8 +53,8 @@ class ScanComparator:
     """Compare coverage between scans."""
 
     def __init__(self):
-        self._snapshots: List[ScanSnapshot] = []
-        self._comparisons: List[ComparisonResult] = []
+        self._snapshots: list[ScanSnapshot] = []
+        self._comparisons: list[ComparisonResult] = []
 
     def create_snapshot(
         self,
@@ -145,13 +144,13 @@ class ScanComparator:
         self._comparisons.append(result)
         return result
 
-    def compare_latest(self) -> Optional[ComparisonResult]:
+    def compare_latest(self) -> ComparisonResult | None:
         """Compare the two most recent snapshots."""
         if len(self._snapshots) < 2:
             return None
         return self.compare(self._snapshots[-2], self._snapshots[-1])
 
-    def get_trend(self) -> Dict[str, Any]:
+    def get_trend(self) -> dict[str, Any]:
         """Get trend across all snapshots."""
         if len(self._snapshots) < 2:
             return {"trend": "insufficient_data", "snapshots": len(self._snapshots)}
@@ -182,13 +181,13 @@ class ScanComparator:
             "worst_coverage": min(coverages) if coverages else 0,
         }
 
-    def get_snapshots(self) -> List[ScanSnapshot]:
+    def get_snapshots(self) -> list[ScanSnapshot]:
         return self._snapshots
 
-    def get_comparisons(self) -> List[ComparisonResult]:
+    def get_comparisons(self) -> list[ComparisonResult]:
         return self._comparisons
 
-    def to_dict(self, result: ComparisonResult) -> Dict[str, Any]:
+    def to_dict(self, result: ComparisonResult) -> dict[str, Any]:
         """Convert comparison to dict."""
         return {
             "scan_a": result.scan_a_id,

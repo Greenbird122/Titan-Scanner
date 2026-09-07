@@ -8,13 +8,9 @@ This eliminates the majority of scanner noise without any AI involvement.
 """
 from __future__ import annotations
 
-import asyncio
-import random
-import string
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional, Tuple
 
-from titan.core.models import Finding, Severity
+from titan.core.models import Finding
 
 
 class AutoVerifier:
@@ -41,10 +37,10 @@ class AutoVerifier:
             finding.metadata["demotion_reason"] = "failed_negative_control"
         return finding
 
-    async def _run_controls(self, context, finding: Finding) -> List[Tuple[str, str, int]]:
+    async def _run_controls(self, context, finding: Finding) -> list[tuple[str, str, int]]:
         """Send benign control payloads and return (body, error_classes, status) tuples."""
         controls = self._generate_controls(finding)
-        results: List[Tuple[str, str, int]] = []
+        results: list[tuple[str, str, int]] = []
 
         for payload in controls[:self.max_control_payloads]:
             try:
@@ -60,7 +56,7 @@ class AutoVerifier:
 
         return results
 
-    def _generate_controls(self, finding: Finding) -> List[str]:
+    def _generate_controls(self, finding: Finding) -> list[str]:
         """Generate benign control payloads that should NOT trigger the finding."""
         param = finding.param or "test"
         location = finding.location or "query"
@@ -134,7 +130,7 @@ class AutoVerifier:
         )
 
     def _should_demote(
-        self, finding: Finding, controls: List[Tuple[str, str, int]]
+        self, finding: Finding, controls: list[tuple[str, str, int]]
     ) -> bool:
         """Return True if the finding should be demoted based on control results."""
         original_body = finding.body or ""
@@ -234,7 +230,7 @@ class AutoVerifier:
         return payload_reflected and similarity > 0.6 and no_new_errors and body_is_large
 
     @staticmethod
-    def _extract_new_error_classes(baseline_body: str, test_body: str) -> List[str]:
+    def _extract_new_error_classes(baseline_body: str, test_body: str) -> list[str]:
         """Return error classes that appear in test_body but NOT in baseline_body."""
         if not test_body:
             return []

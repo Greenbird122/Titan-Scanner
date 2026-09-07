@@ -8,13 +8,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
-from urllib.parse import quote, quote_plus
-
 
 # ── WAF signature patterns ─────────────────────────────────────────────
 
-WAF_SIGNATURES: Dict[str, List[str]] = {
+WAF_SIGNATURES: dict[str, list[str]] = {
     "cloudflare": [
         r"cf-ray",
         r"cloudflare",
@@ -81,11 +78,11 @@ class WAFInfo:
 class WAFTracker:
     """Tracks WAF presence per route and provides payload re-encoding."""
     # Route → WAF info
-    _waf_cache: Dict[str, WAFInfo] = field(default_factory=dict)
+    _waf_cache: dict[str, WAFInfo] = field(default_factory=dict)
     # Routes where WAF is confirmed
-    _waf_routes: Set[str] = field(default_factory=set)
+    _waf_routes: set[str] = field(default_factory=set)
 
-    def detect(self, url: str, status: int, body: str, headers: Dict[str, str]) -> Optional[WAFInfo]:
+    def detect(self, url: str, status: int, body: str, headers: dict[str, str]) -> WAFInfo | None:
         """Check if a response indicates WAF blocking.
 
         Returns WAFInfo if a WAF is detected, None otherwise.
@@ -133,7 +130,7 @@ class WAFTracker:
         """Check if a route has been confirmed as WAF-blocked."""
         return url in self._waf_routes
 
-    def get_waf(self, url: str) -> Optional[WAFInfo]:
+    def get_waf(self, url: str) -> WAFInfo | None:
         """Get cached WAF info for a route."""
         return self._waf_cache.get(url)
 
@@ -181,7 +178,7 @@ def _auto_encode_strategy(payload: str) -> str:
     return _url_encode(payload)
 
 
-def get_bypass_variants(payload: str) -> List[str]:
+def get_bypass_variants(payload: str) -> list[str]:
     """Generate multiple bypass variants of a payload.
 
     Returns a list of re-encoded payloads to try when the original is blocked.

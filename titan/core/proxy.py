@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Dict, List, Optional
 
 
 class ProxyRotator:
-    def __init__(self, proxies: Optional[List[str]] = None, strategy: str = "round-robin"):
+    def __init__(self, proxies: list[str] | None = None, strategy: str = "round-robin"):
         self.proxies = proxies or []
         self.strategy = strategy
         self._current = 0
-        self._sticky_map: Dict[str, str] = {}
+        self._sticky_map: dict[str, str] = {}
 
-    def get_proxy(self, target: str = "") -> Optional[str]:
+    def get_proxy(self, target: str = "") -> str | None:
         if not self.proxies:
             return None
 
@@ -32,7 +31,7 @@ class ProxyRotator:
             self._current += 1
             return proxy
 
-    def rotate(self) -> Optional[str]:
+    def rotate(self) -> str | None:
         if not self.proxies:
             return None
         proxy = self.proxies[self._current % len(self.proxies)]

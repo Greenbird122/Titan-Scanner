@@ -21,15 +21,13 @@ from __future__ import annotations
 
 import random
 import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.verify import BaselineAnalyzer
-
+from titan.core.models import AttackType, Finding, Severity
 
 # High-risk unkeyed headers for cache poisoning
-_UNKEYED_HEADERS_MATRIX: Tuple[Tuple[str, str], ...] = (
+_UNKEYED_HEADERS_MATRIX: tuple[tuple[str, str], ...] = (
     ("X-Forwarded-Host", "titan-cache-test.example.com"),
     ("X-Host", "titan-cache-test.example.com"),
     ("X-Forwarded-Scheme", "nothttps"),
@@ -41,7 +39,7 @@ _UNKEYED_HEADERS_MATRIX: Tuple[Tuple[str, str], ...] = (
 )
 
 # Web Cache Deception static path extensions
-_WCD_EXTENSIONS: Tuple[str, ...] = (
+_WCD_EXTENSIONS: tuple[str, ...] = (
     "/nonexistent.css",
     ";nonexistent.css",
     "/nonexistent.js",
@@ -53,7 +51,7 @@ _WCD_EXTENSIONS: Tuple[str, ...] = (
 class CacheDetector:
     """Production-grade Web Cache Poisoning & Deception detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -67,9 +65,9 @@ class CacheDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # ── Engine 1: Parameter-Level Cache Poisoning (all params) ────
         param_findings = await self._scan_params(context, target, method, url, params)
@@ -103,9 +101,9 @@ class CacheDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         param_keys = list(params.keys()) if params else ["id"]
 
         for param_name in param_keys:
@@ -187,9 +185,9 @@ class CacheDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         for hdr_name, canary_val in _UNKEYED_HEADERS_MATRIX:
             nonce = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -245,9 +243,9 @@ class CacheDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         parsed = urlparse(url)
         base_path = parsed.path.rstrip("/")
         if not base_path or base_path == "/":
@@ -304,7 +302,7 @@ class CacheDetector:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _is_shared_cacheable(headers: Dict[str, str]) -> bool:
+    def _is_shared_cacheable(headers: dict[str, str]) -> bool:
         """True if the response is actually stored by a shared cache.
 
         Two ways to be cacheable:

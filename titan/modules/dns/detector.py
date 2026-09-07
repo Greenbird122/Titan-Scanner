@@ -15,9 +15,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -70,18 +70,17 @@ class DNSSecurityTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def enumerate_subdomains(
         self,
         target_url: str,
         domain: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """Enumerate subdomains."""
         discovered = []
 
         try:
-            import aiohttp
             import asyncio
 
             async def check_subdomain(subdomain):
@@ -109,7 +108,7 @@ class DNSSecurityTester:
         self,
         target_url: str,
         domain: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test for subdomain takeover."""
         findings = []
         subdomains = await self.enumerate_subdomains(target_url, domain)
@@ -156,12 +155,11 @@ class DNSSecurityTester:
         self,
         target_url: str,
         domain: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test DNS zone transfer."""
         findings = []
 
         try:
-            import socket
             # Get nameservers
             import subprocess
             result = subprocess.run(
@@ -205,5 +203,5 @@ class DNSSecurityTester:
         self._findings.extend(findings)
         return findings
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

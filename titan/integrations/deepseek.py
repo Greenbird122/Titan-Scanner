@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class DeepSeekClient:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self._client = None
         self._init_client()

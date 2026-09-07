@@ -10,17 +10,17 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, List, Optional
+from typing import Any
 
 
-def json_string_values(body: str) -> List[str]:
+def json_string_values(body: str) -> list[str]:
     """All string values in a JSON body (recursive). Non-JSON -> empty list."""
     try:
         data = json.loads(body)
     except Exception:
         return []
 
-    values: List[str] = []
+    values: list[str] = []
 
     def walk(node: Any) -> None:
         if isinstance(node, dict):
@@ -36,7 +36,7 @@ def json_string_values(body: str) -> List[str]:
     return values
 
 
-def _is_marker(value: str, ignored: List[str], min_len: int = 5) -> bool:
+def _is_marker(value: str, ignored: list[str], min_len: int = 5) -> bool:
     v = value.strip()
     if len(v) < min_len:
         return False
@@ -57,8 +57,8 @@ def _is_marker(value: str, ignored: List[str], min_len: int = 5) -> bool:
 def unique_owner_markers(
     owner_body: str,
     attacker_own_body: str,
-    ignored: Optional[List[str]] = None,
-) -> List[str]:
+    ignored: list[str] | None = None,
+) -> list[str]:
     """Content present in the owner's record but absent from the attacker's
     own record — i.e. what makes the owner's record unique. This is the BOLA
     evidence vocabulary: if the attacker's request for the owner's id returns
@@ -80,6 +80,6 @@ def unique_owner_markers(
     return markers
 
 
-def markers_present(body: str, markers: List[str]) -> List[str]:
+def markers_present(body: str, markers: list[str]) -> list[str]:
     """Which markers appear in the given body (case-sensitive, whole value)."""
     return [m for m in markers if m in body]

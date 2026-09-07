@@ -21,14 +21,12 @@ Features:
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
-from urllib.parse import urlparse
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
-
+from titan.core.models import AttackType, Finding, Severity
 
 # Leaked technology & version headers
-_INFO_LEAK_HEADERS: Dict[str, str] = {
+_INFO_LEAK_HEADERS: dict[str, str] = {
     "server": "Server software version leak",
     "x-powered-by": "Technology framework leak (X-Powered-By)",
     "x-aspnet-version": "ASP.NET version leak",
@@ -42,7 +40,7 @@ _INFO_LEAK_HEADERS: Dict[str, str] = {
 class HeadersDetector:
     """Production-grade Security Headers and Cookie auditor."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -56,9 +54,9 @@ class HeadersDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         try:
             if method.upper() == "GET":
@@ -94,11 +92,11 @@ class HeadersDetector:
         target: str,
         url: str,
         resp: Any,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         status: int,
-    ) -> Optional[Finding]:
-        missing: List[str] = []
-        weak: List[str] = []
+    ) -> Finding | None:
+        missing: list[str] = []
+        weak: list[str] = []
         is_https = url.lower().startswith("https://")
 
         # X-Frame-Options
@@ -188,10 +186,10 @@ class HeadersDetector:
         target: str,
         url: str,
         resp: Any,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         status: int,
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         for hdr_key, desc in _INFO_LEAK_HEADERS.items():
             if hdr_key in headers:
@@ -231,10 +229,10 @@ class HeadersDetector:
         target: str,
         url: str,
         resp: Any,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         status: int,
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         is_https = url.lower().startswith("https://")
 
         set_cookie = headers.get("set-cookie", "")

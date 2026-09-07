@@ -14,12 +14,10 @@ list-driven:
 - the engine seam (_fuzz_paths) is wired and feeds hits into the crawl.
 """
 
-import asyncio
 
-import pytest
 
 from titan.core.engine import TitanEngine
-from titan.core.pathfuzz import PathFuzzer, DEFAULT_WORDS, SOFT_404_MARKERS
+from titan.core.pathfuzz import DEFAULT_WORDS, SOFT_404_MARKERS, PathFuzzer
 
 
 class _Resp:

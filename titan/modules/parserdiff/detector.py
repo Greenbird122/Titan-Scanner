@@ -29,7 +29,7 @@ what the engine's detector uses.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import quote
 
 from titan.core.models import AttackType, Finding, Severity
@@ -37,16 +37,16 @@ from titan.verify.oracles import extract_error_classes
 
 # (label, builder) encoding dictionary. Each takes a plain payload and yields
 # a wire form a different parser might decode differently.
-ENCODINGS: List[Tuple[str, Any]] = []
+ENCODINGS: list[tuple[str, Any]] = []
 
 
-def _encodings(payload: str) -> List[Tuple[str, str]]:
+def _encodings(payload: str) -> list[tuple[str, str]]:
     """Bounded set of (label, encoded) variants for a payload.
 
     Each variant is the SAME logical bytes with different wire encoding — the
     exact disagreement surface between a filter layer and an origin.
     """
-    out: List[Tuple[str, str]] = []
+    out: list[tuple[str, str]] = []
     if not payload:
         return out
     q = quote(payload, safe="")
@@ -73,7 +73,7 @@ def _encodings(payload: str) -> List[Tuple[str, str]]:
 
 # Canonical payload per injection class (the plain form is usually filtered —
 # that's the point — so rulebook detectors never see these targets reachable).
-CLASS_PAYLOADS: List[Tuple[str, str]] = [
+CLASS_PAYLOADS: list[tuple[str, str]] = [
     ("lfi", "../../../etc/passwd"),
     ("sqli", "' OR 1=1--"),
     ("xss", "<script>alert(1)</script>"),
@@ -110,9 +110,9 @@ def classify_parser_differential(
     baseline_body: str,
     plain_body: str,
     encoded_body: str,
-    plain_status: Optional[int],
-    encoded_status: Optional[int],
-) -> Tuple[Optional[str], Severity, float, bool]:
+    plain_status: int | None,
+    encoded_status: int | None,
+) -> tuple[str | None, Severity, float, bool]:
     """Pure decision: did an ENCODED form reach a parser the PLAIN form
     couldn't?
 
@@ -161,14 +161,14 @@ def classify_parser_differential(
 
 
 class ParserDiffDetector:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
     async def scan(
-        self, context, target: str, method: str, url: str, params: Dict[str, str]
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        self, context, target: str, method: str, url: str, params: dict[str, str]
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         if not params:
             return findings
 

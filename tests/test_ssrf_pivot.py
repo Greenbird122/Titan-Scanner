@@ -7,7 +7,6 @@ lab servers as the SSRF sink + an internal target, exactly like test_exploit
 does for the RCE planner.
 """
 
-import asyncio
 import json
 from pathlib import Path
 from urllib.parse import urlparse
@@ -68,9 +67,8 @@ async def lab_pair(tmp_path):
     async def handle_fetch(request: web.Request) -> web.Response:
         probe = request.query.get("url", "")
         try:
-            async with ClientSession() as client:
-                async with client.get(probe, timeout=3) as r:
-                    return web.Response(text=await r.text(), status=r.status)
+            async with ClientSession() as client, client.get(probe, timeout=3) as r:
+                return web.Response(text=await r.text(), status=r.status)
         except Exception:
             return web.Response(text="fetch failed", status=502)
 

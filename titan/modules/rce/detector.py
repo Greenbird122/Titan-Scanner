@@ -20,15 +20,14 @@ import json
 import random
 import string
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer, BlindDetector
 from titan.verify.oracles import extract_error_classes, score_signals
 
-
-_INJECTABLE_HEADERS_RCE: Tuple[str, ...] = (
+_INJECTABLE_HEADERS_RCE: tuple[str, ...] = (
     "User-Agent",
     "Referer",
     "X-Forwarded-For",
@@ -61,7 +60,7 @@ class RCEDetector:
         "; wscript.exe //B //Nologo //E:jscript \"%TEMP%\\sleep.js\"",
     ]
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.blind_detector = BlindDetector(samples=3, confidence=0.95)
@@ -77,9 +76,9 @@ class RCEDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         context_data = {
             "fingerprint": self.fingerprint,
@@ -117,7 +116,7 @@ class RCEDetector:
 
         return findings
 
-    async def _request(self, context, method: str, url: str, params: Dict[str, str], target: str):
+    async def _request(self, context, method: str, url: str, params: dict[str, str], target: str):
         headers = {"Referer": target}
         if method == "GET":
             return await context.request.get(url, params=params, headers=headers, timeout=3000)
@@ -133,11 +132,11 @@ class RCEDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
-        safe_headers: Dict[str, str] = {"Referer": target}
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
+        safe_headers: dict[str, str] = {"Referer": target}
 
         try:
             if method == "GET":
@@ -208,10 +207,10 @@ class RCEDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         if method.upper() == "GET":
             return findings
 
@@ -287,7 +286,7 @@ class RCEDetector:
 
         return findings
 
-    def _json_leaves(self, node: Any, path: Optional[list] = None):
+    def _json_leaves(self, node: Any, path: list | None = None):
         if path is None:
             path = []
         if isinstance(node, dict):
@@ -316,12 +315,12 @@ class RCEDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         baseline_body = ""
         baseline_status = None
-        baseline_times: List[float] = []
+        baseline_times: list[float] = []
 
         try:
             for _ in range(3):
@@ -352,7 +351,7 @@ class RCEDetector:
                 pass
 
         all_test_payloads = list(dict.fromkeys(payloads + marker_payloads))
-        tested_delay_families: Dict[str, int] = {}
+        tested_delay_families: dict[str, int] = {}
 
         for payload in all_test_payloads:
             try:
@@ -406,7 +405,7 @@ class RCEDetector:
                 resp = await self._request(context, method, url, test_params, target)
                 body = await resp.text()
 
-                signals: List[str] = []
+                signals: list[str] = []
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
 
                 # Marker reflection proof: marker output without diagnostic error

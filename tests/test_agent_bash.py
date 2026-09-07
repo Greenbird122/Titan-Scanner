@@ -46,11 +46,10 @@ async def test_real_bash_agent_executes_and_reports(tmp_path: Path):
     await listener.start()
     job_id = await q.submit("sess-x", "printf t1t4n_agent_ok")
     try:
-        async with ClientSession() as client:
-            async with client.get(
-                f"{listener.bound_url}/agent.sh", params={"sid": "sess-x"}
-            ) as r:
-                script = await r.text()
+        async with ClientSession() as client, client.get(
+            f"{listener.bound_url}/agent.sh", params={"sid": "sess-x"}
+        ) as r:
+            script = await r.text()
         sf = tmp_path / "agent.sh"
         sf.write_text(script, encoding="utf-8")
         proc = subprocess.Popen(

@@ -8,10 +8,8 @@ transport.send(request) and get a response back.
 from __future__ import annotations
 
 import enum
-import time
 from dataclasses import dataclass, field
-from typing import Any, Protocol, Optional
-
+from typing import Any, Protocol
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -233,6 +231,7 @@ class TransportRegistry:
         # Try to register gRPC
         try:
             import grpc  # noqa: F401
+
             from titan.transport.grpc import GrpcTransport
             self.register("grpc", GrpcTransport(), [TransportProtocol.GRPC])
         except ImportError:
@@ -241,6 +240,7 @@ class TransportRegistry:
         # Try to register WebSocket
         try:
             import aiohttp  # noqa: F401
+
             from titan.transport.websocket import WebSocketTransport
             self.register("websocket", WebSocketTransport(), [TransportProtocol.WEBSOCKET])
         except ImportError:
@@ -249,6 +249,7 @@ class TransportRegistry:
         # Try to register MQTT
         try:
             import aiomqtt  # noqa: F401
+
             from titan.transport.mqtt import MqttTransport
             self.register("mqtt", MqttTransport(), [TransportProtocol.MQTT])
         except ImportError:

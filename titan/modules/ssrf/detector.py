@@ -21,17 +21,14 @@ from __future__ import annotations
 import asyncio
 import copy
 import json
-import random
-import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, payload_encodings, score_signals
 
-
-_INJECTABLE_HEADERS_SSRF: Tuple[str, ...] = (
+_INJECTABLE_HEADERS_SSRF: tuple[str, ...] = (
     "X-Forwarded-For",
     "X-Forwarded-Host",
     "X-Real-IP",
@@ -41,7 +38,7 @@ _INJECTABLE_HEADERS_SSRF: Tuple[str, ...] = (
     "Referer",
 )
 
-_CLOUD_METADATA_PROBES: Tuple[str, ...] = (
+_CLOUD_METADATA_PROBES: tuple[str, ...] = (
     # AWS
     "http://169.254.169.254/latest/meta-data/",
     "http://169.254.169.254/latest/dynamic/instance-identity/document",
@@ -83,7 +80,7 @@ _CLOUD_METADATA_PROBES: Tuple[str, ...] = (
     "http://127.0.0.1:2376/containers/json",
 )
 
-_IP_OBFUSCATION_PROBES: Tuple[str, ...] = (
+_IP_OBFUSCATION_PROBES: tuple[str, ...] = (
     # Standard localhost
     "http://127.0.0.1:80",
     "http://127.0.0.1:22",
@@ -122,7 +119,7 @@ _IP_OBFUSCATION_PROBES: Tuple[str, ...] = (
 class SSRFDetector:
     """Production-grade SSRF detector with exhaustive cloud and encoding coverage."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.interactsh = fingerprint.get("interactsh")
@@ -137,10 +134,10 @@ class SSRFDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        internal_paths: Optional[List[str]] = None,
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+        internal_paths: list[str] | None = None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         context_data = {
             "fingerprint": self.fingerprint,
@@ -161,7 +158,7 @@ class SSRFDetector:
             )
 
         # Same-origin internal endpoints the crawl already discovered
-        same_origin: List[str] = []
+        same_origin: list[str] = []
         if internal_paths:
             origin = f"{urlparse(target).scheme}://{urlparse(target).netloc}"
             for p in internal_paths:
@@ -196,7 +193,7 @@ class SSRFDetector:
 
         return findings
 
-    async def _request(self, context, method: str, url: str, params: Dict[str, str], target: str):
+    async def _request(self, context, method: str, url: str, params: dict[str, str], target: str):
         headers = {"Referer": target}
         if method == "GET":
             return await context.request.get(url, params=params, headers=headers, timeout=3000)
@@ -212,11 +209,11 @@ class SSRFDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
-        safe_headers: Dict[str, str] = {"Referer": target}
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
+        safe_headers: dict[str, str] = {"Referer": target}
 
         try:
             if method == "GET":
@@ -286,10 +283,10 @@ class SSRFDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         if method.upper() == "GET":
             return findings
 
@@ -370,7 +367,7 @@ class SSRFDetector:
 
         return findings
 
-    def _json_leaves(self, node: Any, path: Optional[list] = None):
+    def _json_leaves(self, node: Any, path: list | None = None):
         if path is None:
             path = []
         if isinstance(node, dict):
@@ -399,9 +396,9 @@ class SSRFDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         baseline_body = ""
         baseline_status = None
 
@@ -428,7 +425,7 @@ class SSRFDetector:
                 body = await resp.text()
 
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-                signals: List[str] = []
+                signals: list[str] = []
 
                 # Content leak check: strip payload and its host/target in ALL encodings before searching
                 stripped = body.lower()

@@ -17,9 +17,9 @@ allowlist, produces no finding.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 # Installed on every page before navigation. Wraps addEventListener so any
 # registration of a "message" handler is captured with its source text; the
@@ -82,12 +82,12 @@ ORIGIN_CHECK_PATTERNS = ["event.origin", "e.origin", "ev.origin", "evt.origin", 
 
 
 class PostMessageDetector:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, page, target: str, url: str, params: Dict[str, str]) -> List[Finding]:
-        findings: List[Finding] = []
+    async def scan(self, page, target: str, url: str, params: dict[str, str]) -> list[Finding]:
+        findings: list[Finding] = []
         try:
             await page.add_init_script(MESSAGE_HOOK_JS)
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)

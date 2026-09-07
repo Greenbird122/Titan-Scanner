@@ -13,13 +13,10 @@ This module:
 
 from __future__ import annotations
 
-import asyncio
-import json
-import math
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -106,16 +103,16 @@ class ParameterFuzzer:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def fuzz_endpoint(
         self,
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Deep fuzz a single endpoint."""
         findings = []
 
@@ -151,14 +148,14 @@ class ParameterFuzzer:
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        baseline: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        baseline: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Fuzz each parameter with all universal payloads."""
         findings = []
 
-        for param_name in params.keys():
+        for param_name in params:
             for payload in self.UNIVERSAL_PAYLOADS:
                 try:
                     test_params = dict(params)
@@ -202,10 +199,10 @@ class ParameterFuzzer:
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        baseline: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        baseline: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test parameter pollution (duplicate params with different values)."""
         findings = []
 
@@ -214,7 +211,7 @@ class ParameterFuzzer:
             values = pollution["values"]
 
             if param not in params and param not in [
-                k for k in params.keys()
+                k for k in params
             ]:
                 continue
 
@@ -270,10 +267,10 @@ class ParameterFuzzer:
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        baseline: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        baseline: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test type confusion on each parameter."""
         findings = []
 
@@ -289,7 +286,7 @@ class ParameterFuzzer:
             ("deeply_nested", {"a": {"b": {"c": "admin"}}}),
         ]
 
-        for param_name in params.keys():
+        for param_name in params:
             for type_name, type_value in type_payloads:
                 try:
                     test_params = dict(params)
@@ -338,10 +335,10 @@ class ParameterFuzzer:
         target_url: str,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        baseline: Dict[str, Any],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, Any],
+        baseline: dict[str, Any],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test boundary values on numeric parameters."""
         findings = []
 
@@ -360,7 +357,7 @@ class ParameterFuzzer:
             ("very_large_float", 1e15),
         ]
 
-        for param_name in params.keys():
+        for param_name in params:
             # Only test numeric-looking params
             current_val = params.get(param_name)
             if current_val is not None and not isinstance(current_val, (int, float)):
@@ -495,5 +492,5 @@ class ParameterFuzzer:
                 return True
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

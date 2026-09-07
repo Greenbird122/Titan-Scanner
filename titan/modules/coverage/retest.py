@@ -14,11 +14,12 @@ This module:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
-from titan.modules.coverage.tracker import CoverageTracker
 from titan.modules.coverage.gate import CoverageGate
+from titan.modules.coverage.tracker import CoverageTracker
 
 
 @dataclass
@@ -31,8 +32,8 @@ class RetestResult:
     duration_seconds: float
     coverage_before: float
     coverage_after: float
-    gaps_closed: List[str]
-    gaps_remaining: List[str]
+    gaps_closed: list[str]
+    gaps_remaining: list[str]
 
 
 class AutoRetester:
@@ -42,12 +43,12 @@ class AutoRetester:
         self,
         tracker: CoverageTracker,
         gate: CoverageGate,
-        test_executor: Optional[Callable] = None,
+        test_executor: Callable | None = None,
     ):
         self.tracker = tracker
         self.gate = gate
         self.test_executor = test_executor
-        self._results: List[RetestResult] = []
+        self._results: list[RetestResult] = []
 
     async def retest_all(self) -> RetestResult:
         """Retest all gaps until coverage threshold met."""
@@ -156,10 +157,10 @@ class AutoRetester:
         self._results.append(result)
         return result
 
-    def get_results(self) -> List[RetestResult]:
+    def get_results(self) -> list[RetestResult]:
         return self._results
 
-    def to_dict(self, result: RetestResult) -> Dict[str, Any]:
+    def to_dict(self, result: RetestResult) -> dict[str, Any]:
         """Convert result to dict."""
         return {
             "total_retests": result.total_retests,

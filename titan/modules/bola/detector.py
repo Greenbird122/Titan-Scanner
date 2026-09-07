@@ -18,19 +18,17 @@ Features:
 
 from __future__ import annotations
 
-import json
-import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.verify.identity_oracles import unique_owner_markers, markers_present
+from titan.core.models import AttackType, Finding, Severity
+from titan.verify.identity_oracles import markers_present, unique_owner_markers
 
 
 class BOLADetector:
     """Production-grade Broken Object Level Authorization (BOLA / API1) detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -44,16 +42,16 @@ class BOLADetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        identities: List[Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        identities: list[Any],
+    ) -> list[Finding]:
         """Runs multi-identity cross-tenant BOLA evaluation using at least 2 authenticated sessions."""
         authed = [i for i in identities if i and getattr(i, "is_authenticated", False)]
         if len(authed) < 2:
             return []
 
         owner, attacker = authed[0], authed[1]
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         # ── Engine 1: Query & Body Parameters ─────────────────────────
         param_candidates = list(params.keys()) if params else ["id"]
@@ -86,10 +84,10 @@ class BOLADetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
+        all_params: dict[str, str],
         owner: Any,
         attacker: Any,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             # 1. Owner requests their own object -> unique owner record
             owner_resp = await self._request(context, owner, method, url, all_params)
@@ -169,10 +167,10 @@ class BOLADetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         owner: Any,
         attacker: Any,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             parsed = urlparse(url)
             segments = parsed.path.split("/")
@@ -252,7 +250,7 @@ class BOLADetector:
     # HTTP HELPER
     # ------------------------------------------------------------------
 
-    async def _request(self, context, identity: Any, method: str, url: str, params: Dict[str, str]):
+    async def _request(self, context, identity: Any, method: str, url: str, params: dict[str, str]):
         headers = dict(getattr(identity, "headers", {}))
         headers.setdefault("Referer", "http://localhost")
         if method.upper() == "GET":

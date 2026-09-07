@@ -8,14 +8,12 @@ Also provides SQLite-backed audit logging.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
 import sqlite3
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 AUDIT_DB_PATH = os.path.expanduser("~/.kilo/dawn/scanner/audit.db")
 
@@ -67,7 +65,7 @@ def _log_audit_jsonl(target: str, action: str, result: str):
         pass
 
 
-async def request_scan_approval(target: str, aggression: str, scope: Optional[Dict[str, List[str]]] = None) -> bool:
+async def request_scan_approval(target: str, aggression: str, scope: dict[str, list[str]] | None = None) -> bool:
     """Request approval for a scan via Titan Gov proposal pipeline.
 
     Args:
@@ -78,7 +76,7 @@ async def request_scan_approval(target: str, aggression: str, scope: Optional[Di
     Returns:
         True if approved, False if denied
     """
-async def request_scan_approval(target: str, aggression: str, scope: Optional[Dict[str, List[str]]] = None) -> bool:
+async def request_scan_approval(target: str, aggression: str, scope: dict[str, list[str]] | None = None) -> bool:
     """Request approval for a scan via Titan Gov proposal pipeline.
 
     Args:
@@ -137,7 +135,7 @@ async def _prompt_approval(proposal: Any) -> bool:
         return False
 
 
-def get_recent_audit(limit: int = 20) -> List[Dict[str, str]]:
+def get_recent_audit(limit: int = 20) -> list[dict[str, str]]:
     """Get recent scan audit entries from SQLite."""
     try:
         conn = sqlite3.connect(AUDIT_DB_PATH)

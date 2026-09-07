@@ -23,12 +23,12 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.modules.baas.supabase import SupabaseTester
+from titan.core.models import AttackType, Finding, Severity
 from titan.modules.baas.firebase import FirebaseTester
+from titan.modules.baas.supabase import SupabaseTester
 
 
 class BaasDetector:
@@ -44,15 +44,15 @@ class BaasDetector:
         """Clear the once-per-origin sweep cache (test isolation)."""
         cls._SWEPT_ORIGINS = set()
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.supa = SupabaseTester()
         self.fire = FirebaseTester()
-        self._detected_platform: Optional[str] = None
-        self._supabase_url: Optional[str] = None
-        self._firebase_url: Optional[str] = None
-        self._api_key: Optional[str] = None
+        self._detected_platform: str | None = None
+        self._supabase_url: str | None = None
+        self._firebase_url: str | None = None
+        self._api_key: str | None = None
 
     async def scan(
         self,
@@ -60,10 +60,10 @@ class BaasDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """Main scan entry point — tests BaaS-specific vulnerabilities."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         # Auto-detect BaaS platform from fingerprint
         self._detect_platform()
@@ -95,7 +95,7 @@ class BaasDetector:
             self._firebase_url = self._extract_firebase_url()
             self._api_key = self._extract_firebase_api_key()
 
-    def _extract_supabase_url(self) -> Optional[str]:
+    def _extract_supabase_url(self) -> str | None:
         """Extract Supabase URL from fingerprint."""
         body = self.fingerprint.get("body", "")
         # Look for Supabase URL pattern
@@ -104,7 +104,7 @@ class BaasDetector:
             return match.group(0)
         return None
 
-    def _extract_firebase_url(self) -> Optional[str]:
+    def _extract_firebase_url(self) -> str | None:
         """Extract Firebase URL from fingerprint."""
         body = self.fingerprint.get("body", "")
         # Look for Firebase URL pattern
@@ -113,7 +113,7 @@ class BaasDetector:
             return match.group(0)
         return None
 
-    def _extract_firebase_api_key(self) -> Optional[str]:
+    def _extract_firebase_api_key(self) -> str | None:
         """Extract Firebase API key from fingerprint."""
         body = self.fingerprint.get("body", "")
         # Look for API key pattern
@@ -155,7 +155,7 @@ class BaasDetector:
         "/rest/v1", "storage/v1", "/functions/v1", "/auth/v1", "postgrest",
     )
 
-    def _on_origin_base(self, url: str) -> Optional[str]:
+    def _on_origin_base(self, url: str) -> str | None:
         """Return scheme://host for a URL (the on-origin probe base)."""
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
@@ -169,7 +169,7 @@ class BaasDetector:
         hay = f"{body} {techs} {url or ''}".lower()
         return any(m in hay for m in self.ON_ORIGIN_MARKERS)
 
-    async def _sweep_on_origin(self, context, target: str, url: str) -> List[Finding]:
+    async def _sweep_on_origin(self, context, target: str, url: str) -> list[Finding]:
         """Sweep BaaS-shaped path families served from the target's own origin.
 
         Every candidate path is probed alongside a nonsense CONTROL path of
@@ -182,7 +182,7 @@ class BaasDetector:
         Runs once per origin per engine process (module-level dedupe) and
         only when BaaS markers appear in the fingerprint or current URL.
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         base = self._on_origin_base(target) or self._on_origin_base(url)
         if not base:
             return findings
@@ -205,7 +205,7 @@ class BaasDetector:
 
         return findings
 
-    async def _get_on_origin(self, context, url: str) -> Optional[Dict[str, Any]]:
+    async def _get_on_origin(self, context, url: str) -> dict[str, Any] | None:
         """GET a URL via the engine context; return {"status", "body"}."""
         try:
             resp = await context.request.get(url, timeout=4000)
@@ -235,9 +235,9 @@ class BaasDetector:
             return True
         return len(b) > 20 and len(b) < 20000
 
-    async def _probe_supabase_rest_family(self, context, target: str, base: str) -> List[Finding]:
+    async def _probe_supabase_rest_family(self, context, target: str, base: str) -> list[Finding]:
         """Probe {base}/rest/v1/{table} (+ /api variant) with control demotion."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         prefixes = ["", "/api"]
         for prefix in prefixes:
             ctl_url = f"{base}{prefix}/rest/v1/{self.ON_ORIGIN_CONTROL_NAME}?select=*&limit=1"
@@ -275,7 +275,7 @@ class BaasDetector:
                 ))
         return findings
 
-    async def _probe_firebase_rtdb_family(self, context, target: str, base: str) -> List[Finding]:
+    async def _probe_firebase_rtdb_family(self, context, target: str, base: str) -> list[Finding]:
         """Probe {base}/.json with control demotion.
 
         Control is itself a .json-shaped path: a fake RTDB answers EVERY
@@ -283,7 +283,7 @@ class BaasDetector:
         and control are byte-identical and the surface is demoted. A real
         open RTDB returns data at root and null at a nonsense child.
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         ctl_url = f"{base}/{self.ON_ORIGIN_CONTROL_NAME}/.json"
         ctl = await self._get_on_origin(context, ctl_url)
         ctl_body = self._normalize_body(ctl["body"]) if ctl else ""
@@ -306,7 +306,7 @@ class BaasDetector:
                 ))
         return findings
 
-    async def _probe_storage_family(self, context, target: str, base: str) -> List[Finding]:
+    async def _probe_storage_family(self, context, target: str, base: str) -> list[Finding]:
         """Probe {base}/storage/v1 object listings with control demotion.
 
         A bucket NAME listing alone is not a vulnerability (config noise
@@ -314,7 +314,7 @@ class BaasDetector:
         object path returning actual file data. Cross-bucket byte-identity
         demotes a canned row served for every bucket.
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         prefixes = ["", "/api"]
         for prefix in prefixes:
             ctl_url = f"{base}{prefix}/storage/v1/{self.ON_ORIGIN_CONTROL_NAME}"
@@ -353,7 +353,7 @@ class BaasDetector:
 
     def _make_on_origin_finding(
         self, target: str, url: str, name: str, detail: str,
-        evidence: str, severity: Severity, attack: AttackType, tags: List[str],
+        evidence: str, severity: Severity, attack: AttackType, tags: list[str],
     ) -> Finding:
         """Build an on-origin BaaS finding."""
         return Finding(
@@ -373,7 +373,7 @@ class BaasDetector:
             notes=detail,
         )
 
-    async def _scan_supabase(self, context, target: str) -> List[Finding]:
+    async def _scan_supabase(self, context, target: str) -> list[Finding]:
         """Scan Supabase for vulnerabilities."""
         findings = []
 
@@ -425,7 +425,7 @@ class BaasDetector:
 
         return findings
 
-    async def _scan_firebase(self, context, target: str) -> List[Finding]:
+    async def _scan_firebase(self, context, target: str) -> list[Finding]:
         """Scan Firebase for vulnerabilities."""
         findings = []
 
@@ -461,7 +461,7 @@ class BaasDetector:
 
         return findings
 
-    async def _enumerate_supabase_tables(self, context, target: str) -> List[str]:
+    async def _enumerate_supabase_tables(self, context, target: str) -> list[str]:
         """Enumerate Supabase tables."""
         tables = []
 
@@ -494,7 +494,7 @@ class BaasDetector:
 
         return tables
 
-    async def _enumerate_supabase_functions(self, context, target: str) -> List[str]:
+    async def _enumerate_supabase_functions(self, context, target: str) -> list[str]:
         """Enumerate Supabase Edge Functions."""
         functions = []
 
@@ -522,7 +522,7 @@ class BaasDetector:
 
         return functions
 
-    async def _enumerate_supabase_buckets(self, context, target: str) -> List[str]:
+    async def _enumerate_supabase_buckets(self, context, target: str) -> list[str]:
         """Enumerate Supabase Storage buckets."""
         buckets = []
 
@@ -559,7 +559,7 @@ class BaasDetector:
 
         return buckets
 
-    async def _enumerate_firebase_collections(self, context, target: str) -> List[str]:
+    async def _enumerate_firebase_collections(self, context, target: str) -> list[str]:
         """Enumerate Firebase Firestore collections."""
         collections = []
 
@@ -583,7 +583,7 @@ class BaasDetector:
 
         return collections
 
-    async def _enumerate_firebase_buckets(self, context, target: str) -> List[str]:
+    async def _enumerate_firebase_buckets(self, context, target: str) -> list[str]:
         """Enumerate Firebase Storage buckets."""
         buckets = []
 

@@ -1,6 +1,6 @@
 """Tests for titan.core.anomaly — the mid-scan anomaly detector."""
 
-from titan.core.anomaly import AnomalyTracker, Anomaly
+from titan.core.anomaly import Anomaly, AnomalyTracker
 
 
 class TestAnomalyTracker:
@@ -129,8 +129,9 @@ class TestAnomalyTracker:
 
     def test_normalize_body_strips_timestamps(self):
         """Response bodies with timestamps normalize to same hash."""
-        from titan.core.anomaly import _normalize_body
         import hashlib
+
+        from titan.core.anomaly import _normalize_body
         body_a = 'Created at 2026-08-12T10:30:00 some content here'
         body_b = 'Created at 2026-08-19T15:45:00 some content here'
         h_a = hashlib.md5(_normalize_body(body_a).encode()).hexdigest()
@@ -140,8 +141,9 @@ class TestAnomalyTracker:
 
     def test_normalize_body_strips_csrf_tokens(self):
         """CSRF tokens are stripped — don't cause false drift."""
-        from titan.core.anomaly import _normalize_body
         import hashlib
+
+        from titan.core.anomaly import _normalize_body
         body_a = 'csrf_token="abc123def456ghi789" page content'
         body_b = 'csrf_token="xyz987uvw654rst321" page content'
         h_a = hashlib.md5(_normalize_body(body_a).encode()).hexdigest()
@@ -155,6 +157,7 @@ class TestAnomalyIntegration:
     def test_engine_initializes_anomaly_tracker(self):
         """TitanEngine creates an AnomalyTracker on init."""
         import yaml
+
         from titan.core.engine import TitanEngine
         with open("config.example.yaml") as f:
             config = yaml.safe_load(f)

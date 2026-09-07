@@ -23,13 +23,11 @@ Capability vocabulary (stable strings, stored in ``Finding.flows``):
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 from titan.core.models import AttackType, Finding
 
 # Capability -> human description. Also serves as the vocabulary contract for
 # the chain analyzer.
-FLOW_DESCRIPTIONS: Dict[str, str] = {
+FLOW_DESCRIPTIONS: dict[str, str] = {
     "file_read": "can read arbitrary files from the target",
     "creds": "leaks credentials or secrets",
     "url_fetch": "can make the server fetch attacker-controlled URLs",
@@ -44,7 +42,7 @@ FLOW_DESCRIPTIONS: Dict[str, str] = {
 # Flow inferred from *verified* evidence per attack class. Keep conservative:
 # unverified / low-confidence findings get no flow (an unproven capability
 # must not feed a chain).
-_VERIFIED_FLOWS: Dict[AttackType, List[str]] = {
+_VERIFIED_FLOWS: dict[AttackType, list[str]] = {
     AttackType.LFI: ["file_read"],
     AttackType.SSRF: ["url_fetch"],
     AttackType.RCE: ["code_exec"],
@@ -91,7 +89,7 @@ _VERIFIED_FLOWS: Dict[AttackType, List[str]] = {
 _METADATA_MARKERS = ("169.254.169.254", "metadata.google.internal", "169.254.170.2")
 
 
-def infer_flows(finding: Finding) -> List[str]:
+def infer_flows(finding: Finding) -> list[str]:
     """Return the capabilities a *verified* finding exposes.
 
     Unverified findings expose nothing (an unproven capability must not feed
@@ -117,7 +115,7 @@ def infer_flows(finding: Finding) -> List[str]:
     return base
 
 
-def apply_flows(findings: List[Finding]) -> None:
+def apply_flows(findings: list[Finding]) -> None:
     """Populate ``Finding.flows`` in place for every finding."""
     for f in findings:
         f.flows = infer_flows(f)

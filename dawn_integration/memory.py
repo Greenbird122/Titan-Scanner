@@ -12,14 +12,13 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 MEMORY_DIR = os.path.expanduser("~/.kilo/dawn/memory")
 FINDINGS_DB_PATH = os.path.join(MEMORY_DIR, "findings.db")
 
 
-def _init_findings_db(db_path: Optional[str] = None):
+def _init_findings_db(db_path: str | None = None):
     path = db_path or FINDINGS_DB_PATH
     os.makedirs(os.path.dirname(path), exist_ok=True)
     conn = sqlite3.connect(path)
@@ -53,7 +52,7 @@ def _init_findings_db(db_path: Optional[str] = None):
 
 
 class DawnMemory:
-    def __init__(self, enabled: bool = True, memory_dir: Optional[str] = None):
+    def __init__(self, enabled: bool = True, memory_dir: str | None = None):
         self.enabled = enabled
         self.memory_dir = Path(memory_dir or MEMORY_DIR)
         self.findings_db_path = self.memory_dir / "findings.db"
@@ -74,7 +73,7 @@ class DawnMemory:
         except Exception:
             return False
 
-    def memorize_finding(self, finding: Dict[str, Any]) -> bool:
+    def memorize_finding(self, finding: dict[str, Any]) -> bool:
         target = finding.get("target", "unknown")
         url = finding.get("url", "")
         param = finding.get("param", "")
@@ -116,21 +115,21 @@ class DawnMemory:
 
         return daily_ok
 
-    def recent_daily(self, limit: int = 2) -> List[str]:
+    def recent_daily(self, limit: int = 2) -> list[str]:
         if not self.enabled:
             return []
-        lines: List[str] = []
+        lines: list[str] = []
         try:
             days = sorted(self.memory_dir.glob("*.md"), reverse=True)[:limit]
             for day_file in days:
-                with open(day_file, "r", encoding="utf-8") as f:
+                with open(day_file, encoding="utf-8") as f:
                     lines.extend(f.readlines()[-40:])
         except Exception:
             pass
         return lines
 
-    def query_findings(self, target: Optional[str] = None, days: int = 7, severity: Optional[str] = None) -> List[Dict[str, Any]]:
-        results: List[Dict[str, Any]] = []
+    def query_findings(self, target: str | None = None, days: int = 7, severity: str | None = None) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
         if not self.enabled:
             return results
         try:
@@ -139,7 +138,7 @@ class DawnMemory:
             conn = sqlite3.connect(str(self.findings_db_path))
             conn.row_factory = sqlite3.Row
             query = "SELECT * FROM findings WHERE ts >= ?"
-            params: List[Any] = [cutoff_str]
+            params: list[Any] = [cutoff_str]
             if target:
                 query += " AND target = ?"
                 params.append(target)
@@ -154,7 +153,7 @@ class DawnMemory:
             pass
         return results
 
-    def get_scan_summary(self, days: int = 7) -> Dict[str, Any]:
+    def get_scan_summary(self, days: int = 7) -> dict[str, Any]:
         try:
             conn = sqlite3.connect(str(self.findings_db_path))
             conn.row_factory = sqlite3.Row

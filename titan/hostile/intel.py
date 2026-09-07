@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 CATEGORIES = ("ad_network", "popunder", "push_notif", "tracker", "miner", "risky_ad")
@@ -43,9 +43,9 @@ def origin_of(url: str) -> str:
 class IntelDB:
     """Category lookup over the bundled DB + an optional operator DB."""
 
-    def __init__(self, user_db_path: Optional[Path] = None):
+    def __init__(self, user_db_path: Path | None = None):
         self.user_db_path = Path(user_db_path) if user_db_path else USER_DB_PATH
-        self._map: Dict[str, str] = {}
+        self._map: dict[str, str] = {}
         self._load_bundled()
         self._load_user()
 
@@ -73,7 +73,7 @@ class IntelDB:
         except Exception:
             pass
 
-    def classify(self, host: str) -> Optional[str]:
+    def classify(self, host: str) -> str | None:
         """Category for a host (exact or ``*.host`` suffix match), else None."""
         host = (host or "").lower().strip(".")
         if host in self._map:
@@ -91,7 +91,7 @@ class IntelDB:
     def is_benign(self, host: str) -> bool:
         return (host or "").lower().strip(".") in KNOWN_BENIGN
 
-    def entries(self) -> Dict[str, str]:
+    def entries(self) -> dict[str, str]:
         return dict(sorted(self._map.items()))
 
     def promote(self, host: str, category: str, source: str = "", url: str = "") -> bool:
@@ -109,7 +109,7 @@ class IntelDB:
         bundled = self._map.get(host)
         if bundled and bundled != category:
             return False
-        user: Dict[str, Any] = {"origins": {}}
+        user: dict[str, Any] = {"origins": {}}
         if self.user_db_path.exists():
             try:
                 user = json.loads(self.user_db_path.read_text(encoding="utf-8"))
@@ -134,7 +134,7 @@ class ObservedIntel:
     """Origins actually observed during a hostile pass (per-site, ephemeral)."""
 
     def __init__(self) -> None:
-        self.origins: Dict[str, Dict[str, Any]] = {}
+        self.origins: dict[str, dict[str, Any]] = {}
 
     def record(self, url: str, kind: str = "script", integrity: bool = True,
                cleartext: bool = False) -> None:
@@ -156,8 +156,8 @@ class ObservedIntel:
         if url not in entry["urls"] and len(entry["urls"]) < 5:
             entry["urls"].append(url)
 
-    def to_dict(self) -> Dict[str, Any]:
-        out: Dict[str, Any] = {}
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {}
         for host, e in sorted(self.origins.items()):
             out[host] = {
                 "host": e["host"],
@@ -175,7 +175,7 @@ class ObservedIntel:
         return path
 
 
-def domain_flux(prior: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, List[str]]:
+def domain_flux(prior: dict[str, Any], current: dict[str, Any]) -> dict[str, list[str]]:
     """Diff a previous scan's observed origins against the current set (M6).
 
     Streaming/piracy sites rotate ad domains; a host present last scan and

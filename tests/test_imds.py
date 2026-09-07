@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -25,10 +24,7 @@ from titan.modules.cloud_control.imds import (
     GCP_IMDS,
     IMDSEndpoint,
     IMDSProber,
-    IMDSReport,
-    IMDSProbeResult,
 )
-
 
 # ---------------------------------------------------------------------------
 # IMDSEndpoint tests

@@ -15,20 +15,8 @@ Phase 8:
 
 from __future__ import annotations
 
-import asyncio
-import time
-
 import pytest
 
-from titan.verify.kernel import (
-    EBPFKernelObserver,
-    EvidenceTier,
-    FallbackKernelObserver,
-    KernelObserver,
-    KernelObservation,
-    KernelSession,
-    ObservationType,
-)
 from titan.stealth.advanced import (
     AGGRESSIVE_PROFILE,
     BROWSER_PROFILE,
@@ -38,9 +26,16 @@ from titan.stealth.advanced import (
     FingerprintRandomizer,
     PolymorphicEngine,
     TrafficShaper,
-    TimingProfile,
 )
-
+from titan.verify.kernel import (
+    EBPFKernelObserver,
+    EvidenceTier,
+    FallbackKernelObserver,
+    KernelObservation,
+    KernelObserver,
+    KernelSession,
+    ObservationType,
+)
 
 # ---------------------------------------------------------------------------
 # Phase 3: Kernel Observation tests

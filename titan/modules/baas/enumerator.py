@@ -9,12 +9,12 @@ This module:
 
 from __future__ import annotations
 
-import re
 import json
+import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -22,15 +22,15 @@ class BaasFingerprint:
     """Detected BaaS platform information."""
     platform: str  # "supabase", "firebase", "appwrite", "clerk", "auth0", "unknown"
     confidence: float
-    endpoint: Optional[str] = None
-    api_key: Optional[str] = None
-    project_id: Optional[str] = None
-    region: Optional[str] = None
-    tables: List[str] = field(default_factory=list)
-    buckets: List[str] = field(default_factory=list)
-    functions: List[str] = field(default_factory=list)
-    collections: List[str] = field(default_factory=list)
-    auth_config: Dict[str, Any] = field(default_factory=dict)
+    endpoint: str | None = None
+    api_key: str | None = None
+    project_id: str | None = None
+    region: str | None = None
+    tables: list[str] = field(default_factory=list)
+    buckets: list[str] = field(default_factory=list)
+    functions: list[str] = field(default_factory=list)
+    collections: list[str] = field(default_factory=list)
+    auth_config: dict[str, Any] = field(default_factory=dict)
     raw_detection: str = ""
 
 
@@ -131,9 +131,9 @@ class BaaSEnumerator:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._fingerprints: List[BaasFingerprint] = []
+        self._fingerprints: list[BaasFingerprint] = []
 
-    async def enumerate(self, target_url: str, page_source: str = "") -> List[BaasFingerprint]:
+    async def enumerate(self, target_url: str, page_source: str = "") -> list[BaasFingerprint]:
         """Full BaaS enumeration pipeline."""
         self._fingerprints = []
 
@@ -401,17 +401,17 @@ class BaaSEnumerator:
         except Exception:
             pass
 
-    def get_fingerprints(self) -> List[BaasFingerprint]:
+    def get_fingerprints(self) -> list[BaasFingerprint]:
         """Get all detected BaaS fingerprints."""
         return self._fingerprints
 
-    def get_primary_fingerprint(self) -> Optional[BaasFingerprint]:
+    def get_primary_fingerprint(self) -> BaasFingerprint | None:
         """Get the most likely BaaS platform."""
         if not self._fingerprints:
             return None
         return max(self._fingerprints, key=lambda f: f.confidence)
 
-    def to_finding(self, target_url: str) -> Optional[Finding]:
+    def to_finding(self, target_url: str) -> Finding | None:
         """Convert enumeration to a finding (for reporting)."""
         primary = self.get_primary_fingerprint()
         if not primary:

@@ -1,7 +1,6 @@
 """Tests for the Deep Audit module."""
 
-import pytest
-from titan.modules.deep_audit.prober import DeepAuditor, CloudConfig, AuditFinding, AuditResult
+from titan.modules.deep_audit.prober import AuditFinding, AuditResult, CloudConfig, DeepAuditor
 
 
 class TestCloudConfig:

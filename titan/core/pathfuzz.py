@@ -23,7 +23,8 @@ import asyncio
 import random
 import re
 import string
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 # Soft-404 copy: an HTML/JSON error body served with HTTP 200 for ANY unknown
 # path. Mirrors the engine's SOFT_404_MARKERS so the fuzzer and the module
@@ -116,8 +117,8 @@ class _RequestCounter:
 class PathFuzzer:
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        in_scope: Optional[Callable[[str], bool]] = None,
+        config: dict[str, Any] | None = None,
+        in_scope: Callable[[str], bool] | None = None,
         stealth: Any = None,
     ):
         cfg = config or {}
@@ -202,7 +203,7 @@ class PathFuzzer:
 
     # -- main entry -------------------------------------------------------
 
-    async def fuzz(self, context, seeds: List[str]) -> List[str]:
+    async def fuzz(self, context, seeds: list[str]) -> list[str]:
         """Return discovered deeper URLs (strings), ordered, deduped.
 
         ``seeds`` is the crawl's discovered API surface. Hits are returned
@@ -215,10 +216,10 @@ class PathFuzzer:
         if not normalized:
             return []
         counter = _RequestCounter(self.max_requests)
-        found: List[str] = []
+        found: list[str] = []
         await self._fuzz_level(context, normalized[: self.max_seeds], 1, counter, found)
         seed_set = set(normalized)
-        out: List[str] = []
+        out: list[str] = []
         for u in found:
             if u not in seed_set and u not in out:
                 out.append(u)
@@ -227,14 +228,14 @@ class PathFuzzer:
     async def _fuzz_level(
         self,
         context,
-        level_seeds: List[str],
+        level_seeds: list[str],
         depth: int,
         counter: _RequestCounter,
-        found: List[str],
+        found: list[str],
     ) -> None:
         if depth > self.max_depth or not level_seeds or counter.count >= counter.limit:
             return
-        next_level: List[str] = []
+        next_level: list[str] = []
         for seed in level_seeds[: self.max_seeds]:
             if counter.count >= counter.limit:
                 break

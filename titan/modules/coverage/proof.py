@@ -16,7 +16,7 @@ import hashlib
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.modules.coverage.tracker import CoverageTracker, TestRecord
 
@@ -31,7 +31,7 @@ class TestProof:
     response_code: int
     response_hash: str
     timestamp: str
-    merkle_proof: List[str]
+    merkle_proof: list[str]
     verification_command: str
 
 
@@ -41,8 +41,8 @@ class CoverageProofBundle:
     root_hash: str
     timestamp: str
     total_tests: int
-    test_proofs: List[TestProof]
-    merkle_tree: List[List[str]]
+    test_proofs: list[TestProof]
+    merkle_tree: list[list[str]]
     verification_script: str
 
 
@@ -51,7 +51,7 @@ class CoverageProof:
 
     def __init__(self, tracker: CoverageTracker):
         self.tracker = tracker
-        self._previous_root: Optional[str] = None
+        self._previous_root: str | None = None
 
     def generate(self) -> CoverageProofBundle:
         """Generate complete coverage proof."""
@@ -106,7 +106,7 @@ class CoverageProof:
         }, sort_keys=True)
         return hashlib.sha256(data.encode()).hexdigest()
 
-    def _build_merkle_tree(self, leaves: List[str]) -> List[List[str]]:
+    def _build_merkle_tree(self, leaves: list[str]) -> list[list[str]]:
         """Build Merkle tree from leaves."""
         if not leaves:
             return []
@@ -126,13 +126,13 @@ class CoverageProof:
 
         return tree
 
-    def _get_root_hash(self, tree: List[List[str]]) -> str:
+    def _get_root_hash(self, tree: list[list[str]]) -> str:
         """Get root hash from Merkle tree."""
         if not tree:
             return ""
         return tree[-1][0] if tree[-1] else ""
 
-    def _get_merkle_proof(self, tree: List[List[str]], index: int) -> List[str]:
+    def _get_merkle_proof(self, tree: list[list[str]], index: int) -> list[str]:
         """Get Merkle proof for a leaf at index."""
         proof = []
         current_index = index
@@ -160,7 +160,7 @@ class CoverageProof:
             f'echo " (expected: {record.response_code})"'
         )
 
-    def _generate_verification_script(self, proofs: List[TestProof]) -> str:
+    def _generate_verification_script(self, proofs: list[TestProof]) -> str:
         """Generate complete verification script."""
         lines = [
             "#!/bin/bash",
@@ -179,9 +179,9 @@ class CoverageProof:
             lines.append(f'echo "  Response Hash: {proof.response_hash[:16]}..."')
             lines.append(f'echo "  Timestamp: {proof.timestamp}"')
             lines.append(f'echo "  Verification: {proof.verification_command}"')
-            lines.append(f'echo ""')
+            lines.append('echo ""')
             lines.append(f'{proof.verification_command}')
-            lines.append(f'echo ""')
+            lines.append('echo ""')
 
         lines.append("echo '=== Verification Complete ==='")
         lines.append("echo ''")
@@ -189,7 +189,7 @@ class CoverageProof:
 
         return "\n".join(lines)
 
-    def verify_proof(self, proof_bundle: CoverageProofBundle) -> Dict[str, Any]:
+    def verify_proof(self, proof_bundle: CoverageProofBundle) -> dict[str, Any]:
         """Verify the proof bundle is valid with tamper detection."""
         # Verify Merkle tree integrity
         valid = self._verify_merkle_tree(proof_bundle.merkle_tree, proof_bundle.test_proofs)
@@ -220,7 +220,7 @@ class CoverageProof:
             "third_party_verification": self._generate_third_party_verification(proof_bundle),
         }
 
-    def _verify_merkle_tree(self, tree: List[List[str]], proofs: List[TestProof]) -> bool:
+    def _verify_merkle_tree(self, tree: list[list[str]], proofs: list[TestProof]) -> bool:
         """Verify Merkle tree integrity."""
         if not tree or not proofs:
             return True
@@ -241,20 +241,20 @@ class CoverageProof:
 
         # Build tree and compare
         rebuilt_tree = self._build_merkle_tree(leaves)
-        
+
         if len(rebuilt_tree) != len(tree):
             return False
-        
+
         for i, (rebuilt_level, original_level) in enumerate(zip(rebuilt_tree, tree)):
             if len(rebuilt_level) != len(original_level):
                 return False
             for j, (r, o) in enumerate(zip(rebuilt_level, original_level)):
                 if r != o:
                     return False
-        
+
         return True
 
-    def _build_merkle_tree(self, leaves: List[str]) -> List[List[str]]:
+    def _build_merkle_tree(self, leaves: list[str]) -> list[list[str]]:
         """Build Merkle tree from leaves."""
         if not leaves:
             return []
@@ -271,7 +271,7 @@ class CoverageProof:
             current_level = next_level
         return tree
 
-    def _generate_third_party_verification(self, proof_bundle: CoverageProofBundle) -> Dict[str, Any]:
+    def _generate_third_party_verification(self, proof_bundle: CoverageProofBundle) -> dict[str, Any]:
         """Generate third-party verification instructions."""
         return {
             "instructions": (
@@ -286,7 +286,7 @@ class CoverageProof:
             "expected_test_count": proof_bundle.total_tests,
         }
 
-    def to_dict(self, proof_bundle: CoverageProofBundle) -> Dict[str, Any]:
+    def to_dict(self, proof_bundle: CoverageProofBundle) -> dict[str, Any]:
         """Convert proof bundle to dict."""
         return {
             "root_hash": proof_bundle.root_hash,

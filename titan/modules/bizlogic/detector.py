@@ -15,22 +15,22 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.modules.bizlogic.ecommerce import ECommerceTester
-from titan.modules.bizlogic.saas import SaaSTester
-from titan.modules.bizlogic.workflow import WorkflowTester, WorkflowStep
-from titan.modules.bizlogic.discovery import EndpointDiscovery
-from titan.modules.bizlogic.fuzzer import ParameterFuzzer
-from titan.modules.bizlogic.crossuser import CrossUserTester
+from titan.core.models import AttackType, Finding, Severity
 from titan.modules.bizlogic.confusion import ConfusionTester
+from titan.modules.bizlogic.crossuser import CrossUserTester
+from titan.modules.bizlogic.discovery import EndpointDiscovery
+from titan.modules.bizlogic.ecommerce import ECommerceTester
+from titan.modules.bizlogic.fuzzer import ParameterFuzzer
+from titan.modules.bizlogic.saas import SaaSTester
+from titan.modules.bizlogic.workflow import WorkflowTester
 
 
 class BizLogicDetector:
     """Business Logic detector integrated with Titan engine."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.ecom = ECommerceTester()
@@ -47,10 +47,10 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """Main scan entry point — tests all business logic vulnerabilities."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         # Get baseline response first
         baseline = await self._get_baseline(context, target, method, url, params)
@@ -118,8 +118,8 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> Optional[Dict[str, Any]]:
+        params: dict[str, str],
+    ) -> dict[str, Any] | None:
         """Send baseline request and return response."""
         try:
             if method.upper() == "GET":
@@ -146,9 +146,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test parameter tampering (price, quantity, discount, etc.)."""
         findings = []
 
@@ -183,9 +183,9 @@ class BizLogicDetector:
         method: str,
         url: str,
         param_name: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test price tampering."""
         findings = []
 
@@ -255,9 +255,9 @@ class BizLogicDetector:
         method: str,
         url: str,
         param_name: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test quantity tampering."""
         findings = []
 
@@ -323,9 +323,9 @@ class BizLogicDetector:
         method: str,
         url: str,
         param_name: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test discount tampering."""
         findings = []
 
@@ -391,9 +391,9 @@ class BizLogicDetector:
         method: str,
         url: str,
         param_name: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test role tampering."""
         findings = []
 
@@ -457,14 +457,14 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test workflow bypass (skip steps, force state transitions)."""
         findings = []
 
         # Test workflow state manipulation
-        state_params = [p for p in params.keys() if any(
+        state_params = [p for p in params if any(
             k in p.lower() for k in ["step", "phase", "state", "stage", "status"]
         )]
 
@@ -527,14 +527,14 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test role escalation via parameter manipulation."""
         findings = []
 
         # Test common role parameters
-        role_params = [p for p in params.keys() if any(
+        role_params = [p for p in params if any(
             k in p.lower() for k in ["role", "admin", "permission", "level", "tier"]
         )]
 
@@ -596,9 +596,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test business logic state manipulation."""
         findings = []
 
@@ -659,7 +659,7 @@ class BizLogicDetector:
 
     # ── Helper Methods ──────────────────────────────────────────────────
 
-    def _identify_biz_params(self, params: Dict[str, str]) -> List[tuple]:
+    def _identify_biz_params(self, params: dict[str, str]) -> list[tuple]:
         """Identify business logic parameters and their types."""
         biz_params = []
 
@@ -668,7 +668,7 @@ class BizLogicDetector:
         discount_keywords = ["discount", "coupon", "promo", "voucher", "code"]
         role_keywords = ["role", "admin", "permission", "level", "tier"]
 
-        for param_name in params.keys():
+        for param_name in params:
             param_lower = param_name.lower()
 
             if any(kw in param_lower for kw in price_keywords):
@@ -684,8 +684,8 @@ class BizLogicDetector:
 
     def _check_tampering_accepted(
         self,
-        baseline: Dict[str, Any],
-        response: Dict[str, Any],
+        baseline: dict[str, Any],
+        response: dict[str, Any],
         test_value: str,
         param_type: str,
     ) -> bool:
@@ -756,9 +756,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test workflow state injection — inject final state directly."""
         findings = []
 
@@ -831,9 +831,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test multi-step workflow bypass — skip steps by injecting state."""
         findings = []
 
@@ -902,9 +902,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test cross-user IDOR via business logic parameters."""
         findings = []
 
@@ -976,9 +976,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test Content-Type switching."""
         findings = []
 
@@ -1026,9 +1026,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test HTTP method override."""
         findings = []
 
@@ -1096,9 +1096,9 @@ class BizLogicDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        baseline: Dict[str, Any],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        baseline: dict[str, Any],
+    ) -> list[Finding]:
         """Test header injection for role/tenant switching."""
         findings = []
 

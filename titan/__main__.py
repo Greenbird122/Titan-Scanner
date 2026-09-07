@@ -7,6 +7,7 @@ Usage:
 """
 
 import sys
+
 from titan.cli import main
 
 sys.exit(main())

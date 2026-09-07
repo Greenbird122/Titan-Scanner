@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
-import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class AuthEngine:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.credentials = config.get("auth", {})
-        self.tokens: Dict[str, str] = {}
-        self.session_cookies: Dict[str, Any] = {}
-        self.roles: List[Dict[str, Any]] = []
+        self.tokens: dict[str, str] = {}
+        self.session_cookies: dict[str, Any] = {}
+        self.roles: list[dict[str, Any]] = []
 
     async def login(self, context, page, target: str) -> bool:
         if not self.credentials:
@@ -89,7 +87,7 @@ class AuthEngine:
 
         return False
 
-    async def login_as_role(self, context, page, target: str, role_creds: Dict[str, Any]) -> bool:
+    async def login_as_role(self, context, page, target: str, role_creds: dict[str, Any]) -> bool:
         if not role_creds:
             return False
 
@@ -138,7 +136,7 @@ class AuthEngine:
 
         return False
 
-    async def _extract_token(self, page, context) -> Optional[str]:
+    async def _extract_token(self, page, context) -> str | None:
         try:
             js_token = await page.evaluate('''() => {
                 const sources = [
@@ -181,7 +179,7 @@ class AuthEngine:
 
         return None
 
-    def _guess_login_url(self, target: str) -> Optional[str]:
+    def _guess_login_url(self, target: str) -> str | None:
         from urllib.parse import urljoin
         candidates = [
             "/login", "/api/auth/login/", "/api/login",
@@ -192,7 +190,7 @@ class AuthEngine:
             return urljoin(target, path)
         return None
 
-    def get_auth_headers(self) -> Dict[str, str]:
+    def get_auth_headers(self) -> dict[str, str]:
         headers = {}
         if "access" in self.tokens:
             token_type = self.tokens.get("token_type", "Bearer")
@@ -204,13 +202,13 @@ class AuthEngine:
             headers[header_name] = self.tokens["api_key"]
         return headers
 
-    def get_cookies(self) -> Dict[str, str]:
+    def get_cookies(self) -> dict[str, str]:
         return dict(self.session_cookies)
 
     def is_authenticated(self) -> bool:
         return bool(self.tokens.get("access") or self.session_cookies)
 
-    def get_current_role(self) -> Optional[str]:
+    def get_current_role(self) -> str | None:
         return self.tokens.get("role")
 
     async def refresh_token(self, context, page, target: str) -> bool:

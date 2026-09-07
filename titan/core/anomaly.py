@@ -12,9 +12,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set
 from urllib.parse import urlparse
-
 
 # ── Anomaly types ──────────────────────────────────────────────────────
 
@@ -35,34 +33,34 @@ class AnomalyTracker:
     cookies, headers) and flags deviations as anomalies.
     """
     # Baseline: status code per hostname (most routes return 200)
-    _baseline_status: Dict[str, int] = field(default_factory=dict)
+    _baseline_status: dict[str, int] = field(default_factory=dict)
     # All status codes seen per hostname
-    _status_history: Dict[str, List[int]] = field(default_factory=dict)
+    _status_history: dict[str, list[int]] = field(default_factory=dict)
     # Body hashes seen (to detect drift — different body on same path pattern)
-    _body_hashes: Set[str] = field(default_factory=set)
+    _body_hashes: set[str] = field(default_factory=set)
     # Cookies seen across all pages
-    _known_cookies: Set[str] = field(default_factory=set)
+    _known_cookies: set[str] = field(default_factory=set)
     # Headers seen across all pages
-    _known_headers: Set[str] = field(default_factory=set)
+    _known_headers: set[str] = field(default_factory=set)
     # Redirect targets seen
-    _redirect_targets: Set[str] = field(default_factory=set)
+    _redirect_targets: set[str] = field(default_factory=set)
     # Detected anomalies for this scan
-    anomalies: List[Anomaly] = field(default_factory=list)
+    anomalies: list[Anomaly] = field(default_factory=list)
 
     def check(
         self,
         url: str,
         status: int,
         body: str,
-        headers: Dict[str, str],
-        cookies: Optional[List[str]] = None,
-        redirect_target: Optional[str] = None,
-    ) -> List[Anomaly]:
+        headers: dict[str, str],
+        cookies: list[str] | None = None,
+        redirect_target: str | None = None,
+    ) -> list[Anomaly]:
         """Check a page response for anomalies. Returns newly detected anomalies.
 
         Call this ONCE per crawled page, after the response is received.
         """
-        detected: List[Anomaly] = []
+        detected: list[Anomaly] = []
         hostname = urlparse(url).hostname or ""
 
         # ── 1. Status 500 / 5xx (server error on this route) ────────

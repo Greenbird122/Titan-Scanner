@@ -9,16 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import json
-import re
-from typing import Any, TYPE_CHECKING
-from urllib.parse import urljoin, urlparse, parse_qs
+from typing import TYPE_CHECKING, Any
 
 from titan.core.helpers import (
-    consume_task_exception,
     dedupe_apis,
     extract_urls_from_json,
-    is_soft_404,
 )
 
 if TYPE_CHECKING:

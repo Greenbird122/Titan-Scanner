@@ -8,8 +8,6 @@ and adversarial attacks on LLM-powered applications.
 from __future__ import annotations
 
 import logging
-import re
-from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +184,7 @@ class LLMDeepDetector:
             findings.append({
                 "type": "llm_jailbreak",
                 "severity": "high",
-                "title": f"Adversarial Suffix Bypass",
+                "title": "Adversarial Suffix Bypass",
                 "evidence": f"Suffix pattern: {suffix[:50]}...",
                 "flow_types": ["model_control"],
                 "cvss": 7.2,

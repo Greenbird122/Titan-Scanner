@@ -23,7 +23,8 @@ path (same discipline as ``infer_flows``).
 from __future__ import annotations
 
 import itertools
-from typing import Any, Dict, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from titan.core.models import AttackType, Finding, Severity
 
@@ -39,7 +40,7 @@ _SEV_RANK = {
 # Attack goals reachable by combining finding capabilities. ``order`` is the
 # hop ordering preference (enabler flows first), used only for a stable,
 # readable path.
-CHAIN_GOALS: List[Dict[str, Any]] = [
+CHAIN_GOALS: list[dict[str, Any]] = [
     {
         "name": "Cloud Credential Exposure",
         "requires": ("creds", "url_fetch"),
@@ -145,7 +146,7 @@ _PER_FLOW_PROVIDERS = 2
 class AttackChain:
     """A multi-hop attack path: >= 2 findings whose capabilities combine."""
 
-    def __init__(self, goal: Dict[str, Any], hops: List[Finding]):
+    def __init__(self, goal: dict[str, Any], hops: list[Finding]):
         self.name = goal["name"]
         self.description = goal["description"]
         self.impact = goal["impact"]
@@ -153,10 +154,10 @@ class AttackChain:
         self.hops = hops
 
     @property
-    def capabilities(self) -> List[str]:
+    def capabilities(self) -> list[str]:
         return sorted({c for f in self.hops for c in f.flows})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "description": self.description,
@@ -172,7 +173,7 @@ def _sev_rank(severity: Severity) -> int:
     return _SEV_RANK.get(severity, 0)
 
 
-def _order_hops(hops: List[Finding], order: Sequence[str]) -> List[Finding]:
+def _order_hops(hops: list[Finding], order: Sequence[str]) -> list[Finding]:
     """Stable ordering: findings providing an earlier ``order`` flow first,
     then severity (desc), then URL for determinism."""
 
@@ -188,7 +189,7 @@ def _order_hops(hops: List[Finding], order: Sequence[str]) -> List[Finding]:
     )
 
 
-def _candidate_pool(verified: List[Finding], required: set) -> List[Finding]:
+def _candidate_pool(verified: list[Finding], required: set) -> list[Finding]:
     """Bounded, coverage-guaranteed candidate set for a goal.
 
     The top ``_PER_FLOW_PROVIDERS`` findings for each required flow are always
@@ -196,7 +197,7 @@ def _candidate_pool(verified: List[Finding], required: set) -> List[Finding]:
     the pool is filled with the strongest remaining providers up to
     ``_MAX_POOL``.
     """
-    pool: List[Finding] = []
+    pool: list[Finding] = []
     seen = set()
     for flow in required:
         providers = sorted(
@@ -215,11 +216,11 @@ def _candidate_pool(verified: List[Finding], required: set) -> List[Finding]:
     return pool
 
 
-def _combo_severity(hops: List[Finding]) -> int:
+def _combo_severity(hops: list[Finding]) -> int:
     return sum(_sev_rank(f.severity) for f in hops)
 
 
-def _combo_key(chain: "AttackChain", prefer_types=()) -> tuple:
+def _combo_key(chain: AttackChain, prefer_types=()) -> tuple:
     """Chain quality key. The FEWEST hops wins first (a minimal covering set
     is the more precise statement of the goal — a 2-hop SSRF+bucket chain
     beats a 3-hop that drags in unrelated data_leak findings); then combined
@@ -233,9 +234,9 @@ class ChainAnalyzer:
     """Flow-typed chain detector. ``detect`` MUST run after ``apply_flows`` —
     it reads ``Finding.flows``, which is empty until then."""
 
-    def detect(self, findings: List[Finding]) -> List[AttackChain]:
+    def detect(self, findings: list[Finding]) -> list[AttackChain]:
         verified = [f for f in findings if f.verified and f.flows]
-        chains: List[AttackChain] = []
+        chains: list[AttackChain] = []
 
         for goal in CHAIN_GOALS:
             required = set(goal["requires"])
@@ -243,7 +244,7 @@ class ChainAnalyzer:
             if len(pool) < 2:
                 continue
 
-            best: Optional[AttackChain] = None
+            best: AttackChain | None = None
             for size in (2, 3):
                 if len(pool) < size:
                     break

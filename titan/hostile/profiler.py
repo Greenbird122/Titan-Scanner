@@ -11,9 +11,8 @@ adsbygoogle-skimmer FP lesson).
 from __future__ import annotations
 
 import hashlib
-import re
 from html.parser import HTMLParser
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from titan.hostile.detectors import (
@@ -53,8 +52,8 @@ _CATEGORY_WEIGHT = {
 class _LinkExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.loads: List[Dict[str, str]] = []
-        self.navs: List[str] = []
+        self.loads: list[dict[str, str]] = []
+        self.navs: list[str] = []
 
     def handle_starttag(self, tag: str, attrs) -> None:
         attr_map = dict(attrs)
@@ -68,7 +67,7 @@ class _LinkExtractor(HTMLParser):
                 self.navs.append(href)
 
 
-def extract_third_party(html: str, base_url: str) -> Dict[str, List[Dict[str, str]]]:
+def extract_third_party(html: str, base_url: str) -> dict[str, list[dict[str, str]]]:
     """Return {"loads": [...], "navs": [...]} with resolved absolute URLs."""
     parser = _LinkExtractor()
     try:
@@ -95,8 +94,8 @@ def _page_is_https(base_url: str) -> bool:
         return False
 
 
-def analyze(html: str, base_url: str, intel: Optional[IntelDB] = None,
-            observed: Optional[ObservedIntel] = None) -> Dict[str, Any]:
+def analyze(html: str, base_url: str, intel: IntelDB | None = None,
+            observed: ObservedIntel | None = None) -> dict[str, Any]:
     """Produce the monetization profile for one page's HTML.
 
     Returns a dict with ``origins`` (per-host rows), ``counts`` (category
@@ -108,7 +107,7 @@ def analyze(html: str, base_url: str, intel: Optional[IntelDB] = None,
     page_https = _page_is_https(base_url)
     page_host = urlparse(base_url).netloc.lower()
 
-    origins: Dict[str, Dict[str, Any]] = {}
+    origins: dict[str, dict[str, Any]] = {}
     for item in extracted["loads"]:
         url = item["url"]
         host = origin_of(url)
@@ -173,7 +172,7 @@ def analyze(html: str, base_url: str, intel: Optional[IntelDB] = None,
         })
     origin_rows.sort(key=lambda r: (-r["risk_score"], r["host"]))
 
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
     for r in origin_rows:
         cat = r["category"] or "unknown"
         counts[cat] = counts.get(cat, 0) + 1

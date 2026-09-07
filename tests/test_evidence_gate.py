@@ -11,8 +11,6 @@ every affected URL.
 import sys
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -116,8 +114,7 @@ class TestEvidenceGateIntegration:
         phpinfo) appends ``rce:content:<marker>`` — the canonical ``content:``
         marker — so the gate grades it confirmed instead of auto-demoting a
         genuinely verified CRITICAL RCE to unverified MEDIUM."""
-        from titan.verify.oracles import enforce_evidence
-        from titan.verify.oracles import grade_finding
+        from titan.verify.oracles import enforce_evidence, grade_finding
         f = _finding("https://x/cmd?host=test", attack=AttackType.RCE,
                      payload="| id", verified=True, confidence=0.93,
                      diffs=["rce:content:uid=", "rce:content:gid=",

@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class TechFingerprinter:
     def __init__(self):
-        self.fingerprint: Dict[str, Any] = {
+        self.fingerprint: dict[str, Any] = {
             "technologies": [],
             "frameworks": [],
             "languages": [],
@@ -253,7 +251,7 @@ class TechFingerprinter:
         "spark", "unity", "foundation", "project", "workspace", "status",
     }
 
-    async def analyze(self, response_headers: Dict[str, str], body: str, url: str) -> Dict[str, Any]:
+    async def analyze(self, response_headers: dict[str, str], body: str, url: str) -> dict[str, Any]:
         self.fingerprint["headers"] = {k.lower(): v for k, v in response_headers.items()}
         # B2 — reset accumulated lists so repeated analyze() calls can't grow
         # stale/duplicate entries (a fingerprinter instance is reused across
@@ -458,7 +456,7 @@ class TechFingerprinter:
                 self.fingerprint[key] = headers[header]
                 self.fingerprint["technologies"].append(headers[header])
 
-    def _detect_cookies(self, headers: Dict[str, str]):
+    def _detect_cookies(self, headers: dict[str, str]):
         cookie_header = headers.get("set-cookie", "")
         if not cookie_header:
             return

@@ -129,7 +129,7 @@ class TestCLIHelp:
         """main() with a scan argv must dispatch to run_scan (which then
         attempts a real scan — we only assert it gets past dispatch)."""
         import asyncio
-        from titan.cli import run_scan
+
         seen = {}
 
         def fake_run_scan(args):
@@ -174,6 +174,7 @@ class TestCLIHandlers:
     def test_run_status_reads_real_scan(self, tmp_path, monkeypatch, capsys):
         """status must read a real scan file from the findings dir."""
         import json
+
         from titan.cli import run_status
         (tmp_path / "findings").mkdir()
         (tmp_path / "findings" / "scan_real_123.json").write_text(json.dumps({

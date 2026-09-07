@@ -11,18 +11,18 @@ Usage:
     result = await brain.run(budget=300)
 """
 
+from titan.brain.evolution import DetectorModule, EvolutionEngine, Mutation
 from titan.brain.loop import BrainLoop, BrainResult, Probe, ProbeResult
-from titan.brain.evolution import EvolutionEngine, Mutation, DetectorModule
-from titan.brain.strategy import ProbeStrategy, ModuleScore
+from titan.brain.strategy import ModuleScore, ProbeStrategy
 
 __all__ = [
     "BrainLoop",
     "BrainResult",
+    "DetectorModule",
+    "EvolutionEngine",
+    "ModuleScore",
+    "Mutation",
     "Probe",
     "ProbeResult",
-    "EvolutionEngine",
-    "Mutation",
-    "DetectorModule",
     "ProbeStrategy",
-    "ModuleScore",
 ]

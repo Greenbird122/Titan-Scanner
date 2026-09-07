@@ -22,14 +22,13 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import platform
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -442,8 +441,9 @@ class KernelObserver:
     async def _find_process_for_url(self, target_url: str) -> int | None:
         """Try to find the PID serving a URL by checking listening ports."""
         try:
-            import psutil  # type: ignore
             from urllib.parse import urlparse
+
+            import psutil  # type: ignore
 
             parsed = urlparse(target_url)
             port = parsed.port

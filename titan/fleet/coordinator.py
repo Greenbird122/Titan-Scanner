@@ -44,7 +44,7 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any
 
 from titan.fleet.agents import (
     AGENT_CONFIGS,

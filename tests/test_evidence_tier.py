@@ -8,12 +8,10 @@ evidence grade + demotion logic; scoring in the engine only touches
 confirmed findings.
 """
 
-import asyncio
 
-import pytest
 
 from titan.core.models import AttackType, Finding, Severity
-from titan.verify.oracles import enforce_evidence, grade_finding
+from titan.verify.oracles import enforce_evidence
 
 
 def _finding(**overrides):
@@ -159,8 +157,8 @@ def test_summary_has_confirmed_and_suspicious_counts():
 # ---------------------------------------------------------------------------
 
 def test_report_renders_tier_line(tmp_path):
-    from titan.reporting import SiteReportWriter
     from titan.core.models import ScanResult
+    from titan.reporting import SiteReportWriter
 
     findings = [
         _finding(),
@@ -177,9 +175,9 @@ def test_report_renders_tier_line(tmp_path):
 
 
 def test_dashboard_carries_tier_field(tmp_path):
+    from titan.core.models import ScanResult
     from titan.reporting import SiteReportWriter
     from titan.reporting.dashboard import build_dashboard
-    from titan.core.models import ScanResult
 
     findings = [_finding(), _finding(url="http://lab.local/x?id=2", diffs=["reflection"])]
     enforce_evidence(findings)

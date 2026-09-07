@@ -14,11 +14,10 @@ This module tests:
 from __future__ import annotations
 
 import json
-import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -32,7 +31,7 @@ class FirebasePayload:
     expected_effect: str
     severity: Severity
     confidence: float
-    headers: Optional[Dict[str, str]] = None
+    headers: dict[str, str] | None = None
 
 
 class FirebaseTester:
@@ -353,16 +352,16 @@ class FirebaseTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
-        self._firebase_url: Optional[str] = None
-        self._api_key: Optional[str] = None
-        self._project_id: Optional[str] = None
+        self._findings: list[Finding] = []
+        self._firebase_url: str | None = None
+        self._api_key: str | None = None
+        self._project_id: str | None = None
 
     def set_credentials(
         self,
         firebase_url: str,
-        api_key: Optional[str] = None,
-        project_id: Optional[str] = None,
+        api_key: str | None = None,
+        project_id: str | None = None,
     ) -> None:
         """Set Firebase credentials for testing."""
         self._firebase_url = firebase_url
@@ -372,9 +371,9 @@ class FirebaseTester:
     async def test_firestore_rules(
         self,
         target_url: str,
-        collections: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        collections: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Firestore rules."""
         findings = []
 
@@ -417,8 +416,8 @@ class FirebaseTester:
     async def test_auth_settings(
         self,
         target_url: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test authentication settings."""
         findings = []
 
@@ -458,9 +457,9 @@ class FirebaseTester:
     async def test_storage_rules(
         self,
         target_url: str,
-        buckets: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        buckets: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Storage rules."""
         findings = []
 
@@ -502,8 +501,8 @@ class FirebaseTester:
     async def test_realtime_db(
         self,
         target_url: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Realtime Database."""
         findings = []
 
@@ -548,8 +547,8 @@ class FirebaseTester:
         url: str,
         method: str,
         payload: Any,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request and return response."""
         try:
             import aiohttp
@@ -575,7 +574,7 @@ class FirebaseTester:
         except Exception:
             return None
 
-    def _check_firestore_rules(self, response: Dict[str, Any], payload: FirebasePayload) -> bool:
+    def _check_firestore_rules(self, response: dict[str, Any], payload: FirebasePayload) -> bool:
         """Check if Firestore rules were bypassed."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -591,7 +590,7 @@ class FirebaseTester:
 
         return False
 
-    def _check_auth_settings(self, response: Dict[str, Any], payload: FirebasePayload) -> bool:
+    def _check_auth_settings(self, response: dict[str, Any], payload: FirebasePayload) -> bool:
         """Check if auth settings were accessible."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -602,7 +601,7 @@ class FirebaseTester:
 
         return False
 
-    def _check_storage_rules(self, response: Dict[str, Any], payload: FirebasePayload) -> bool:
+    def _check_storage_rules(self, response: dict[str, Any], payload: FirebasePayload) -> bool:
         """Check if Storage rules were bypassed."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -613,7 +612,7 @@ class FirebaseTester:
 
         return False
 
-    def _check_realtime_db(self, response: Dict[str, Any], payload: FirebasePayload) -> bool:
+    def _check_realtime_db(self, response: dict[str, Any], payload: FirebasePayload) -> bool:
         """Check if Realtime Database was accessible."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -624,6 +623,6 @@ class FirebaseTester:
 
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings from this tester."""
         return self._findings

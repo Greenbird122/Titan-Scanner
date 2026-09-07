@@ -8,9 +8,6 @@ ad-heavy-stack patterns are the reference fixtures.
 
 import asyncio
 import json
-from pathlib import Path
-
-import pytest
 
 from titan.core.models import AttackType, ScanResult
 from titan.hostile import offense, profiler, run_pass

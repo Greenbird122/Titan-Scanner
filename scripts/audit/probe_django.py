@@ -19,11 +19,11 @@ import json
 import os
 import re
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from consent import load_consent  # noqa: E402
+from consent import load_consent
 
 
 def http(method, url, data=None, token=None, timeout=20):

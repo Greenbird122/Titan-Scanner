@@ -11,8 +11,6 @@ import asyncio
 import sys
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -189,8 +187,8 @@ class TestM3ProfileGate:
 
 class TestM3SkimmerGate:
     async def _scan(self, evaluate_results):
-        from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
         from tests.test_clientside import FakePage, StubSmith
+        from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
         page = FakePage(evaluate_results={"document.querySelectorAll('script[src]')": evaluate_results})
         return await ThirdPartyDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/", {})
 

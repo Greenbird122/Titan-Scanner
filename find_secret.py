@@ -1,6 +1,6 @@
 import re
 
-with open('C:/Users/HomePC/AppData/Local/Temp/blink_main_check.js', 'r', encoding='utf-8') as f:
+with open('C:/Users/HomePC/AppData/Local/Temp/blink_main_check.js', encoding='utf-8') as f:
     content = f.read()
 
 # Find the createClient initialization code
@@ -11,7 +11,7 @@ if idx >= 0:
     print("=== Context around createClient ===")
     print(context[:500])
     print("\n=== Searching for potential secrets ===")
-    
+
     # Find any quoted strings that look like secrets (long base64, hex strings)
     secrets = re.findall(r'["\']([A-Za-z0-9+/=_\-]{40,})["\']', context)
     for s in set(secrets):

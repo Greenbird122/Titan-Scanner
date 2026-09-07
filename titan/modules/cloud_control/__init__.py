@@ -9,6 +9,6 @@ Components:
 """
 
 from titan.modules.cloud_control.detector import CloudControlDetector
-from titan.modules.cloud_control.imds import IMDSProber, IMDSReport, IMDSEndpoint
+from titan.modules.cloud_control.imds import IMDSEndpoint, IMDSProber, IMDSReport
 
-__all__ = ["CloudControlDetector", "IMDSProber", "IMDSReport", "IMDSEndpoint"]
+__all__ = ["CloudControlDetector", "IMDSEndpoint", "IMDSProber", "IMDSReport"]

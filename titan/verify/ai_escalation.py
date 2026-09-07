@@ -33,7 +33,7 @@ import asyncio
 import json
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.core.models import Finding, Severity
 
@@ -87,7 +87,7 @@ def severity_meets_min(severity: Severity, min_severity: str) -> bool:
     return _severity_rank(severity) >= _severity_rank(threshold)
 
 
-def should_escalate(finding: Finding, ai_config: Dict[str, Any]) -> bool:
+def should_escalate(finding: Finding, ai_config: dict[str, Any]) -> bool:
     """Gate: is this finding worth a model call?"""
     gate = ai_config.get("escalate", {})
     if not ai_config.get("enabled", True):
@@ -105,7 +105,7 @@ def should_escalate(finding: Finding, ai_config: Dict[str, Any]) -> bool:
     return True
 
 
-def parse_verdict(text: str) -> Optional[Dict[str, Any]]:
+def parse_verdict(text: str) -> dict[str, Any] | None:
     """Extract a structured verdict from model output; None on any failure.
 
     Tolerates markdown fences and prose around the JSON object.
@@ -147,7 +147,7 @@ def parse_verdict(text: str) -> Optional[Dict[str, Any]]:
 class AIEscalator:
     """Escalate ambiguous high-value findings to a model for a strict verdict."""
 
-    def __init__(self, ai_config: Dict[str, Any], client: Any = None):
+    def __init__(self, ai_config: dict[str, Any], client: Any = None):
         self.config = ai_config or {}
         self.gate = self.config.get("escalate", {})
         self._client = client
@@ -197,7 +197,7 @@ RULES:
 5. Return ONLY this JSON, nothing else:
 {{"verdict": "confirmed|rejected|inconclusive", "confidence": 0.0, "reason": "one short sentence"}}"""
 
-    async def escalate(self, findings: List[Finding]) -> Dict[str, Any]:
+    async def escalate(self, findings: list[Finding]) -> dict[str, Any]:
         report = {
             "enabled": bool(self.gate.get("enabled", False)),
             "available": self.available,
@@ -258,7 +258,7 @@ RULES:
         self,
         finding: Finding,
         verdict: str,
-        ai_confidence: Optional[float],
+        ai_confidence: float | None,
         reason: str,
     ) -> None:
         finding.metadata["ai_escalation"] = {

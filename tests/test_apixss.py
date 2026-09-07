@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-import pytest
 from flask import Flask
 
 ROOT = Path(__file__).resolve().parent.parent

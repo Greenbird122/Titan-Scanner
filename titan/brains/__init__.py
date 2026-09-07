@@ -18,18 +18,18 @@ class PlatformBrain(ABC):
     """Base class for platform-specific scanner brains."""
 
     name: str = "generic"
-    fingerprint_markers: List[str] = []
+    fingerprint_markers: list[str] = []
 
     @abstractmethod
-    def match(self, fingerprint: Dict[str, Any], html: str, headers: Dict[str, str]) -> float:
+    def match(self, fingerprint: dict[str, Any], html: str, headers: dict[str, str]) -> float:
         """Return confidence 0.0-1.0 that this platform is present."""
 
     @abstractmethod
-    def extra_seed_urls(self, base_url: str) -> List[str]:
+    def extra_seed_urls(self, base_url: str) -> list[str]:
         """Paths the crawler should always probe for this platform."""
 
     @abstractmethod
-    def extra_parameters(self) -> List[str]:
+    def extra_parameters(self) -> list[str]:
         """Parameter names worth fuzzing that are platform-specific."""
 
     @abstractmethod
@@ -41,12 +41,12 @@ class BrainRegistry:
     """Holds all registered platform brains and selects the best match."""
 
     def __init__(self) -> None:
-        self._brains: List[PlatformBrain] = []
+        self._brains: list[PlatformBrain] = []
 
     def register(self, brain: PlatformBrain) -> None:
         self._brains.append(brain)
 
-    def select(self, fingerprint: Dict[str, Any], html: str, headers: Dict[str, str]) -> Optional[PlatformBrain]:
+    def select(self, fingerprint: dict[str, Any], html: str, headers: dict[str, str]) -> PlatformBrain | None:
         best, best_score = None, 0.0
         for brain in self._brains:
             try:

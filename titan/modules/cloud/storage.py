@@ -22,13 +22,14 @@ Discipline:
 from __future__ import annotations
 
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from titan.core.models import AttackType, Finding, Severity
 
 # Bucket reference shapes found inside scan evidence, tagged with provider.
 # Each pattern's group(1) is the bucket name (or container name).
-_BUCKET_PATTERNS: List[Tuple[str, re.Pattern]] = [
+_BUCKET_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("s3", re.compile(r"https?://([a-z0-9][a-z0-9.\-]*)\.s3[.\-]([a-z0-9\-]+\.)?amazonaws\.com", re.IGNORECASE)),
     ("gcs", re.compile(r"https?://storage\.googleapis\.com/([a-z0-9][a-z0-9._\-]*)", re.IGNORECASE)),
     ("azure", re.compile(r"https?://([a-z0-9][a-z0-9.\-]*)\.blob\.core\.windows\.net", re.IGNORECASE)),
@@ -53,11 +54,11 @@ _MAX_BUCKETS = 3
 _TIMEOUT = 8
 
 
-def extract_bucket_refs(findings: List[Finding]) -> List[Tuple[str, str]]:
+def extract_bucket_refs(findings: list[Finding]) -> list[tuple[str, str]]:
     """(bucket, provider) references found inside scan evidence (bodies,
     payloads, metadata values). Deduped by bucket name, ordered by first
     appearance."""
-    refs: List[Tuple[str, str]] = []
+    refs: list[tuple[str, str]] = []
     seen = set()
     for f in findings:
         haystacks = [
@@ -96,26 +97,25 @@ class StorageProbe:
 
     def __init__(
         self,
-        fetcher: Optional[Callable[[str], Any]] = None,
+        fetcher: Callable[[str], Any] | None = None,
         max_buckets: int = _MAX_BUCKETS,
     ):
         self._fetcher = fetcher
         self.max_buckets = max_buckets
 
-    async def _fetch(self, url: str) -> Tuple[int, str]:
+    async def _fetch(self, url: str) -> tuple[int, str]:
         if self._fetcher is not None:
             return await self._fetcher(url)
         try:
             import aiohttp
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=_TIMEOUT) as resp:
-                    body = await resp.text()
-                    return resp.status, body
+            async with aiohttp.ClientSession() as session, session.get(url, timeout=_TIMEOUT) as resp:
+                body = await resp.text()
+                return resp.status, body
         except Exception:
             return 0, ""
 
-    async def scan(self, target: str, findings: List[Finding]) -> List[Finding]:
-        results: List[Finding] = []
+    async def scan(self, target: str, findings: list[Finding]) -> list[Finding]:
+        results: list[Finding] = []
         for bucket, provider in extract_bucket_refs(findings)[: self.max_buckets]:
             url = _listing_url(bucket, provider)
             status, body = await self._fetch(url)

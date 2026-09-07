@@ -15,12 +15,12 @@ __version__ = "1.0.0"
 __author__ = "Titan Security Lab"
 
 from titan.core.engine import TitanEngine
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 __all__ = [
-    "TitanEngine",
+    "AttackType",
     "Finding",
     "Severity",
-    "AttackType",
+    "TitanEngine",
     "__version__",
 ]

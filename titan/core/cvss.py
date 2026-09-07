@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any
 
-from titan.core.models import Severity, AttackType
+from titan.core.models import AttackType, Severity
 
 
 class CVSSScorer:
-    ATTACK_TYPE_BASE_SCORES: Dict[AttackType, float] = {
+    ATTACK_TYPE_BASE_SCORES: dict[AttackType, float] = {
         AttackType.SQLI: 9.0,
         AttackType.XSS: 6.1,
         AttackType.SSRF: 9.0,
@@ -38,7 +38,7 @@ class CVSSScorer:
     UNVERIFIED_PENALTY = 0.7
 
     @classmethod
-    def score(cls, finding) -> Dict[str, Any]:
+    def score(cls, finding) -> dict[str, Any]:
         base = cls.ATTACK_TYPE_BASE_SCORES.get(finding.attack_type, 5.0)
 
         if finding.verified:

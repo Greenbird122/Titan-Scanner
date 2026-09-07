@@ -8,7 +8,6 @@ the vulnerabilities the lab was built to contain.
 import asyncio
 import sys
 from pathlib import Path
-from types import SimpleNamespace
 from urllib.parse import urlparse
 
 import pytest
@@ -18,7 +17,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from local_lab.app import app as lab_app
-
 from titan.ai.payloadforge import PayloadForge
 from titan.core.models import AttackType
 from titan.modules.idor.detector import IDORDetector

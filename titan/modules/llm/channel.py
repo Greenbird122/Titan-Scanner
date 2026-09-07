@@ -11,26 +11,26 @@ error (a broken endpoint is a non-finding, never a scan failure).
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 DEFAULT_TIMEOUT = 15
 
 
 class LLMChannel:
-    def __init__(self, timeout: float = DEFAULT_TIMEOUT, model: str = "gpt-4o-mini", headers: Optional[Dict[str, str]] = None):
+    def __init__(self, timeout: float = DEFAULT_TIMEOUT, model: str = "gpt-4o-mini", headers: dict[str, str] | None = None):
         self.timeout = timeout
         self.model = model
         self.headers = {"Content-Type": "application/json"}
         if headers:
             self.headers.update(headers)
-        self.requests: List[Dict[str, Any]] = []  # recorded probes (test hook)
+        self.requests: list[dict[str, Any]] = []  # recorded probes (test hook)
 
     async def converse(self, endpoint: str, user_text: str, system_text: str = "") -> str:
         """Send one user message (plus optional system context) and return the
         model's raw text reply, or "" on any failure. ``system_text`` lets the
         exfil/indirect-injection probes plant a poisoned context the same way
         a RAG pipeline would receive it."""
-        messages: List[Dict[str, str]] = []
+        messages: list[dict[str, str]] = []
         if system_text:
             messages.append({"role": "system", "content": system_text})
         messages.append({"role": "user", "content": user_text})
@@ -52,7 +52,7 @@ class LLMChannel:
             return text
         return ""
 
-    async def _post_json(self, endpoint: str, payload: Dict[str, Any], prefer: str = "") -> Optional[str]:
+    async def _post_json(self, endpoint: str, payload: dict[str, Any], prefer: str = "") -> str | None:
         try:
             import aiohttp
             async with aiohttp.ClientSession() as session:

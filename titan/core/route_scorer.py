@@ -10,9 +10,8 @@ Score scale: 0 (skip) → 10 (critical priority)
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
-
 
 # ── Pattern banks ──────────────────────────────────────────────────────
 
@@ -62,11 +61,11 @@ _STATE_CHANGING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 def score_url(
     url: str,
-    forms: Optional[List[Dict[str, Any]]] = None,
-    params: Optional[List[str]] = None,
+    forms: list[dict[str, Any]] | None = None,
+    params: list[str] | None = None,
     method: str = "GET",
     depth: int = 0,
-    technologies: Optional[List[str]] = None,
+    technologies: list[str] | None = None,
 ) -> int:
     """Score a URL by its attack value (0-10).
 
@@ -161,7 +160,7 @@ def should_run_expensive_modules(score: int) -> bool:
     return score >= 3
 
 
-def sort_queue(queue: List[tuple], technologies: Optional[List[str]] = None) -> List[tuple]:
+def sort_queue(queue: list[tuple], technologies: list[str] | None = None) -> list[tuple]:
     """Sort a crawl queue by attack-value score (highest first).
 
     Args:

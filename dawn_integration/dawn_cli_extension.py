@@ -25,8 +25,6 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime
-from typing import List, Optional
 
 
 def _scan_target(raw: str) -> str:
@@ -91,7 +89,7 @@ def cmd_scan(target: str, config_path: str = "config.yaml") -> str:
         return f"ERROR: scan failed: {exc}"
 
 
-def cmd_findings(target: Optional[str] = None, days: int = 7) -> str:
+def cmd_findings(target: str | None = None, days: int = 7) -> str:
     memory = _get_dawn_memory()
     if memory is None:
         return "ERROR: Dawn memory unavailable"
@@ -107,7 +105,7 @@ def cmd_findings(target: Optional[str] = None, days: int = 7) -> str:
     return "\n".join(lines)
 
 
-def cmd_vulns(severity: Optional[str] = None, target: Optional[str] = None, days: int = 7) -> str:
+def cmd_vulns(severity: str | None = None, target: str | None = None, days: int = 7) -> str:
     memory = _get_dawn_memory()
     if memory is None:
         return "ERROR: Dawn memory unavailable"

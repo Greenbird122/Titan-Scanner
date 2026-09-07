@@ -5,14 +5,14 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from titan.ai.payloadforge import PayloadForge
 
 
 class PayloadSmith:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self._client = None
         self.forge = PayloadForge()
@@ -73,14 +73,14 @@ class PayloadSmith:
         # per-call timeout still bounds it.
         return True
 
-    async def _call_chat(self, session, prompt: str) -> List[Dict[str, Any]]:
+    async def _call_chat(self, session, prompt: str) -> list[dict[str, Any]]:
         # chat_completion is synchronous/streaming — run it in a thread so
         # asyncio.wait_for can actually interrupt a slow provider.
         return await asyncio.to_thread(
             lambda: list(self._client.chat_completion(session, prompt))
         )
 
-    async def mutate(self, base_payloads: List[str], context: Dict[str, Any]) -> List[str]:
+    async def mutate(self, base_payloads: list[str], context: dict[str, Any]) -> list[str]:
         if not self._client:
             return base_payloads
         if not await self._provider_available():
@@ -115,32 +115,32 @@ class PayloadSmith:
         except Exception:
             return base_payloads
 
-    def get_base_payloads(self, attack_type: str, context: Dict[str, Any]) -> List[str]:
+    def get_base_payloads(self, attack_type: str, context: dict[str, Any]) -> list[str]:
         return self.forge.get_context_payloads(attack_type, context)
 
-    def get_waf_bypass_payloads(self, base_payloads: List[str], waf: str = "unknown") -> List[str]:
+    def get_waf_bypass_payloads(self, base_payloads: list[str], waf: str = "unknown") -> list[str]:
         return self.forge.get_waf_bypass_payloads(base_payloads, waf)
 
-    def get_encoded_payloads(self, payload: str, encoding: str = "all") -> List[str]:
+    def get_encoded_payloads(self, payload: str, encoding: str = "all") -> list[str]:
         return self.forge.get_encoded_payloads(payload, encoding)
 
-    def detect_waf(self, headers: Dict[str, str], body: str, status: int) -> Optional[str]:
+    def detect_waf(self, headers: dict[str, str], body: str, status: int) -> str | None:
         return self.forge.detect_waf(headers, body, status)
 
-    def get_polyglot_uploads(self, file_type: str = "all") -> List[Dict[str, Any]]:
+    def get_polyglot_uploads(self, file_type: str = "all") -> list[dict[str, Any]]:
         return self.forge.get_polyglot_uploads(file_type)
 
-    def get_oob_callbacks(self, count: int = 5) -> List[str]:
+    def get_oob_callbacks(self, count: int = 5) -> list[str]:
         return self.forge.get_oob_callbacks(count)
 
     def _build_mutation_prompt(
         self,
-        base_payloads: List[str],
-        fingerprint: Dict[str, Any],
+        base_payloads: list[str],
+        fingerprint: dict[str, Any],
         attack_type: str,
         param_type: str,
         location: str,
-        previous_responses: List[str],
+        previous_responses: list[str],
     ) -> str:
         tech_stack = ", ".join(fingerprint.get("technologies", [])[:10]) or "unknown"
         frameworks = ", ".join(fingerprint.get("frameworks", [])[:10]) or "unknown"
@@ -178,7 +178,7 @@ RULES:
 
 MUTATED PAYLOADS:"""
 
-    async def generate_exploit_chain(self, findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def generate_exploit_chain(self, findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not self._client or not findings:
             return []
 

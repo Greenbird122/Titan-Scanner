@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from aiohttp import web
 
-from titan.archive import ArchiveError, SiteArchiver, archive_site
+from titan.archive import SiteArchiver, archive_site
 from titan.exploit.consent import ConsentError, create_consent, write_consent
 
 

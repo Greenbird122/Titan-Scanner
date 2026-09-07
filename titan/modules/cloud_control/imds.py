@@ -23,10 +23,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 

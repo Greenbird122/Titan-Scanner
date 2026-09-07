@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +41,9 @@ class RoleCapabilities:
     can_manage_content: bool = False
     can_manage_payments: bool = False
     can_view_analytics: bool = False
-    paths: Set[str] = field(default_factory=set)
+    paths: set[str] = field(default_factory=set)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "role": self.role.value,
             "can_read_users": self.can_read_users,
@@ -60,7 +60,7 @@ class RoleCapabilities:
 
 # Heuristic role→capability map.  Real capability is inferred from observed
 # access during the crawl, not from the role string alone.
-_ROLE_CAPABILITY_HINTS: Dict[str, RoleCapabilities] = {
+_ROLE_CAPABILITY_HINTS: dict[str, RoleCapabilities] = {
     "admin": RoleCapabilities(
         role=Role.ADMIN,
         can_read_users=True,
@@ -101,10 +101,10 @@ class RoleAwareScanner:
     def __init__(self) -> None:
         self._role: Role = Role.ANON
         self._capabilities: RoleCapabilities = RoleCapabilities(role=Role.ANON)
-        self._observed_paths: Set[str] = set()
-        self._role_token_names: Set[str] = set()
+        self._observed_paths: set[str] = set()
+        self._role_token_names: set[str] = set()
 
-    def record_role(self, role_name: Optional[str]) -> None:
+    def record_role(self, role_name: str | None) -> None:
         if not role_name:
             return
         key = str(role_name).lower().strip()
@@ -187,7 +187,7 @@ class RoleAwareScanner:
                 finding.confidence = max(0.1, getattr(finding, "confidence", 0.5) - 0.2)
                 return
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "role": self._role.value,
             "capabilities": self._capabilities.to_dict(),

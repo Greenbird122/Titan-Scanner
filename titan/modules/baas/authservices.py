@@ -12,12 +12,10 @@ This module tests:
 from __future__ import annotations
 
 import json
-import re
-import base64
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -31,7 +29,7 @@ class AuthPayload:
     expected_effect: str
     severity: Severity
     confidence: float
-    headers: Optional[Dict[str, str]] = None
+    headers: dict[str, str] | None = None
 
 
 class AuthServicesTester:
@@ -439,14 +437,14 @@ class AuthServicesTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_auth0(
         self,
         target_url: str,
         auth0_domain: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Auth0 configuration."""
         findings = []
 
@@ -489,8 +487,8 @@ class AuthServicesTester:
         self,
         target_url: str,
         clerk_domain: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Clerk configuration."""
         findings = []
 
@@ -532,8 +530,8 @@ class AuthServicesTester:
         target_url: str,
         auth_endpoint: str,
         token_endpoint: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test OAuth flow abuse."""
         findings = []
 
@@ -579,8 +577,8 @@ class AuthServicesTester:
         self,
         target_url: str,
         auth_endpoint: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test MFA bypass."""
         findings = []
 
@@ -624,8 +622,8 @@ class AuthServicesTester:
         url: str,
         method: str,
         payload: Any,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request."""
         try:
             import aiohttp
@@ -643,7 +641,7 @@ class AuthServicesTester:
         except Exception:
             return None
 
-    def _check_auth_response(self, response: Dict[str, Any], payload: AuthPayload) -> bool:
+    def _check_auth_response(self, response: dict[str, Any], payload: AuthPayload) -> bool:
         """Check if auth endpoint responded with useful data."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -672,6 +670,6 @@ class AuthServicesTester:
 
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings."""
         return self._findings

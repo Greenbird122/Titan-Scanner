@@ -7,7 +7,6 @@ installed package.  This wrapper fixes the path BEFORE any titan import.
 
 from __future__ import annotations
 
-import importlib
 import os
 import sys
 

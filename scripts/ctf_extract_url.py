@@ -9,7 +9,6 @@ Single-quoted patterns work. LIKE / comparisons are CASE-INSENSITIVE by
 default, so we binary-search the character (case-insensitively) and then
 determine exact case via = (LIKE BINARY). Last resort: fetch works anyway.
 """
-import sys
 import time
 import urllib.error
 import urllib.parse
