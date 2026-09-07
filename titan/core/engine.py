@@ -332,7 +332,8 @@ class TitanEngine(TransportMixin):
             out_dir = Path(self.config.get("output_dir", "findings"))
             p = out_dir / _slug(target) / "intel.json"
             if p.exists():
-                return _json.loads(p.read_text(encoding="utf-8"))
+                parsed: dict[str, Any] = _json.loads(p.read_text(encoding="utf-8"))
+                return parsed
         except Exception:
             pass
         return None
@@ -1377,9 +1378,11 @@ class TitanEngine(TransportMixin):
                 qs = parse_qs(parsed.query, keep_blank_values=True)
                 if finding.param in qs:
                     qs[finding.param] = [variant]
-                return urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
+                rebuilt: str = urlunparse(parsed._replace(query=urlencode(qs, doseq=True)))
+                return rebuilt
             elif finding.location == "path":
-                return finding.url.replace(finding.param, quote(variant, safe=""))
+                replaced: str = finding.url.replace(finding.param, quote(variant, safe=""))
+                return replaced
             return None
         except Exception:
             return None
@@ -1910,7 +1913,9 @@ class TitanEngine(TransportMixin):
                 cookies = auth_cfg["cookies"]
                 if isinstance(cookies, dict):
                     for name, value in cookies.items():
-                        await _api_context.add_cookies([
+                        # add_cookies is part of the Playwright API; mypy
+                        # resolves p.request to a stub without it.
+                        await _api_context.add_cookies([  # type: ignore[attr-defined]
                             {"name": str(name), "value": str(value), "url": target}
                         ])
             except Exception:

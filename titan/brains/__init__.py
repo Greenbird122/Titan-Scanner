@@ -56,3 +56,9 @@ class BrainRegistry:
             if score > best_score:
                 best, best_score = brain, score
         return best if best_score >= 0.5 else None
+
+
+# Imported last to avoid a circular import: moodle.py does
+# `from titan.brains import PlatformBrain` at module load, so it must run
+# after PlatformBrain is defined above.
+from titan.brains.moodle import MoodleBrain
