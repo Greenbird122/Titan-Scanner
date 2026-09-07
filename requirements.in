@@ -10,3 +10,4 @@ PyJWT
 cryptography
 pytest
 pytest-asyncio
+backports-asyncio-runner==1.2.0 ; python_version < "3.11"

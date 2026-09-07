@@ -14,7 +14,7 @@ async-timeout==5.0.1
     # via aiohttp
 attrs==26.1.0
     # via aiohttp
-backports-asyncio-runner==1.2.0
+backports-asyncio-runner==1.2.0 ; python_version < "3.11"
     # via pytest-asyncio
 blinker==1.9.0
     # via flask
