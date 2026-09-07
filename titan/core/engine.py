@@ -125,6 +125,7 @@ class TitanEngine(TransportMixin):
     # ==================================================================
 
     def _is_in_scope(self, url: str) -> bool:
+        """Fail-closed scope check: no target means nothing is in scope."""
         try:
             parsed = urlparse(url)
             hostname = parsed.hostname or ""
@@ -132,10 +133,12 @@ class TitanEngine(TransportMixin):
                 self._scan_target or self.config.get("target", "")
             ).hostname or ""
             if not target_hostname:
-                return True
+                return False
+            if not hostname:
+                return False
             return hostname == target_hostname or hostname.endswith("." + target_hostname)
         except Exception:
-            return True
+            return False
 
     def _is_spa_shell(self, url: str) -> bool:
         return "#" in url

@@ -27,8 +27,15 @@ from titan.core.models import AttackType, Finding, ScanResult, Severity
 
 
 def _engine() -> TitanEngine:
-    """Minimal engine with near-zero stealth delay so tests don't sleep."""
-    return TitanEngine({"stealth": {"min_delay": 0.01, "max_delay": 0.01}})
+    """Minimal engine with near-zero stealth delay so tests don't sleep.
+
+    target is set so the localhost:5000 fixtures stay in scope — the scope
+    check fails closed (no target = nothing in scope).
+    """
+    return TitanEngine({
+        "target": "http://localhost:5000",
+        "stealth": {"min_delay": 0.01, "max_delay": 0.01},
+    })
 
 
 def _dedupe(findings):

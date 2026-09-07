@@ -81,8 +81,8 @@ class TestM3ProfileGate:
         never be enumerated for a fast-profile scan — only the JS route-table
         enumeration (content-derived) runs, and this fake page has none."""
         from titan.core.engine import TitanEngine
-        e_fast = TitanEngine({"crawl": {}, "ai": {}, "modules": {}})
-        e_deep = TitanEngine({"crawl": {"profile": "deep"}, "ai": {}, "modules": {}})
+        e_fast = TitanEngine({"target": "https://weather.co.ke", "crawl": {}, "ai": {}, "modules": {}})
+        e_deep = TitanEngine({"target": "https://weather.co.ke", "crawl": {"profile": "deep"}, "ai": {}, "modules": {}})
 
         async def run(e):
             return await e._crawl_spa_routes(None, _FakePage(), "https://weather.co.ke/kenya/")
