@@ -35,6 +35,7 @@ from titan.core.helpers import (
 )
 from titan.core.crawl import Crawler
 from titan.core.modules_runner import ModuleRunner
+from titan.core.transport_mixin import TransportMixin
 from titan.ai.payloadsmith import PayloadSmith
 from titan.integrations.interactsh import InteractshClient
 from titan.core.auth import AuthEngine
@@ -46,7 +47,7 @@ from titan.verify.flows import apply_flows
 from titan.verify.role_aware import RoleAwareScanner
 
 
-class TitanEngine:
+class TitanEngine(TransportMixin):
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.fingerprinter = TechFingerprinter()
@@ -118,44 +119,6 @@ class TitanEngine:
         # Sub-engines (delegates)
         self._crawler = Crawler(self)
         self._modules = ModuleRunner(self)
-
-    # ==================================================================
-    # Transport abstraction
-    # ==================================================================
-
-    async def _ensure_transport(self) -> None:
-        if self._transport_ready:
-            return
-        try:
-            from titan.transport import TransportRegistry
-            self._transport_registry = TransportRegistry()
-            await self._transport_registry.auto_register()
-            self._transport_http = self._transport_registry.get("http")
-            self._transport_ready = True
-            avail = self._transport_registry.available
-            print(f"[+] Transport layer ready: {', '.join(avail)}")
-        except Exception as exc:
-            print(f"[!] Transport layer init failed (continuing without): {exc}")
-            self._transport_ready = True
-
-    async def _transport_send(
-        self, url: str, method: str = "GET",
-        headers: dict[str, str] | None = None,
-        body: Any = None, params: dict[str, str] | None = None,
-        timeout: float = 15.0,
-    ) -> Any | None:
-        await self._ensure_transport()
-        if not self._transport_http:
-            return None
-        try:
-            from titan.transport import AttackRequest, RequestMethod
-            _method = RequestMethod(method.upper())
-            return await self._transport_http.send(AttackRequest(
-                url=url, method=_method, headers=headers or {},
-                body=body, params=params, timeout=timeout,
-            ))
-        except Exception:
-            return None
 
     # ==================================================================
     # Scope & authorization
@@ -438,11 +401,7 @@ class TitanEngine:
                 print(f"[!] Failed to write site report: {exc}")
 
         # Transport cleanup
-        try:
-            if self._transport_http and hasattr(self._transport_http, "close"):
-                await self._transport_http.close()
-        except Exception:
-            pass
+        await self._close_transport()
 
         return result
 

@@ -314,3 +314,47 @@ class TestTransportFallback:
 
         result = await engine._transport_send("https://example.com")
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Extracted TransportMixin (titan/core/transport_mixin.py)
+# ---------------------------------------------------------------------------
+
+class TestTransportMixin:
+    """Cover the transport helpers extracted out of TitanEngine."""
+
+    def _engine(self):
+        from titan.core.engine import TitanEngine
+        return TitanEngine({"crawl": {"profile": "fast"}})
+
+    def test_mixin_public_surface_intact(self):
+        """The engine still exposes the extracted transport methods."""
+        engine = self._engine()
+        assert hasattr(engine, "_ensure_transport")
+        assert hasattr(engine, "_transport_send")
+        assert hasattr(engine, "_close_transport")
+
+    @pytest.mark.asyncio
+    async def test_ensure_transport_short_circuits_when_ready(self):
+        """No re-init when transport is already marked ready."""
+        engine = self._engine()
+        engine._transport_ready = True
+        engine._transport_registry = None
+        await engine._ensure_transport()
+        assert engine._transport_registry is None  # untouched -> short-circuit
+
+    @pytest.mark.asyncio
+    async def test_close_transport_closes_when_available(self):
+        """_close_transport delegates to the transport's close()."""
+        engine = self._engine()
+        mock_http = AsyncMock()
+        engine._transport_http = mock_http
+        await engine._close_transport()
+        mock_http.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_close_transport_tolerates_missing_transport(self):
+        """No crash when no HTTP transport is present."""
+        engine = self._engine()
+        engine._transport_http = None
+        await engine._close_transport()  # must not raise
