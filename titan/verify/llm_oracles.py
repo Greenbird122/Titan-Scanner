@@ -153,8 +153,10 @@ def best_evidence(trial_results: List[Dict[str, Any]]) -> str:
     else the first non-empty evidence)."""
     for t in trial_results:
         if t.get("compliance") and t.get("evidence"):
-            return t["evidence"]
+            evidence: str = t["evidence"]
+            return evidence
     for t in trial_results:
         if t.get("evidence"):
-            return t["evidence"]
+            evidence = t["evidence"]
+            return evidence
     return "no-evidence"

@@ -204,8 +204,8 @@ class TitanLogger:
     def get_summary(self) -> Dict[str, Any]:
         """Get log summary."""
         total = len(self._entries)
-        by_level = {}
-        by_category = {}
+        by_level: Dict[str, int] = {}
+        by_category: Dict[str, int] = {}
         for entry in self._entries:
             by_level[entry.level] = by_level.get(entry.level, 0) + 1
             by_category[entry.category] = by_category.get(entry.category, 0) + 1

@@ -132,13 +132,14 @@ class ConfigManager:
         """Convert dict to YAML string."""
         try:
             import yaml
-            return yaml.dump(data, default_flow_style=False)
+            yaml_text: str = yaml.dump(data, default_flow_style=False)
+            return yaml_text
         except ImportError:
             return self._simple_yaml_dump(data)
 
     def _parse_simple_yaml(self, content: str) -> Dict[str, Any]:
         """Parse simple YAML without PyYAML."""
-        result = {}
+        result: Dict[str, Any] = {}
         current_key = None
         for line in content.split("\n"):
             stripped = line.strip()
