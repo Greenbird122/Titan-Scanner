@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any
 
 from titan.core.crawl import _noop_api_probe, _noop_methods_probe, _noop_params_probe

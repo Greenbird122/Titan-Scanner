@@ -13,6 +13,7 @@ This module:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -441,7 +442,7 @@ class ParameterFuzzer:
         status = response.get("status", 0)
         body = response.get("body", "")
         baseline_body = baseline.get("body", "")
-        baseline_status = baseline.get("status", 0)
+        baseline.get("status", 0)
 
         # Must be successful
         if status not in (200, 201, 202):

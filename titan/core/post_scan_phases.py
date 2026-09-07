@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from titan.core.logger import get_logger
+from titan.core.models import Finding
 
 logger = get_logger("post_scan_phases")
 

@@ -338,7 +338,7 @@ def is_echo_differential(test_body: str, opp_body: str, payload: str, opposite: 
     def _is_echo_only(a_val: Any, b_val: Any) -> bool:
         """Recursively check whether every value difference between ``a_val``
         and ``b_val`` is attributable to the payload/opposite strings."""
-        if type(a_val) != type(b_val):
+        if type(a_val) is not type(b_val):
             return False
         if isinstance(a_val, dict):
             if set(a_val.keys()) != set(b_val.keys()):

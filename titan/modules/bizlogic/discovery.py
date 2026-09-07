@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
+import aiohttp
+
 
 @dataclass
 class DiscoveredEndpoint:
@@ -288,7 +290,7 @@ class EndpointDiscovery:
         try:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                 status = resp.status
-                body = await resp.text()
+                await resp.text()
 
                 # If not 404/405/500, it's likely real
                 if status not in (404, 405, 500, 502, 503):
