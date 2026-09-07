@@ -560,7 +560,7 @@ services:
     build: ./api
     command: celery -A worker worker -l info
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/titan
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/titan  # pragma: allowlist secret
       - REDIS_URL=redis://redis:6379/0
 
   dashboard:
