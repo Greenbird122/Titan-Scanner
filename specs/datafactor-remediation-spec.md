@@ -128,6 +128,15 @@ Update `.github/workflows/tests.yml` install steps to install from the committed
 lockfile rather than from the unpinned `requirements.txt`. Keep the existing
 `pip install -e .` so the package remains editable in CI.
 
+**Dependency bot (from DataFactor feedback email):** add `.github/dependabot.yml`
+configuring the pip ecosystem on a weekly schedule, so the lockfile stays
+current without manual tracking.
+
+**Secret scanning (from DataFactor feedback email):** add a CI step running
+`pip install detect-secrets && detect-secrets scan` in the lint job of
+`.github/workflows/tests.yml` (or a pre-commit hook), so a re-introduced
+literal fails the build instead of silently shipping again.
+
 **Verification after step 2:**
 
 ```bash
@@ -231,6 +240,8 @@ Goal: CI mypy step fails on a real type error and passes on the current code.
 ## Step 5 — structured logging for engine ops (medium impact, no scan logic loss)
 
 **Current:** `titan/core/engine.py` emits operational status via `print(...)`.
+The DataFactor feedback email names three files: `titan/core/engine.py`,
+`titan/core/waf.py`, and `titan/reporting/__init__.py`.
 
 **Edits:**
 
@@ -241,7 +252,9 @@ Goal: CI mypy step fails on a real type error and passes on the current code.
 2. In `titan/core/engine.py`, replace the operational `print(...)` calls that report
    transport readiness, scan lifecycle, page processing progress, and report write
    status with `logger.info` / `logger.warning` calls from the new helper.
-3. Leave CLI-facing output alone where it is intentionally human-readable; this step
+3. Apply the same migration to the operational prints in `titan/core/waf.py` and
+   `titan/reporting/__init__.py` where they report scan/verification progress.
+4. Leave CLI-facing output alone where it is intentionally human-readable; this step
    is about *operational* signals, not about silencing every print in the project.
 
 **Tests to add:**
@@ -293,9 +306,20 @@ documented as such.
 - the disclosure email or contact path you actually want researchers to use;
 - the consent/ownership model in one paragraph;
 - what is in scope vs out of scope for testing Titan itself;
+- a one-paragraph threat model (what Titan assumes about its operator, target
+  consent, and network position — requested by DataFactor under
+  "Secrets & Threat Modeling");
 - a note that findings are stored locally under `findings/` and are not committed.
 
 Keep it short. This is a hygiene doc, not a handbook.
+
+### 6c. `README.md` (from DataFactor feedback email)
+
+- Add an **Architecture** section (4-6 sentences) describing the module layout:
+  `titan/core` (engine/crawl), `titan/modules` (attack detectors),
+  `titan/ai` (payload mutation), `titan/verify` (evidence grading).
+- Make the test command explicit (`python -m pytest tests/ -q`) so a fresh clone
+  can verify the suite from the README alone.
 
 ## Step 7 — commit discipline, then re-score
 
