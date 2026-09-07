@@ -15,9 +15,14 @@ works. The three things it is allowed to change are:
    apparent credentials.
 2. **Reproducible installs (high impact, CI + fresh-clone)** — commit a lockfile
    and make the install path verify-clean.
-3. **Engineering hygiene that raises the score without touching scan logic**
+3. **Target hygiene (confidentiality)** — untrack `config.yaml`, which leaks a
+   real scanned target hostname, and scrub it from git history.
+4. **Engineering hygiene that raises the score without touching scan logic**
    — split the two 1000+ LOC files, make mypy gate instead of advisory, add a
    structured logger used by `engine.py`, fix `.env.example`, add SECURITY.md.
+5. **Authorization correctness (from the independent codebase assessment)**
+   — make `_is_in_scope` fail closed instead of open, and enforce the current
+   coverage floor in CI so it cannot silently drop.
 
 Everything else in the report (CI caching, test ratio, module layout, history
 shape) stays as-is or is noted as future work at the end.
@@ -100,6 +105,59 @@ Goal: zero matches for the literal strings in committed source; new test passes.
 - Do not change `deep_verify.py`'s intercept replay behavior.
 - Do not alter the consent/ownership model of the Firebase probes.
 
+## Step 1.5 — untrack config.yaml and scrub it from history (confidentiality)
+
+**Why:** `config.yaml` is tracked in git despite being in `.gitignore` (gitignore
+only stops future adds, not already-committed files). It contains
+`target: "https://REDACTED_TARGET"` — a real scanned target — plus a wall of
+`enabled: true` attack-module flags. No credentials (auth fields are empty), but
+the target hostname is a confidentiality leak for the operator's engagements and
+reads as a production-target leak to any scanner.
+
+**Edits (working tree):**
+
+1. Repoint the two test fixtures that open `config.yaml` at the tracked template
+   `config.example.yaml` (schema-compatible superset):
+   - `tests/test_anomaly.py` (~line 159): `open("config.yaml")` → `open("config.example.yaml")`
+   - `tests/test_waf.py` (~line 176): same swap
+   - `tests/test_cli.py` uses `config.yaml` only as a CLI arg string — no file
+     access, leave it.
+2. `git rm config.yaml` (remove from index and disk; the engine never reads it at
+   import time — it is a run-time `--config` argument).
+3. Confirm `.gitignore` still covers `config.yaml` so it cannot sneak back in.
+
+**History scrub (fresh clone, solo repo so safe):**
+
+```bash
+pip install git-filter-repo
+cd <tmp>
+git clone --no-hardlinks <path-to-repo> scrub && cd scrub
+printf 'REDACTED_TARGET==>REDACTED_TARGET\n' > scrub.txt
+git filter-repo --path config.yaml --invert-paths --replace-text scrub.txt
+# verify
+git log --all --oneline -- config.yaml          # empty
+git grep -i school-portal $(git rev-list --all) # empty
+```
+
+Then fetch the filtered history back into the real repo, regenerate
+`.secrets.baseline` (its file list must match the post-scrub tree), re-run the
+suite, and **force-push with operator approval** (the only way to complete the
+scrub on the remote).
+
+**Verification after step 1.5:**
+
+```bash
+python -m pytest tests/ -q -p no:cacheprovider   # green without config.yaml
+git ls-files | grep -c config.yaml               # 0 (config.example.yaml is fine)
+```
+
+**Do not do in this step:**
+
+- Do not `filter-branch`; use `filter-repo`.
+- Do not force-push without explicit operator sign-off.
+- Do not scrub other site names from history in this pass unless the operator
+  names them — only the target leaked via `config.yaml`.
+
 ## Step 2 — commit a lockfile and pin runtime deps (high impact)
 
 **Current state:** `pyproject.toml` declares the package manifest; `requirements.txt`
@@ -177,6 +235,25 @@ code-cleanliness win on the report.
 
 **Target:** `titan/core/engine.py` drops below 800 LOC without losing behavior.
 
+### 3c. `titan/core/engine.py` — make the scope check fail closed (authorization fix)
+
+**Current:** `_is_in_scope` (engine.py ~164-176) returns `True` when the target
+hostname is empty/malformed and on any exception — fail-open. In a
+consent-gated scanner that means a missing or broken `target` config silently puts
+every URL in scope.
+
+**Fix:** return `False` on empty target hostname and on exception, so an unset
+target means nothing is scanned rather than everything.
+
+**Tests to add:** `tests/test_engine_scope.py` —
+
+- engine with no `target` in config → `_is_in_scope("https://anything.example")` is `False`;
+- engine with `target: "https://example.com"` → same-host and subdomain URLs are
+  in scope, a cross-origin URL is not, a malformed URL is `False` (not a crash).
+
+This is the one deliberate behavior change in the spec; it is a security fix, not
+cosmetic, and the new test pins it.
+
 ### 3b. `titan/ai/adaptive.py` — extract WAF profile dictionaries
 
 **Current:** `ResponseAnalyzer` owns large dictionaries
@@ -245,10 +322,12 @@ The DataFactor feedback email names three files: `titan/core/engine.py`,
 
 **Edits:**
 
-1. Create `titan/core/logging_setup.py` with:
-   - a `get_logger(name)` helper;
-   - a basic JSON or structured formatter configured once at import time;
-   - sane defaults so existing modules do not need a big setup dance.
+1. **Wire the logger that already exists.** `titan/core/logger.py` already
+   implements `TitanLogger` with JSON structured `LogEntry` records (206 LOC) but
+   nothing imports it — it is dead code. Prefer wiring it into
+   `engine.py`/`waf.py`/`reporting` over creating a second logger. If its API is
+   awkward for module-level logging, add a thin `get_logger(name)` wrapper in the
+   same module rather than a new file.
 2. In `titan/core/engine.py`, replace the operational `print(...)` calls that report
    transport readiness, scan lifecycle, page processing progress, and report write
    status with `logger.info` / `logger.warning` calls from the new helper.
@@ -335,14 +414,24 @@ Keep it short. This is a hygiene doc, not a handbook.
 1. `fix(local_lab): read secret key from env, remove hardcoded literal`
 2. `fix(deep-verify): load Firebase key from env only`
 3. `test(local_lab): assert app secret key is not the old literal`
-4. `build: commit pinned lockfile and install from it in CI`
-5. `refactor(core): extract transport helpers into transport_mixin`
-6. `refactor(ai): extract WAF profile data into waf_profiles`
-7. `test: add coverage for extracted transport and WAF profile modules`
-8. `ci(tests): make mypy a gating step after cleaning current errors`
-9. `refactor(core): replace engine print ops with structured logger`
-10. `test: add logging_setup coverage`
-11. `docs: complete .env.example and add SECURITY.md`
+4. `chore(config): untrack config.yaml and repoint fixtures at config.example.yaml`
+5. `security(core): make scope check fail closed on missing target`
+6. `test: cover fail-closed scope behavior`
+7. `build: commit pinned lockfile and install from it in CI`
+8. `ci: add dependabot + detect-secrets gate with baseline`
+9. `refactor(core): extract transport helpers into transport_mixin`
+10. `refactor(ai): extract WAF profile data into waf_profiles`
+11. `test: add coverage for extracted transport and WAF profile modules`
+12. `ci(tests): make mypy a gating step after cleaning current errors`
+13. `refactor(core): replace engine print ops with structured logger`
+14. `test: add logging_setup coverage`
+15. `docs: complete .env.example and add SECURITY.md`
+16. `ci: enforce current coverage floor (fail_under)`
+
+(Steps 1-3 landed as commits 578f7e9/0c19320/c770f27; 4-8 are the current pass.)
+
+After the scrub, regenerate `.secrets.baseline` so its file list matches the final
+tree, then re-verify the detect-secrets gate in both directions before push.
 
 **After commit:**
 
@@ -356,13 +445,32 @@ git log --oneline -20
 
 Then push and re-submit to DataFactor when ready.
 
+## Step 8 — enforce the current coverage floor (CI truth)
+
+**Current:** `pyproject.toml` has `[tool.coverage.report] fail_under = 0` —
+coverage can drop to zero and CI still passes.
+
+**Edits:**
+
+1. Measure today's coverage: `python -m pytest tests/ -q --cov=titan --cov-report=term-missing`.
+2. Set `fail_under` to the measured floor (the number today, rounded down to a
+   whole percent). Do **not** pick a dream number that fails CI today — gate
+   today's value so it cannot drop, then raise it in later sessions.
+3. Ensure the CI coverage run uses the same `--cov=titan` invocation so the gate
+   measures the same thing locally and in CI.
+
+**Verification after step 8:**
+
+```bash
+python -m pytest tests/ -q --cov=titan --cov-report=term-missing  # above fail_under
+```
+
 ## Optional future work, not part of this pass
 
 Leave these for later unless a session explicitly picks them up:
 
-- Enforce a coverage threshold in CI.
+- Raise the coverage floor above today's value over time.
 - Reduce the remaining 500+ LOC files beyond the two biggest.
-- Add dependabot or renovate for automated dependency updates.
 - Split or slim additional large modules if they become maintenance pain.
 - Build a more deliberate commit cadence so the history stops looking like a single
   burst.
@@ -371,9 +479,15 @@ Leave these for later unless a session explicitly picks them up:
 
 - Committed source contains no `supersecretkey` literal and no hardcoded
   `AIzaSy...` Firebase key string.
+- `config.yaml` is absent from the tree and from all git history; no
+  `school-portal` string remains in any blob; the suite passes without it.
+- `_is_in_scope` fails closed (empty/malformed target = nothing in scope) and the
+  behavior is pinned by a test.
 - `local_lab/app.py`, `deep_verify.py`, and the Firebase probes still function as
   before, reading secrets from the environment.
 - A fresh clone can install from a committed lockfile and pass the suite.
+- The detect-secrets gate fails on a new secret and passes on the current tree.
+- Coverage `fail_under` is set to today's floor and enforced in CI.
 - `titan/core/engine.py` and `titan/ai/adaptive.py` are both under 800 LOC.
 - `mypy titan/ --ignore-missing-imports` is clean and is a gating CI step.
 - `titan/core/engine.py` operational status uses the structured logger.
