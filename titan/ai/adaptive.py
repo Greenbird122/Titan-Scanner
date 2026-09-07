@@ -18,6 +18,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from titan.ai.payloadforge import PayloadForge  # noqa: E402
+from titan.ai.waf_profiles import (
+    ERROR_DIALECT_PATTERNS,
+    WAF_FINGERPRINT_PAYLOADS,
+    WAF_RULE_PATTERNS,
+)
 
 
 @dataclass
@@ -61,107 +66,12 @@ class TargetProfile:
 class ResponseAnalyzer:
     """Analyze responses to understand WHY payloads were blocked or succeeded."""
 
-    # WAF rule patterns — what triggered the block
-    WAF_RULE_PATTERNS = {
-        "sql_injection": [
-            "union", "select", "from", "where", "order by",
-            "insert", "update", "delete", "drop", "create",
-            "exec", "execute", "xp_cmdshell", "sp_executesql",
-        ],
-        "xss_injection": [
-            "script", "alert", "onerror", "onload", "javascript:",
-            "<img", "<svg", "<iframe", "document.cookie", "eval(",
-        ],
-        "path_traversal": [
-            "..", "../", "..\\", "/etc/passwd", "/etc/shadow",
-            "win.ini", "boot.ini", "proc/self",
-        ],
-        "command_injection": [
-            "; id", "| id", "&& id", "`id`", "$(id)",
-            "; cat", "| cat", "; ls", "| ls",
-        ],
-        "ssrf": [
-            "169.254.169.254", "127.0.0.1", "localhost",
-            "metadata.google.internal", "100.100.100.200",
-        ],
-    }
-
-    # WAF fingerprinting payloads — send these to identify the WAF
-    WAF_FINGERPRINT_PAYLOADS = [
-        # SQL injection test
-        "' OR '1'='1",
-        # XSS test
-        "<script>alert(1)</script>",
-        # Path traversal test
-        "../../../etc/passwd",
-        # Command injection test
-        "; echo TITAN_FINGERPRINT",
-        # SSRF test
-        "http://169.254.169.254/latest/meta-data/",
-    ]
-
-    # Error message patterns → database dialect
-    ERROR_DIALECT_PATTERNS = {
-        "mysql": [
-            "mysql", "mariadb", "you have an error in your sql syntax",
-            "warning: mysql", "mysql_fetch", "mysql_num_rows",
-            "supplied argument is not a valid mysql",
-        ],
-        "postgresql": [
-            "postgresql", "pg_query", "pg_exec", "psql",
-            "syntax error at or near", "relation does not exist",
-            "column does not exist",
-        ],
-        "mssql": [
-            "mssql", "microsoft sql", "unclosed quotation mark",
-            "incorrect syntax near", "conversion failed",
-            "quoted string not properly terminated",
-        ],
-        "sqlite": [
-            "sqlite", "sqlite3", "sqlITE_ERROR",
-            "no such table", "no such column",
-            "near \"\": syntax error",
-        ],
-        "oracle": [
-            "oracle", "ora-", "ora00933", "ora00942",
-            "table or view does not exist",
-            "quoted identifier not properly terminated",
-        ],
-        "nosql": [
-            "mongo", "mongodb", "nosql",
-            "bson", "collection", "$ne", "$gt",
-        ],
-        "template": [
-            "jinja", "twig", "freemarker", "smarty",
-            "template", "render", "undefined variable",
-            "no filter named",
-        ],
-        "python": [
-            "traceback", "error:", "exception",
-            "import", "module", "nameerror",
-            "typeerror", "attributeerror",
-        ],
-        "php": [
-            "php", "warning:", "fatal error:",
-            "parse error", "notice:", "deprecated:",
-            "call to undefined function",
-        ],
-        "java": [
-            "java", "exception", "stacktrace",
-            "classnotfound", "nullpointer",
-            "at com.", "at java.",
-        ],
-        "ruby": [
-            "ruby", "rails", "actioncontroller",
-            "no method error", "nameerror:",
-            "syntaxerror", "undefined method",
-        ],
-        "nodejs": [
-            "node", "express", "typeerror:",
-            "referenceerror:", "syntaxerror:",
-            "cannot read property",
-        ],
-    }
+    # WAF rule patterns, fingerprint payloads, and dialect patterns live in
+    # titan/ai/waf_profiles.py (extracted so they can be tested directly).
+    # Re-exposed as class attributes to keep every ``cls.X`` call site intact.
+    WAF_RULE_PATTERNS = WAF_RULE_PATTERNS
+    WAF_FINGERPRINT_PAYLOADS = WAF_FINGERPRINT_PAYLOADS
+    ERROR_DIALECT_PATTERNS = ERROR_DIALECT_PATTERNS
 
     @classmethod
     def analyze_blocked(cls, payload: str, status: int, body: str, headers: Dict[str, str]) -> Dict[str, Any]:
