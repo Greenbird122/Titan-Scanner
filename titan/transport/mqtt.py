@@ -68,8 +68,6 @@ class MqttTransport(Transport):
         start = time.time()
 
         try:
-            import paho.mqtt.client as mqtt
-
             parsed = urlparse(request.url)
             broker = parsed.hostname
             port = parsed.port or 1883

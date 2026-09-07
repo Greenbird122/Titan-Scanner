@@ -14,7 +14,7 @@ Use:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.core.models import Finding
 from titan.hostile import offense, profiler

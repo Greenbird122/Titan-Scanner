@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import statistics
 import time
-from typing import Any, Dict, List, Optional, Tuple
-
-from titan.core.models import Finding
+from typing import Any
 
 
 class ConfirmationOracle:
