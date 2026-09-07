@@ -76,17 +76,6 @@ async def request_scan_approval(target: str, aggression: str, scope: dict[str, l
     Returns:
         True if approved, False if denied
     """
-async def request_scan_approval(target: str, aggression: str, scope: dict[str, list[str]] | None = None) -> bool:
-    """Request approval for a scan via Titan Gov proposal pipeline.
-
-    Args:
-        target: Target URL or IP
-        aggression: passive | active | aggressive
-        scope: Optional include/exclude paths
-
-    Returns:
-        True if approved, False if denied
-    """
     try:
         parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if parent not in sys.path:

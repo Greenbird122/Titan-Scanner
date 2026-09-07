@@ -221,7 +221,7 @@ class ECommerceTester:
         BusinessLogicPayload(
             name="percentage_overflow",
             category="discount_abuse",
-            payload={"discount_percent": 100, "discount_percent": 200, "discount_percent": 999},
+            payload={"discount_percent": 999},  # single value — a dict can't hold the 100/200/999 sweep
             expected_effect="free_item",
             severity=Severity.CRITICAL,
             confidence=0.85,
@@ -248,7 +248,7 @@ class ECommerceTester:
         BusinessLogicPayload(
             name="coupon_enumeration",
             category="discount_abuse",
-            payload={"coupon": "TEST", "coupon": "ADMIN", "coupon": "FREE"},
+            payload={"coupon": "FREE"},  # single value — dict can't enumerate TEST/ADMIN/FREE
             expected_effect="coupon_enumeration",
             severity=Severity.LOW,
             confidence=0.50,

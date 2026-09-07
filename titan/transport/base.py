@@ -8,6 +8,7 @@ transport.send(request) and get a response back.
 from __future__ import annotations
 
 import enum
+import importlib
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -229,31 +230,19 @@ class TransportRegistry:
             pass
 
         # Try to register gRPC
-        try:
-            import grpc  # noqa: F401
-
+        if importlib.util.find_spec("grpc") is not None:
             from titan.transport.grpc import GrpcTransport
             self.register("grpc", GrpcTransport(), [TransportProtocol.GRPC])
-        except ImportError:
-            pass
 
         # Try to register WebSocket
-        try:
-            import aiohttp  # noqa: F401
-
+        if importlib.util.find_spec("aiohttp") is not None:
             from titan.transport.websocket import WebSocketTransport
             self.register("websocket", WebSocketTransport(), [TransportProtocol.WEBSOCKET])
-        except ImportError:
-            pass
 
         # Try to register MQTT
-        try:
-            import aiomqtt  # noqa: F401
-
+        if importlib.util.find_spec("aiomqtt") is not None:
             from titan.transport.mqtt import MqttTransport
             self.register("mqtt", MqttTransport(), [TransportProtocol.MQTT])
-        except ImportError:
-            pass
 
     @property
     def available(self) -> list[str]:

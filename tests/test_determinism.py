@@ -22,8 +22,6 @@ class TestSeededRandomness:
         identical across two scans of the SAME target, and differ across
         different targets. The detector reads the GLOBAL RNG, so this pins
         the engine's scan()-time seeding contract."""
-        from titan.core.engine import TitanEngine  # noqa: F401  (imports must stay green)
-
         def markers_for(target):
             # Replicate the exact seeding the engine does at scan() start.
             import hashlib

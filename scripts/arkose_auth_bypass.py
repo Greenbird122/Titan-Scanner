@@ -7,7 +7,8 @@ import urllib.request
 
 def get(url, timeout=10, headers=None):
     h = {'User-Agent': 'Mozilla/5.0'}
-    if headers: h.update(headers)
+    if headers:
+        h.update(headers)
     try:
         req = urllib.request.Request(url, headers=h)
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -19,7 +20,8 @@ def get(url, timeout=10, headers=None):
 
 def post(url, data, timeout=10, headers=None):
     h = {'User-Agent': 'Mozilla/5.0', 'Content-Type': 'application/json'}
-    if headers: h.update(headers)
+    if headers:
+        h.update(headers)
     try:
         req = urllib.request.Request(url, data=json.dumps(data).encode(), headers=h, method='POST')
         with urllib.request.urlopen(req, timeout=timeout) as r:

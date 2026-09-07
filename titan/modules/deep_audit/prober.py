@@ -5,7 +5,7 @@ directly, tests Security Rules bypass, and maps full attack chains.
 
 Usage:
     from titan.modules.deep_audit.prober import DeepAuditor
-    
+
     auditor = DeepAuditor()
     results = await auditor.audit("https://target.com")
 """
@@ -18,6 +18,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urljoin, urlparse
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
