@@ -1,7 +1,7 @@
 # Runtime + dev dependencies for Titan Scanner.
 # Source of truth for pip-compile: pinned output lands in requirements.txt.
 # Keep this file in sync with pyproject.toml's dependency lists.
-playwright==1.49.1
+playwright==1.62.0
 aiohttp
 pyyaml
 requests
