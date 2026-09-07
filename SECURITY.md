@@ -14,7 +14,7 @@ signed consent file for the target.
 |---------|--------------------|
 | 1.0.x   | :white_check_mark: |
 
-## Reporting a Vulnerability
+## Vulnerability Disclosure Policy
 
 If you discover a security vulnerability in Titan Scanner, please report it responsibly.
 
@@ -33,6 +33,12 @@ Include:
 - Suggested fix (if any)
 
 You should receive a response within 48 hours. We will work with you to understand and address the issue before any public disclosure.
+
+## Security Update Policy
+
+Security fixes are released as patch versions (e.g., 1.0.1, 1.0.2). Critical
+vulnerabilities will be patched within 72 hours of confirmation. The CI pipeline
+runs detect-secrets, mypy, and ruff on every push to catch regressions early.
 
 ## Threat Model
 
