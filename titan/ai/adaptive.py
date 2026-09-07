@@ -1017,7 +1017,7 @@ class AdaptivePayloadEngine:
                 # Phone auto-confirm
                 "/auth/v1/signup",
                 # JWT manipulation
-                "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkbWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5MzQwMTYwMH0.fake",
+                "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkbWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5MzQwMTYwMH0.fake",  # pragma: allowlist secret
             ])
 
         elif attack_type == "baas":
