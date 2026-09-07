@@ -28,8 +28,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff mypy
-          pip install -r requirements.txt
+          pip install ruff mypy detect-secrets
+          pip install -r requirements.txt  # committed lockfile (pinned)
           pip install -e .
 
       - name: Ruff lint
@@ -37,6 +37,12 @@ jobs:
 
       - name: Ruff format check
         run: ruff format --check .
+
+      - name: Detect-secrets scan
+        # Fails the build if a secret-like literal is committed beyond the
+        # audited baseline (.secrets.baseline). Regenerate the baseline with
+        # `detect-secrets scan > .secrets.baseline` after an intentional change.
+        run: detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
 
       - name: Mypy typecheck
         run: mypy titan/ --ignore-missing-imports

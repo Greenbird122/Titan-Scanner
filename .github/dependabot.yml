@@ -1,0 +1,9 @@
+version: 2
+updates:
+  # Keep the committed pip lockfile (requirements.txt) current.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Bump the lockfile in one PR per update; no unrelated churn.
+    open-pull-requests-limit: 5
