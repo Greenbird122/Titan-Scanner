@@ -173,7 +173,7 @@ class TestWAFIntegration:
         import yaml, os
         os.chdir(os.path.join(os.path.dirname(__file__), '..'))
         from titan.core.engine import TitanEngine
-        with open("config.yaml") as f:
+        with open("config.example.yaml") as f:
             config = yaml.safe_load(f)
         e = TitanEngine(config)
         assert hasattr(e, "_waf_tracker")

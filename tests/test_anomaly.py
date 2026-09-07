@@ -156,7 +156,7 @@ class TestAnomalyIntegration:
         """TitanEngine creates an AnomalyTracker on init."""
         import yaml
         from titan.core.engine import TitanEngine
-        with open("config.yaml") as f:
+        with open("config.example.yaml") as f:
             config = yaml.safe_load(f)
         e = TitanEngine(config)
         assert hasattr(e, "_anomaly_tracker")
