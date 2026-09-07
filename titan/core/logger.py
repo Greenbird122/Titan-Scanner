@@ -13,6 +13,7 @@ Every test execution is logged with:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass
@@ -275,3 +276,26 @@ def get_logger(name: str) -> _ModuleLogger:
     in the same structured stream and are saved together via ``save()``.
     """
     return _ModuleLogger(name, _SINK)
+
+
+def _configure_standard_logging() -> None:
+    """Configure the stdlib logging framework alongside the TitanLogger sink.
+
+    Modules that use ``logging.getLogger`` directly (brain/, darkweb_map)
+    previously fell through to the bare lastResort handler. Give them a
+    consistent format and a file handler in the same titan_logs directory.
+    """
+    log_dir = os.environ.get("TITAN_LOG_DIR", "titan_logs")
+    os.makedirs(log_dir, exist_ok=True)
+    handler = logging.FileHandler(
+        os.path.join(log_dir, "titan.log"), encoding="utf-8"
+    )
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+    root = logging.getLogger()
+    root.addHandler(handler)
+    root.setLevel(logging.INFO)
+
+
+_configure_standard_logging()
