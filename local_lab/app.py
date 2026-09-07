@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify, make_response, send_from_directory
 import jwt
 import re
 import os
+import secrets
 import shutil
 import subprocess
 import sys
@@ -32,7 +33,9 @@ try:
 except ImportError:  # imported as a package (local_lab.app)
     from .streaming import streaming_bp
 app.register_blueprint(streaming_bp)
-app.secret_key = "supersecretkey"
+# Secret key is env-driven (LOCAL_LAB_SECRET_KEY) with a random per-boot
+# fallback so the lab runs with zero config but never ships a committed literal.
+app.secret_key = os.environ.get("LOCAL_LAB_SECRET_KEY", secrets.token_hex(16))
 
 # === 1. SQL Injection ===
 # Simulated database for extraction exercises (M3): a small users table that
@@ -392,7 +395,7 @@ def hash_password():
 def config():
     return jsonify({
         "database_password": "SuperSecret123!",
-        "api_key": "AIzaSyD-EXAMPLE-KEY",
+        "api_key": "firebase-api-key-EXAMPLE-PLACEHOLDER",
         "aws_secret": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
     }        )
 
