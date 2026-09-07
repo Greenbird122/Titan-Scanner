@@ -136,17 +136,20 @@ class CoveragePipeline:
     def get_coverage_report(self, target_url: str) -> str:
         """Get HTML coverage report."""
         report = self.report_generator.generate(target_url)
-        return self.report_generator.to_html(report)
+        html: str = self.report_generator.to_html(report)
+        return html
 
     def get_markdown_report(self, target_url: str) -> str:
         """Get Markdown coverage report."""
         report = self.report_generator.generate(target_url)
-        return self.report_generator.to_markdown(report)
+        markdown: str = self.report_generator.to_markdown(report)
+        return markdown
 
     def get_proof(self) -> Dict[str, Any]:
         """Get coverage proof."""
         proof = self.proof_generator.generate()
-        return self.proof_generator.to_dict(proof)
+        proof_dict: Dict[str, Any] = self.proof_generator.to_dict(proof)
+        return proof_dict
 
     def get_gate_status(self) -> Dict[str, Any]:
         """Get gate status."""

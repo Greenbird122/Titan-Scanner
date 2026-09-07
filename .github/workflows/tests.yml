@@ -45,8 +45,10 @@ jobs:
         run: detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
 
       - name: Mypy typecheck
+        # Gating: mypy must pass on the checked subset (168 files). Modules
+        # listed under [tool.mypy] exclude + follow_imports=skip overrides in
+        # pyproject.toml are not yet clean; fold them in as they get fixed.
         run: mypy titan/ --ignore-missing-imports
-        continue-on-error: true  # advisory until full type coverage
 
   test:
     name: pytest (${{ matrix.python-version }})

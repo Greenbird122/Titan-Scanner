@@ -104,6 +104,380 @@ ignore_missing_imports = true
 check_untyped_defs = false
 disable_error_code = ["import-untyped"]
 
+
+# Incremental strict gate: the modules below are not yet mypy-clean.
+# They are excluded from the check and their types are skipped when
+# imported by clean modules. As each module is cleaned, delete its two
+# entries (the exclude line and its override block) to fold it into the
+# gate. Removing every entry restores full-tree checking.
+exclude = [
+    "provider.py",
+    "titan/ai/payloadforge.py",
+    "titan/ai/payloadsmith.py",
+    "titan/ai/pg.py",
+    "titan/ai/waf_fingerprint.py",
+    "titan/brain/strategy.py",
+    "titan/cli.py",
+    "titan/consent/flags.py",
+    "titan/core/auth.py",
+    "titan/core/authorization.py",
+    "titan/core/discovery.py",
+    "titan/core/engine.py",
+    "titan/core/osint.py",
+    "titan/core/stealth.py",
+    "titan/core/transport_mixin.py",
+    "titan/core/webhooks.py",
+    "titan/exploit/consent.py",
+    "titan/exploit/listener.py",
+    "titan/exploit/reattach.py",
+    "titan/exploit/redirect_poc.py",
+    "titan/exploit/repl.py",
+    "titan/fleet/agents.py",
+    "titan/fleet/coordinator.py",
+    "titan/hostile/__init__.py",
+    "titan/hostile/offense.py",
+    "titan/hostile/profiler.py",
+    "titan/modules/api/detector.py",
+    "titan/modules/baas/appwrite.py",
+    "titan/modules/baas/authservices.py",
+    "titan/modules/baas/detector.py",
+    "titan/modules/baas/fingerprint.py",
+    "titan/modules/baas/firebase.py",
+    "titan/modules/baas/supabase.py",
+    "titan/modules/bizlogic/confusion.py",
+    "titan/modules/bizlogic/crossuser.py",
+    "titan/modules/bizlogic/detector.py",
+    "titan/modules/bizlogic/discovery.py",
+    "titan/modules/bizlogic/ecommerce.py",
+    "titan/modules/bizlogic/fuzzer.py",
+    "titan/modules/bizlogic/saas.py",
+    "titan/modules/bizlogic/workflow.py",
+    "titan/modules/clientside/prototype/detector.py",
+    "titan/modules/cloud/storage.py",
+    "titan/modules/cloud_control/imds.py",
+    "titan/modules/cors/detector.py",
+    "titan/modules/coverage/proof.py",
+    "titan/modules/coverage/report.py",
+    "titan/modules/coverage/scorer.py",
+    "titan/modules/coverage/surfacemapper.py",
+    "titan/modules/coverage/tracker.py",
+    "titan/modules/deep_audit/prober.py",
+    "titan/modules/dns/detector.py",
+    "titan/modules/jwt/detector.py",
+    "titan/modules/logic/detector.py",
+    "titan/modules/postexploit/chainbuilder.py",
+    "titan/modules/postexploit/exploitgen.py",
+    "titan/modules/postexploit/killchain.py",
+    "titan/modules/ratelimit/detector.py",
+    "titan/modules/sqli/detector.py",
+    "titan/modules/subdomain_takeover/detector.py",
+    "titan/modules/supplychain/detector.py",
+    "titan/modules/tls/detector.py",
+    "titan/modules/upload/detector.py",
+    "titan/modules/websocket/detector.py",
+    "titan/reporting/__init__.py",
+    "titan/stealth/advanced.py",
+    "titan/transport/grpc.py",
+    "titan/transport/tor.py",
+    "titan/transport/websocket.py",
+    "titan/verify/__init__.py",
+    "titan/verify/ai_escalation.py",
+    "titan/verify/auto_verify.py",
+    "titan/verify/kernel.py",
+]
+
+[[tool.mypy.overrides]]
+module = "titan.ai.payloadforge"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.ai.payloadsmith"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.ai.pg"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.ai.waf_fingerprint"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.brain.strategy"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.cli"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.consent.flags"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.auth"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.authorization"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.discovery"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.engine"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.osint"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.stealth"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.transport_mixin"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.core.webhooks"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.exploit.consent"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.exploit.listener"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.exploit.reattach"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.exploit.redirect_poc"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.exploit.repl"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.fleet.agents"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.fleet.coordinator"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.hostile"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.hostile.offense"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.hostile.profiler"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.api.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.baas.appwrite"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.baas.authservices"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.baas.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.baas.fingerprint"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.baas.firebase"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.baas.supabase"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.confusion"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.crossuser"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.discovery"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.ecommerce"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.fuzzer"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.saas"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.bizlogic.workflow"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.clientside.prototype.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.cloud.storage"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.cloud_control.imds"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.cors.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.coverage.proof"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.coverage.report"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.coverage.scorer"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.coverage.surfacemapper"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.coverage.tracker"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.deep_audit.prober"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.dns.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.jwt.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.logic.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.postexploit.chainbuilder"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.postexploit.exploitgen"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.postexploit.killchain"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.ratelimit.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.sqli.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.subdomain_takeover.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.supplychain.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.tls.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.upload.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.modules.websocket.detector"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.reporting"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.stealth.advanced"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.transport.grpc"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.transport.tor"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.transport.websocket"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.verify"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.verify.ai_escalation"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.verify.auto_verify"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.verify.kernel"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "provider"
+follow_imports = "skip"
+
 # ---------------------------------------------------------------------------
 # Pytest
 # ---------------------------------------------------------------------------
