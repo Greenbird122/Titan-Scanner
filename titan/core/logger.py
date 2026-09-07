@@ -16,7 +16,17 @@ import json
 import os
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+
+
+def _utc_now() -> str:
+    """ISO-8601 UTC timestamp with microseconds.
+
+    time.strftime("%f") is not supported on Windows, so use datetime's
+    strftime, which implements %f on every platform.
+    """
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 @dataclass
@@ -50,7 +60,7 @@ class TitanLogger:
     ) -> None:
         """Log a test execution."""
         entry = LogEntry(
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+            timestamp=_utc_now(),
             level="info",
             category="test",
             message=f"{attack_type} on {endpoint}",
@@ -78,7 +88,7 @@ class TitanLogger:
     ) -> None:
         """Log a finding discovery."""
         entry = LogEntry(
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+            timestamp=_utc_now(),
             level="warning",
             category="finding",
             message=f"FINDING: {severity} {attack_type} on {endpoint}",
@@ -101,7 +111,7 @@ class TitanLogger:
     ) -> None:
         """Log coverage update."""
         entry = LogEntry(
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+            timestamp=_utc_now(),
             level="info",
             category="coverage",
             message=f"Coverage: {score}% ({grade}) — {tests_run} tests",
@@ -115,6 +125,22 @@ class TitanLogger:
         if self.verbose:
             self._print_entry(entry)
 
+    def log_warning(
+        self,
+        message: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log a warning."""
+        entry = LogEntry(
+            timestamp=_utc_now(),
+            level="warning",
+            category="warning",
+            message=message,
+            data=context or {},
+        )
+        self._entries.append(entry)
+        self._print_entry(entry)
+
     def log_error(
         self,
         error: str,
@@ -122,7 +148,7 @@ class TitanLogger:
     ) -> None:
         """Log an error."""
         entry = LogEntry(
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+            timestamp=_utc_now(),
             level="error",
             category="error",
             message=error,
@@ -134,7 +160,7 @@ class TitanLogger:
     def log_info(self, message: str, data: Optional[Dict[str, Any]] = None) -> None:
         """Log general info."""
         entry = LogEntry(
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%S.%fZ", time.gmtime()),
+            timestamp=_utc_now(),
             level="info",
             category="info",
             message=message,
@@ -204,3 +230,48 @@ class TitanLogger:
     def clear(self) -> None:
         """Clear all entries."""
         self._entries.clear()
+
+
+# ---------------------------------------------------------------------------
+# Module-level facade: get_logger(name) -> .info/.warning/.error
+# ---------------------------------------------------------------------------
+
+_SINK = TitanLogger(log_dir=os.environ.get("TITAN_LOG_DIR", "titan_logs"))
+
+
+class _ModuleLogger:
+    """Thin per-module facade over the shared TitanLogger sink.
+
+    Each call records a structured LogEntry (level + module + any extra
+    structured fields) and mirrors the raw message to stdout so existing
+    console behavior is preserved — engine messages already carry their own
+    "[+] " / "[!] " prefix.
+    """
+
+    def __init__(self, name: str, sink: TitanLogger) -> None:
+        self._name = name
+        self._sink = sink
+
+    def info(self, message: str, **data: Any) -> None:
+        """Record an info entry and mirror it to the console."""
+        self._sink.log_info(message, {"module": self._name, **(data or {})})
+        print(message)
+
+    def warning(self, message: str, **data: Any) -> None:
+        """Record a warning entry and mirror it to the console."""
+        self._sink.log_warning(message, {"module": self._name, **(data or {})})
+        print(message)
+
+    def error(self, message: str, **data: Any) -> None:
+        """Record an error entry and mirror it to the console."""
+        self._sink.log_error(message, {"module": self._name, **(data or {})})
+        print(message)
+
+
+def get_logger(name: str) -> _ModuleLogger:
+    """Return the shared module logger facade for ``name``.
+
+    All facades share one TitanLogger sink, so entries from every module land
+    in the same structured stream and are saved together via ``save()``.
+    """
+    return _ModuleLogger(name, _SINK)
