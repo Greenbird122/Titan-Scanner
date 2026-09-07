@@ -214,7 +214,6 @@ class TestModuleIntegration:
         mock_subdomains = ["old-app.example.com", "active-app.example.com"]
 
         with patch.object(self.detector, "_enumerate_subdomains", return_value=mock_subdomains):
-            call_count = 0
 
             async def mock_resolve_cname(hostname):
                 if hostname == "old-app.example.com":

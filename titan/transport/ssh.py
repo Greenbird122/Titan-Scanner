@@ -148,7 +148,7 @@ class SshTransport(Transport):
                 target.host,
                 port=target.port or 22,
                 known_hosts=None,
-            ) as conn:
+            ):
                 logger.info(f"SSH reachable: {target.host}:{target.port}")
         except ImportError:
             logger.warning("asyncssh not installed")
@@ -178,7 +178,7 @@ class SshTransport(Transport):
                     password=password,
                     known_hosts=None,
                     login_timeout=5,
-                ) as conn:
+                ):
                     logger.info(f"SSH brute force SUCCESS: {username}:{password}")
                     return {"username": username, "password": password}
             except asyncssh.AuthenticationFailed:

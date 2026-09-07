@@ -140,7 +140,7 @@ def live_server():
 
 def _run_script(script: str) -> int:
     """Execute a repro script in a subprocess and return its exit code."""
-    tmp = Path(os.environ.get("TMPDIR", "/tmp")) if os.name != "nt" else None
+    Path(os.environ.get("TMPDIR", "/tmp")) if os.name != "nt" else None
     import tempfile
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as fh:
         fh.write(script)

@@ -511,7 +511,7 @@ class BaasDetector:
                 resp = await context.request.get(
                     url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000
                 )
-                body = await resp.text()
+                await resp.text()
 
                 if resp.status in (200, 403, 401):
                     # Function exists (even if unauthorized)

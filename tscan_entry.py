@@ -35,7 +35,7 @@ def _ensure_correct_titan() -> None:
 
 _ensure_correct_titan()
 
-from titan.cli import main  # noqa: E402
+from titan.cli import main
 
 if __name__ == "__main__":
     main()

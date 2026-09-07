@@ -177,7 +177,7 @@ class TLSSecurityTester:
                 context.verify_mode = ssl.CERT_NONE
 
                 with socket.create_connection((hostname, port), timeout=5) as sock:
-                    with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+                    with context.wrap_socket(sock, server_hostname=hostname):
                         finding = Finding(
                             target=target_url,
                             url=target_url,

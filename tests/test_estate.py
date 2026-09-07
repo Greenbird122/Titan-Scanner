@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from bench.estate import build_estate_manifest  # noqa: E402
+from bench.estate import build_estate_manifest
 
 
 def _write_site(root: Path, slug: str, target: str, findings: list, meta: dict | None = None):

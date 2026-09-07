@@ -111,7 +111,7 @@ class SpecIngestor:
                     if resp.status != 200:
                         logger.warning(f"Spec fetch failed: {resp.status}")
                         return AttackSurface(discovery_source=spec_url)
-                    content_type = resp.headers.get("content-type", "")
+                    resp.headers.get("content-type", "")
                     body = await resp.text()
         except Exception as e:
             logger.warning(f"Could not fetch spec: {e}")

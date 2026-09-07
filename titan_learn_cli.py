@@ -24,8 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from bench.estate import build_estate_manifest, write_estate_manifest  # noqa: E402
-from titan.learn.trends import (  # noqa: E402
+from bench.estate import build_estate_manifest, write_estate_manifest
+from titan.learn.trends import (
     build_profiles,
     find_trend_groups,
     flag_anomalies,

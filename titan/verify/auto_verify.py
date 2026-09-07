@@ -58,7 +58,6 @@ class AutoVerifier:
 
     def _generate_controls(self, finding: Finding) -> list[str]:
         """Generate benign control payloads that should NOT trigger the finding."""
-        param = finding.param or "test"
         location = finding.location or "query"
 
         if location == "header":

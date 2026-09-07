@@ -108,7 +108,7 @@ class TestPayloadReencoding:
 
     def test_double_encode(self):
         """Double encoding converts % to %25."""
-        single = _url_encode("SELECT * FROM users WHERE id=1' OR '1'='1")
+        _url_encode("SELECT * FROM users WHERE id=1' OR '1'='1")
         double = _double_encode("SELECT * FROM users WHERE id=1' OR '1'='1")
         assert "%25" in double
 

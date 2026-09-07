@@ -89,7 +89,6 @@ class GraphQLScanner:
                 body = await resp.text()
 
                 baseline_body = ""
-                baseline_status = None
                 try:
                     baseline_resp = await context.request.post(
                         api_url,
@@ -98,7 +97,6 @@ class GraphQLScanner:
                         timeout=10000,
                     )
                     baseline_body = await baseline_resp.text()
-                    baseline_status = baseline_resp.status
                 except Exception:
                     pass
 

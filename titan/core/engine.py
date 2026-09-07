@@ -742,7 +742,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
                 break
             if not isinstance(blob, dict):
                 break
-            scope_host = urlparse(self._scan_target).hostname or ""
+            urlparse(self._scan_target).hostname or ""
             found = [
                 r for r in route_table_candidates(blob, base_url=base_url)
                 if self._is_in_scope(r)

@@ -598,7 +598,6 @@ class ModuleRunner:
 
         from titan.core.route_scorer import score_url
 
-        e = self.engine
         findings: list[Finding] = []
         parsed = urlparse(api_url)
         params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}

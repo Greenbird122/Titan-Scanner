@@ -13,8 +13,8 @@ import pytest
 LAB_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(LAB_ROOT))
 
-from local_lab import app as lab  # noqa: E402
-from local_lab import scenario_fixtures as sf  # noqa: E402
+from local_lab import app as lab
+from local_lab import scenario_fixtures as sf
 
 
 @pytest.fixture()

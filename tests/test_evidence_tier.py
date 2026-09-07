@@ -110,7 +110,7 @@ def test_engine_scores_only_confirmed(tmp_path, monkeypatch):
     suspicious = _finding(url="http://lab.local/x?id=2", diffs=["reflection"])
     enforce_evidence([confirmed, suspicious])
 
-    engine = TitanEngine({"crawl": {}, "ai": {}, "modules": {}})
+    TitanEngine({"crawl": {}, "ai": {}, "modules": {}})
     # Pretend the crawl-tail loop scored everything pre-tier (the real bug
     # this gate fixes): suspicious must be wiped by the authoritative pass.
     confirmed.cvss_score, suspicious.cvss_score = 10.0, 10.0

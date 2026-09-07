@@ -11,7 +11,7 @@ from pathlib import Path
 LAB_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(LAB_ROOT))
 
-from local_lab import app as lab  # noqa: E402
+from local_lab import app as lab
 
 
 def test_secret_key_is_not_the_old_literal():

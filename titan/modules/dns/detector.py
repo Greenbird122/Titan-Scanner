@@ -87,7 +87,7 @@ class DNSSecurityTester:
                 full_domain = f"{subdomain}.{domain}"
                 try:
                     import socket
-                    ip = socket.gethostbyname(full_domain)
+                    socket.gethostbyname(full_domain)
                     return full_domain
                 except Exception:
                     return None

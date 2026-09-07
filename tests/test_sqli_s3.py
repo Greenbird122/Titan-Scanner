@@ -37,10 +37,10 @@ class TestS3PayloadInventory:
     def test_db_flavoured_timing_payloads_shipped(self):
         """The detector's own scan() must assemble pg_sleep/WAITFOR/BENCHMARK
         probes, not just MySQL SLEEP."""
-        d = SQLiDetector(StubSmith(), {})
+        SQLiDetector(StubSmith(), {})
 
         async def _collect():
-            ctx = object()
+            object()
             # scan() builds the payload list internally; capture via the
             # _test_param seam is hard without a live context, so pin the
             # building block directly: the payloads appended in scan() must
@@ -64,8 +64,7 @@ class TestS3PayloadInventory:
     def test_comment_bypasses_assembled(self):
         """scan() must append /**/ comment-token bypasses so naive regex WAFs
         (blocking literal 'OR 1=1' / 'SLEEP(3)') don't dodge the detector."""
-        d = SQLiDetector(StubSmith(), {})
-        bypasses = d._test_param  # seam exists
+        SQLiDetector(StubSmith(), {})
         # The bypass strings are built in scan(); pin the exact set here so a
         # future refactor can't silently drop them.
         expected = ["' OR/**/1=1--", "'/**/OR/**/1=1--",

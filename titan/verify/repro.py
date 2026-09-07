@@ -94,7 +94,6 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
     status = finding.status or 0
     signature = oracle_signature(finding)
     error_classes = _error_classes_from_diffs(finding.diffs or [])
-    target = finding.target or ""
 
     # How the request should carry the payload (mirrors PoCGenerator).
     if location == "query" and method == "GET":

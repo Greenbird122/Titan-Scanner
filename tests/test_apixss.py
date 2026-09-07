@@ -9,8 +9,8 @@ from flask import Flask
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from titan.core.models import AttackType, Severity  # noqa: E402
-from titan.modules.apixss.detector import ApiXssDetector  # noqa: E402
+from titan.core.models import AttackType, Severity
+from titan.modules.apixss.detector import ApiXssDetector
 
 # The exact git-vizor F6 shape: a repo analyzer whose fetch() response
 # (repo.description/name/language/html_url) flows into card.innerHTML.

@@ -57,8 +57,8 @@ class BizLogicDetector:
         if baseline is None:
             return findings
 
-        baseline_body = baseline.get("body", "")
-        baseline_status = baseline.get("status", 0)
+        baseline.get("body", "")
+        baseline.get("status", 0)
 
         # Test parameter tampering (price, quantity, discount, etc.)
         findings.extend(await self._test_parameter_tampering(
@@ -694,7 +694,7 @@ class BizLogicDetector:
         Uses baseline diff analysis + semantic detection.
         """
         baseline_body = baseline.get("body", "")
-        baseline_status = baseline.get("status", 0)
+        baseline.get("status", 0)
         resp_body = response.get("body", "")
         resp_status = response.get("status", 0)
 

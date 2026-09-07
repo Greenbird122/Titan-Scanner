@@ -356,7 +356,7 @@ def test_live_parserdiff_no_false_positive_on_agreeing_server():
 # the crawler actually found are probed, never guessed.
 # ---------------------------------------------------------------------------
 
-from titan.modules.ssrf.detector import SSRFDetector  # noqa: E402
+from titan.modules.ssrf.detector import SSRFDetector
 
 
 class _SSRFLabHandler(http.server.BaseHTTPRequestHandler):
