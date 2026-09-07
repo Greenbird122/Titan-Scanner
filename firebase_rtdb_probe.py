@@ -2,6 +2,10 @@
 """Firebase RTDB / Firestore / Storage probe — owned, consented (ownership).
 Targets the tulia-tag project (id 488585644867) whose Web API key is exposed
 in database-tulia.vercel.app.
+
+The API key must be supplied via the FIREBASE_API_KEY env var — it is never
+committed in source. Run with FIREBASE_API_KEY set (and FIREBASE_PROJECT for
+non-default projects).
 """
 import asyncio
 import json

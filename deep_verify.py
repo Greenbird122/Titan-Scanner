@@ -7,7 +7,8 @@ in the real browser.
 Targets (both owned, both consented):
   - https://git-vizor.vercel.app   (repo.description -> card.innerHTML via GitHub API)
   - https://database-tulia.vercel.app  (param-controlled innerHTML)
-  - Firebase key AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI (exposed on both sites)
+  - Firebase Web API key (exposed on both sites; value redacted — supply via
+    the FIREBASE_API_KEY env var, never committed)
 """
 import asyncio
 import json
@@ -183,9 +184,9 @@ window.__titan_marked__ = false;
 
 
 async def test_firebase_key():
-    """The exposed Firebase API key (AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI)
-    is a Web API key. Test the standard abuse chain against the Google Identity
-    Toolkit:
+    """The exposed Firebase Web API key (value redacted; supplied via the
+    FIREBASE_API_KEY env var) is a Web API key. Test the standard abuse chain
+    against the Google Identity Toolkit:
       1. createAuthUri  -> enumerate sign-in methods / confirm project exists
       2. signUp         -> anonymous account creation (write-verification)
       3. RTDB / Firestore public access
