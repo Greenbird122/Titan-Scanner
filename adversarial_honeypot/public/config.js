@@ -7,7 +7,7 @@
 window.APP_CONFIG = {
   supabase: {
     url: "https://acme-prod-titan-honeypot.supabase.co",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6OTk5OTk5OTk5OX0.demo-anon-key-titan-honeypot",
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6OTk5OTk5OTk5OX0.demo-anon-key-titan-honeypot", // pragma: allowlist secret
   },
   firebase: {
     apiKey: "AIzaSyDEMO_ACME_TITAN_HONEYPOT_KEY_12345678",
