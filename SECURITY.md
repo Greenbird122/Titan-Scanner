@@ -51,7 +51,9 @@ Titan Scanner is a security testing tool. Key security considerations:
 
 ### Credential Handling
 - API keys and tokens must be provided via environment variables, never hardcoded
-- Use `.env` files (git-ignored) for local development
+- Use `.env` files (git-ignored) for local development; production deployments
+  should source secrets from a secret manager (e.g. Vault, AWS Secrets Manager)
+  rather than committed files
 - See `.env.example` for required variables
 
 ### Network Safety
