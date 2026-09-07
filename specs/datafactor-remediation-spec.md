@@ -136,7 +136,7 @@ printf 'REDACTED_TARGET==>REDACTED_TARGET\n' > scrub.txt
 git filter-repo --path config.yaml --invert-paths --replace-text scrub.txt
 # verify
 git log --all --oneline -- config.yaml          # empty
-git grep -i school-portal $(git rev-list --all) # empty
+git grep -i '<SCRUBBED_DOMAIN>' $(git rev-list --all) # empty (the domain from scrub.txt)
 ```
 
 Then fetch the filtered history back into the real repo, regenerate
@@ -480,7 +480,8 @@ Leave these for later unless a session explicitly picks them up:
 - Committed source contains no `supersecretkey` literal and no hardcoded
   `AIzaSy...` Firebase key string.
 - `config.yaml` is absent from the tree and from all git history; no
-  `school-portal` string remains in any blob; the suite passes without it.
+  occurrence of the scrubbed target domain (from `scrub.txt`) remains in any
+  blob; the suite passes without it.
 - `_is_in_scope` fails closed (empty/malformed target = nothing in scope) and the
   behavior is pinned by a test.
 - `local_lab/app.py`, `deep_verify.py`, and the Firebase probes still function as
