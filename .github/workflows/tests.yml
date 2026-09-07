@@ -56,6 +56,11 @@ jobs:
         # pyproject.toml are not yet clean; fold them in as they get fixed.
         run: mypy titan/ --ignore-missing-imports
 
+      - name: Dependency audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
   test:
     name: pytest (${{ matrix.python-version }})
     runs-on: ubuntu-latest
