@@ -217,7 +217,7 @@ def find_trend_groups(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def flag_anomalies(profiles: list[dict[str, Any]], groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Pure: the three anomaly classes."""
     anomalies: list[dict[str, Any]] = []
-    by_slug = {p["slug"]: p for p in profiles}
+    {p["slug"]: p for p in profiles}
     group_sigs = {g["signal"] for g in groups}
 
     # unique — a signal carried by exactly one site

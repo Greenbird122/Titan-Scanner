@@ -33,12 +33,12 @@ for k in bad_keys:
     del sys.modules[k]
 
 # Step 4: Now import titan from the correct location
-import titan  # noqa: E402
+import titan
 
 assert os.path.normcase(os.path.abspath(os.path.dirname(titan.__file__))) == os.path.normcase(_site_pkgs), \
     f"titan loaded from wrong path: {titan.__file__} (expected in {_site_pkgs})"
 
-from titan.cli import main  # noqa: E402
+from titan.cli import main
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from titan.learn.trends import (  # noqa: E402
+from titan.learn.trends import (
     build_profile,
     build_profiles,
     find_trend_groups,

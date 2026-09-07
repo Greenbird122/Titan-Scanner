@@ -87,7 +87,7 @@ class CoveragePipeline:
                         pass
 
         # Step 3: Create snapshot
-        snapshot = self.comparator.create_snapshot(
+        self.comparator.create_snapshot(
             self.tracker, scan_id, target_url
         )
 
@@ -96,17 +96,17 @@ class CoveragePipeline:
 
         # Step 5: Retest if gate failed
         if not gate_result.passed:
-            retest_result = await self.retester.retest_critical()
+            await self.retester.retest_critical()
 
         # Step 6: Calculate final score
         score = self.scorer.calculate()
 
         # Step 7: Generate proof
         proof = self.proof_generator.generate()
-        verification = self.proof_generator.verify_proof(proof)
+        self.proof_generator.verify_proof(proof)
 
         # Step 8: Generate report
-        report = self.report_generator.generate(target_url)
+        self.report_generator.generate(target_url)
 
         duration = time.time() - start_time
 

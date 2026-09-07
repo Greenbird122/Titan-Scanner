@@ -27,9 +27,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from fleet.poller import PushWatcher  # noqa: E402
-from fleet.red_round import run_red_round  # noqa: E402
-from fleet.registry import Registry, discover_public_repos  # noqa: E402
+from fleet.poller import PushWatcher
+from fleet.red_round import run_red_round
+from fleet.registry import Registry, discover_public_repos
 
 CONSENT_DIR = "consent"
 

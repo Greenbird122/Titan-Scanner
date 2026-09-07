@@ -1071,7 +1071,6 @@ class SupabaseTester:
             "email": "fake@evil.com",
             "app_metadata": {"provider": "email", "providers": ["email"]},
             "user_metadata": {"role": role},
-            "role": role,
         })
         payload_b64 = base64.urlsafe_b64encode(payload.encode()).rstrip(b"=").decode()
 

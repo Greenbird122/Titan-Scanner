@@ -124,7 +124,7 @@ async def run_recon_agent(
         from titan.core.osint import OSINTEngine
 
         # Tech fingerprinting
-        fingerprinter = TechFingerprinter()
+        TechFingerprinter()
         # OSINT enumeration
         osint = OSINTEngine()
         try:

@@ -103,7 +103,7 @@ class Crawler:
                 continue
 
             print(f"[+] Crawling: {current} (depth {depth}, visited {len(e.visited)})")
-            page_start = asyncio.get_event_loop().time()
+            asyncio.get_event_loop().time()
             processed_count += 1
             e._coverage["urls_crawled"] = processed_count
 
@@ -193,12 +193,6 @@ class Crawler:
         """
         e = self.engine
         is_api_url = e._looks_like_api(current)
-        resp = None
-        body = ""
-        title = ""
-        forms: list = []
-        links: list = []
-        apis: list = []
 
         if is_api_url:
             return await self._process_api_url(
@@ -256,7 +250,6 @@ class Crawler:
         new_items: list[tuple[str, int]] = []
 
         captured_urls: list[str] = []
-        ws_urls: list[str] = []
         captured_count = 0
 
         def capture_request(request):

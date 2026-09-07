@@ -228,7 +228,7 @@ class BaaSEnumerator:
             async with aiohttp.ClientSession() as session:
                 async with session.get(target_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     headers = dict(resp.headers)
-                    body = await resp.text()
+                    await resp.text()
 
                     # Check for BaaS headers
                     if "x-supabase" in str(headers).lower():

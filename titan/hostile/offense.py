@@ -81,7 +81,7 @@ def _origin_attr(profile: dict[str, Any]) -> dict[str, Any] | None:
 def cleartext_findings(profile: dict[str, Any], target: str) -> list[Finding]:
     """Deterministic: ad/third-party script loaded over http:// on an https page."""
     findings: list[Finding] = []
-    page_url = _origin_attr(profile)
+    _origin_attr(profile)
     for row in profile.get("origins", []):
         if not row.get("cleartext"):
             continue
@@ -107,7 +107,7 @@ def cleartext_findings(profile: dict[str, Any], target: str) -> list[Finding]:
 def sri_findings(profile: dict[str, Any], target: str) -> list[Finding]:
     """SRI-absent classified ad/popunder scripts — supply-chain surface (M6)."""
     findings: list[Finding] = []
-    page_url = _origin_attr(profile)
+    _origin_attr(profile)
     for row in profile.get("origins", []):
         if not row.get("sri_missing"):
             continue
@@ -194,7 +194,7 @@ async def map_redirect_chains(session, profile: dict[str, Any], target: str,
     hatch); a chain that steps into private/loopback space is refused.
     """
     findings: list[Finding] = []
-    page_url = _origin_attr(profile)
+    _origin_attr(profile)
     seen: set = set()
     count = 0
     for row in profile.get("origins", []):
@@ -270,7 +270,7 @@ async def probe_referrer_gate(session, profile: dict[str, Any], target: str,
     whose stable fingerprint differs from the stable control is a gate.
     """
     findings: list[Finding] = []
-    page_url = _origin_attr(profile)
+    _origin_attr(profile)
     referers = ["", "https://google.com/", "https://facebook.com/"]
     for row in profile.get("origins", []):
         if row.get("category") not in ("ad_network", "popunder", "risky_ad"):

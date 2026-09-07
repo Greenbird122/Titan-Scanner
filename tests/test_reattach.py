@@ -224,9 +224,9 @@ async def test_reattach_scope_ignores_other_targets_and_sid_filter(tmp_path: Pat
     other.init_meta("http://evil.com", "webshell", "consent/evil-com.json",
                     listener_url="http://127.0.0.1:9999",
                     extra={"webshell_url": "http://evil.com/x.php"})
-    keep = _store(tmp_path, "s-keep", "http-poll",
+    _store(tmp_path, "s-keep", "http-poll",
                   extra={"finding": {"url": "http://lab.local/cmd", "method": "GET", "param": "host"}})
-    key = _consent(tmp_path)
+    _consent(tmp_path)
     sessions = list_target_sessions(tmp_path / "findings", "http://lab.local")
     assert [s["session_id"] for s in sessions] == ["s-keep"]
     sessions2 = list_target_sessions(tmp_path / "findings", "http://lab.local", session_id="nope")

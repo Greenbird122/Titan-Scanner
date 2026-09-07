@@ -140,7 +140,6 @@ class ConfigManager:
     def _parse_simple_yaml(self, content: str) -> dict[str, Any]:
         """Parse simple YAML without PyYAML."""
         result: dict[str, Any] = {}
-        current_key = None
         for line in content.split("\n"):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
@@ -152,7 +151,6 @@ class ConfigManager:
                 if value:
                     result[key] = value
                 else:
-                    current_key = key
                     result[key] = {}
         return result
 

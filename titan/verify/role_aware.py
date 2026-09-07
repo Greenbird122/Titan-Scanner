@@ -127,7 +127,7 @@ class RoleAwareScanner:
             self._infer_capabilities_from_response(path, body)
 
     def _infer_capabilities_from_response(self, path: str, body: str) -> None:
-        lower = body.lower()
+        body.lower()
         if any(k in path for k in ("/users", "/accounts", "/members")) and self._role == Role.USER:
             self._capabilities.can_read_users = True
         if any(k in path for k in ("/admin", "/dashboard", "/panel")) and self._role in (Role.ADMIN, Role.STAFF):

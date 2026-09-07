@@ -339,7 +339,7 @@ class TestRestApiExistenceGate:
             return [f"finding-{method}"]
 
         engine._run_attack_modules = fake_attack
-        findings = await engine._test_rest_api(
+        await engine._test_rest_api(
             ctx, "http://localhost:5000", "http://localhost:5000/api/auth/token", {},
         )
         assert len(calls) == 2, f"POST-rescued endpoint must run modules, got {calls}"
@@ -385,7 +385,7 @@ class TestRestApiExistenceGate:
             return [f"finding-{method}"]
 
         engine._run_attack_modules = fake_attack
-        findings = await engine._test_rest_api(
+        await engine._test_rest_api(
             ctx, "http://localhost:5000", "http://localhost:5000/api/otp", {},
         )
         assert len(calls) == 2, f"structured-error POST must still run modules, got {calls}"
@@ -656,7 +656,7 @@ class TestDriverDeathResilience:
         resolves nor raises, so wait_for's cancel never completes). The fix
         uses asyncio.wait + bounded abandon — this test pins that pattern.
         """
-        engine = _engine()
+        _engine()
 
         async def wedged():
             try:

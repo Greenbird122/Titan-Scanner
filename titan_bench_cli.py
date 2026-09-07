@@ -25,9 +25,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from bench.benchmark import load_manifest, run_benchmark  # noqa: E402
-from bench.scorecard import merge_runs, write_scorecard  # noqa: E402
-from titan.core.engine import TitanEngine  # noqa: E402
+from bench.benchmark import load_manifest, run_benchmark
+from bench.scorecard import merge_runs, write_scorecard
+from titan.core.engine import TitanEngine
 
 DEFAULT_CONFIG = {
     # max_apis: scan the full discovered API surface in benchmark runs — a

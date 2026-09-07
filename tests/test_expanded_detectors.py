@@ -12,9 +12,8 @@ class TestCryptoDetectorLogic:
         import base64
 
         from titan.modules.crypto.detector import CryptoDetector
-        header = base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').decode().rstrip("=")
-        payload = base64.urlsafe_b64encode(b'{"sub":"123"}').decode().rstrip("=")
-        jwt = f"{header}.{payload}.signature"
+        base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').decode().rstrip("=")
+        base64.urlsafe_b64encode(b'{"sub":"123"}').decode().rstrip("=")
 
         detector = CryptoDetector(None, {})
         assert detector is not None

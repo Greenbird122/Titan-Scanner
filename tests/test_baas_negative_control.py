@@ -208,7 +208,7 @@ def test_sweep_runs_once_per_origin():
     detector = BaasDetector(payload_smith=None, fingerprint=_hinted_fingerprint())
     ctx = _honeypot_context()
     _run(detector, ctx)
-    first_count = len(ctx.calls)
+    len(ctx.calls)
     ctx2 = _honeypot_context()
     _run(detector, ctx2, url="https://honeypot.test/api/rest/v1/admin")
     assert len(ctx2.calls) == 0, "second dispatch re-ran the origin sweep"
