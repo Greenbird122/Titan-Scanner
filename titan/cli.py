@@ -42,6 +42,17 @@ import time
 from pathlib import Path
 
 
+def _http_url(value: str) -> str:
+    """Argparse type check: require an http(s) URL with a hostname."""
+    from urllib.parse import urlparse
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise argparse.ArgumentTypeError(
+            f"target must be an http(s) URL, got {value!r}"
+        )
+    return value
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create CLI argument parser."""
     parser = argparse.ArgumentParser(
@@ -53,7 +64,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Scan command
     scan_parser = subparsers.add_parser("scan", help="Run a security scan")
-    scan_parser.add_argument("--target", "-t", required=True, help="Target URL")
+    scan_parser.add_argument("--target", "-t", required=True, type=_http_url, help="Target URL (http/https)")
     scan_parser.add_argument("--deep", "-d", action="store_true", help="Enable deep mode (full crawl + fuzzing)")
     scan_parser.add_argument("--hostile", action="store_true", help="Enable hostile mode (deep + ad/supply-chain)")
     scan_parser.add_argument("--config", "-c", help="Path to config.yaml (overrides defaults)")
