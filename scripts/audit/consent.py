@@ -19,10 +19,8 @@ Usage:
     c = load_consent("repairai.co.ke")
     require_write(c, "for write probes")
 """
-import json
 import os
 import sys
-import time
 
 # Anchor to the repo root (this file lives in <root>/scripts/audit/), so
 # probes work from any CWD. Override with TITAN_CONSENT_DIR if needed.
@@ -51,8 +49,9 @@ def load_consent(target: str):
     signature verify, trust-anchor keypin, scope match, and expiry. A consent
     whose ``signature``/``public_key`` are mere strings will be REJECTED.
     """
-    from titan.exploit.consent import ConsentError, verify_consent
     from pathlib import Path
+
+    from titan.exploit.consent import ConsentError, verify_consent
 
     try:
         return verify_consent(

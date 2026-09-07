@@ -6,8 +6,7 @@ file upload vectors, and the REST/webservice APIs.
 """
 from __future__ import annotations
 
-import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.brains import PlatformBrain
 
@@ -30,7 +29,7 @@ class MoodleBrain(PlatformBrain):
         "/login/signup.php",
     ]
 
-    def match(self, fingerprint: Dict[str, Any], html: str, headers: Dict[str, str]) -> float:
+    def match(self, fingerprint: dict[str, Any], html: str, headers: dict[str, str]) -> float:
         score = 0.0
         lower_html = (html or "").lower()
         lower_headers = " ".join(str(v) for v in headers.values()).lower()
@@ -46,7 +45,7 @@ class MoodleBrain(PlatformBrain):
                     score += 0.4
         return min(score, 1.0)
 
-    def extra_seed_urls(self, base_url: str) -> List[str]:
+    def extra_seed_urls(self, base_url: str) -> list[str]:
         return [
             base_url.rstrip("/") + "/login/",
             base_url.rstrip("/") + "/login/signup.php",
@@ -100,7 +99,7 @@ class MoodleBrain(PlatformBrain):
             base_url.rstrip("/") + "/tool/",
         ]
 
-    def extra_parameters(self) -> List[str]:
+    def extra_parameters(self) -> list[str]:
         return [
             "sesskey", "sess_key", "session",
             "id", "course", "category", "itemid",

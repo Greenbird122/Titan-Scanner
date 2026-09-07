@@ -23,19 +23,14 @@ Features:
 
 from __future__ import annotations
 
-import asyncio
-import copy
-import json
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 
-
 # ── Active Auth Bypass Parameter Payloads ─────────────────────────────────────
-_SQLI_AUTH_PAYLOADS: Tuple[str, ...] = (
+_SQLI_AUTH_PAYLOADS: tuple[str, ...] = (
     "admin' --",
     "' or '1'='1",
     "admin' or '1'='1'--",
@@ -47,7 +42,7 @@ _SQLI_AUTH_PAYLOADS: Tuple[str, ...] = (
     "admin' or ''='",
 )
 
-_DEFAULT_CREDS: Tuple[Tuple[str, str], ...] = (
+_DEFAULT_CREDS: tuple[tuple[str, str], ...] = (
     ("admin", "admin"),
     ("admin", "password"),
     ("admin", "123456"),
@@ -58,7 +53,7 @@ _DEFAULT_CREDS: Tuple[Tuple[str, str], ...] = (
 )
 
 # ── Spoofed / Override Headers ───────────────────────────────────────────────
-_AUTH_BYPASS_HEADERS: Tuple[Dict[str, str], ...] = (
+_AUTH_BYPASS_HEADERS: tuple[dict[str, str], ...] = (
     {"X-Forwarded-For": "127.0.0.1"},
     {"X-Real-IP": "127.0.0.1"},
     {"X-Originating-IP": "127.0.0.1"},
@@ -75,7 +70,7 @@ _AUTH_BYPASS_HEADERS: Tuple[Dict[str, str], ...] = (
 )
 
 # ── URL Normalization Traversal Mutations ────────────────────────────────────
-_PATH_BYPASS_MUTATIONS: Tuple[str, ...] = (
+_PATH_BYPASS_MUTATIONS: tuple[str, ...] = (
     "/%20",
     "/.",
     "/..;/",
@@ -105,7 +100,7 @@ class AuthDetector:
         "password incorrect", "user not found", "access denied",
     ]
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -119,9 +114,9 @@ class AuthDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # 1. Baseline Request
         try:
@@ -184,11 +179,11 @@ class AuthDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         all_payloads = list(_SQLI_AUTH_PAYLOADS)
 
         # Test all parameters
@@ -231,11 +226,11 @@ class AuthDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         for hdr in _AUTH_BYPASS_HEADERS:
             try:
@@ -286,11 +281,11 @@ class AuthDetector:
         context,
         target: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         verbs = ["HEAD", "POST", "PUT", "PATCH", "OPTIONS", "PROPFIND", "TRACE"]
 
         for verb in verbs:
@@ -328,11 +323,11 @@ class AuthDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         parsed = urlparse(url)
         base_path = parsed.path.rstrip("/")
 
@@ -372,7 +367,7 @@ class AuthDetector:
     def _evaluate_auth_response(
         self,
         baseline_body: str,
-        baseline_status: Optional[int],
+        baseline_status: int | None,
         body: str,
         resp: Any,
         target: str,
@@ -381,7 +376,7 @@ class AuthDetector:
         param_name: str,
         location: str,
         payload: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         resp_status = getattr(resp, "status", None)
         if resp_status is None:
             return None

@@ -18,7 +18,6 @@ Everything here is deterministic and unit-tested.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Tuple
 
 # ### F1 — CRITICAL · Title here        (also accepts - or – as separators)
 FINDING_HEADING_RE = re.compile(
@@ -31,7 +30,7 @@ SEVERITIES = {"critical", "high", "medium", "low", "info"}
 # (regex keywords, attack type) — ordered, first match wins. \b on storage
 # keeps "localStorage-only" (which means NO real storage) out of the public-
 # storage class.
-TITLE_TO_ATTACK: List[Tuple[Tuple[str, ...], str]] = [
+TITLE_TO_ATTACK: list[tuple[tuple[str, ...], str]] = [
     ((r"privilege escalation", r"self-declared role", r"mass assignment"), "Privilege Escalation"),
     ((r"idor", r"object reference", r"missing function-level auth"), "IDOR"),
     ((r"sql",), "SQLi"),
@@ -49,7 +48,7 @@ TITLE_TO_ATTACK: List[Tuple[Tuple[str, ...], str]] = [
 ]
 
 
-def attack_type_from_title(title: str) -> Optional[str]:
+def attack_type_from_title(title: str) -> str | None:
     t = title.lower()
     for keywords, atk in TITLE_TO_ATTACK:
         if any(re.search(k, t) for k in keywords):
@@ -57,9 +56,9 @@ def attack_type_from_title(title: str) -> Optional[str]:
     return None
 
 
-def mine_findings_md(text: str) -> List[Dict[str, str]]:
+def mine_findings_md(text: str) -> list[dict[str, str]]:
     """Extract [{severity, title, attack_type}] from FINDINGS.md text."""
-    rows: List[Dict[str, str]] = []
+    rows: list[dict[str, str]] = []
     for m in FINDING_HEADING_RE.finditer(text):
         sev = m.group(1).strip().lower()
         if sev not in SEVERITIES:
@@ -70,7 +69,7 @@ def mine_findings_md(text: str) -> List[Dict[str, str]]:
     return rows
 
 
-def mine_findings_md_file(path) -> List[Dict[str, str]]:
+def mine_findings_md_file(path) -> list[dict[str, str]]:
     try:
         return mine_findings_md(path.read_text(encoding="utf-8"))
     except Exception:

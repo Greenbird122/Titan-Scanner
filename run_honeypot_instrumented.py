@@ -11,8 +11,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from run import load_config  # noqa: E402
-from titan.core.engine import TitanEngine  # noqa: E402
+from run import load_config
+from titan.core.engine import TitanEngine
 
 TARGET = "https://acme-store-adversarial.vercel.app"
 COUNTERS = {"modules": 0, "api_modules": 0, "module_calls": 0}

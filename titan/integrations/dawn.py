@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import os
-import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 MEMORY_DIR = Path.home() / ".kilo" / "dawn" / "memory"
 
@@ -18,7 +15,7 @@ class DawnMemory:
         if self.enabled:
             MEMORY_DIR.mkdir(parents=True, exist_ok=True)
 
-    def memorize_finding(self, finding: Dict[str, Any]) -> bool:
+    def memorize_finding(self, finding: dict[str, Any]) -> bool:
         if not self.enabled:
             return False
         try:
@@ -52,8 +49,8 @@ class DawnMemory:
         except Exception:
             return False
 
-    def query_findings(self, target: Optional[str] = None, days: int = 7) -> List[Dict[str, Any]]:
-        results: List[Dict[str, Any]] = []
+    def query_findings(self, target: str | None = None, days: int = 7) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
         if not self.enabled:
             return results
         try:
@@ -62,7 +59,7 @@ class DawnMemory:
             for path in MEMORY_DIR.glob("*.md"):
                 if path.stem < cutoff.strftime("%Y-%m-%d"):
                     continue
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("- [") and "MEMORIZE: vuln|" in line:
                             parts = line.strip().split("MEMORIZE: vuln|")[1].split("|")

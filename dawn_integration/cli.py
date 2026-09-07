@@ -1,14 +1,12 @@
-import asyncio
 import json
-from typing import Any, Dict, List, Optional
 
-from scanner.config import load_config, get_scanner_config
 from scanner.engine import ScanEngine
-from scanner.models import Finding, ScanResult, Severity
+from scanner.models import ScanResult
+
 from dawn_integration.memory import DawnMemory
 
 
-async def run_scan(target: str, config_path: str = "config.yaml", output_format: Optional[List[str]] = None) -> ScanResult:
+async def run_scan(target: str, config_path: str = "config.yaml", output_format: list[str] | None = None) -> ScanResult:
     engine = ScanEngine(config_path)
     result = await engine.run(target)
     output_format = output_format or ["json", "markdown"]
@@ -38,17 +36,17 @@ def _write_markdown(result):
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "report.md")
     lines = [
-        f"# Scan Report",
+        "# Scan Report",
         f"Target: {result.target}",
         f"Date: {__import__('time').ctime(result.started_at)}",
         f"Duration: {result.duration_seconds}s",
-        f"",
-        f"## Summary",
+        "",
+        "## Summary",
         f"- Total: {len(result.findings)}",
         f"- Verified: {result.verified_count}",
         f"- Critical: {result.critical_count}",
         f"- High: {result.high_count}",
-        f"",
+        "",
     ]
     by_severity = {}
     for f in result.findings:

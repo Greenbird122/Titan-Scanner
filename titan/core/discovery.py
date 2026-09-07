@@ -11,7 +11,7 @@ import asyncio
 import json
 from typing import Any
 
-from titan.core.crawl import _noop_api_probe, _noop_params_probe, _noop_methods_probe
+from titan.core.crawl import _noop_api_probe, _noop_methods_probe, _noop_params_probe
 
 
 class DiscoveryEngine:
@@ -72,9 +72,7 @@ class DiscoveryEngine:
         # SPA signal detection
         forms, links, static_apis, js_apis, spa_routes = out[:5]
         try:
-            if isinstance(links, list) and any("#" in l for l in links):
-                e._spa_detected = True
-            elif isinstance(spa_routes, list) and spa_routes:
+            if (isinstance(links, list) and any("#" in l for l in links)) or (isinstance(spa_routes, list) and spa_routes):
                 e._spa_detected = True
         except Exception:
             pass
@@ -470,9 +468,7 @@ class DiscoveryEngine:
                     if resp.status == 200:
                         baseline_resp = await context.request.get(endpoint, timeout=1500)
                         baseline_body = await baseline_resp.text()
-                        if len(body) != len(baseline_body):
-                            return param
-                        elif param.lower() in body.lower() and param.lower() not in baseline_body.lower():
+                        if len(body) != len(baseline_body) or (param.lower() in body.lower() and param.lower() not in baseline_body.lower()):
                             return param
                 except Exception:
                     pass

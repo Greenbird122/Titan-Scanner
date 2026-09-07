@@ -9,20 +9,18 @@ Covers:
 """
 import json
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest
 
+from titan.core.models import AttackType, Finding, ScanResult, Severity
 from titan.exploit.consent import (
     ConsentError,
     create_consent,
     verify_consent,
-    write_consent,
 )
-from titan.core.models import ScanResult, Finding, Severity, AttackType
 
 
 @pytest.fixture()

@@ -14,11 +14,10 @@ This module:
 from __future__ import annotations
 
 import asyncio
-import json
 import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
-from urllib.parse import urljoin, urlparse, parse_qs
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import urljoin, urlparse
 
 
 @dataclass
@@ -26,7 +25,7 @@ class DiscoveredEndpoint:
     """A discovered business logic endpoint."""
     url: str
     method: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
     source: str  # "crawl", "js", "probe", "form", "api"
     biz_type: str  # "payment", "auth", "cart", "order", "user", "admin", "unknown"
     confidence: float
@@ -110,11 +109,11 @@ class EndpointDiscovery:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._discovered: List[DiscoveredEndpoint] = []
-        self._visited: Set[str] = set()
+        self._discovered: list[DiscoveredEndpoint] = []
+        self._visited: set[str] = set()
         self._base_url: str = ""
 
-    async def discover(self, target_url: str, max_depth: int = 3) -> List[DiscoveredEndpoint]:
+    async def discover(self, target_url: str, max_depth: int = 3) -> list[DiscoveredEndpoint]:
         """Full endpoint discovery pipeline."""
         self._base_url = target_url
         self._visited.clear()
@@ -284,7 +283,7 @@ class EndpointDiscovery:
         except Exception:
             pass
 
-    async def _probe_endpoint(self, session, url: str) -> Optional[DiscoveredEndpoint]:
+    async def _probe_endpoint(self, session, url: str) -> DiscoveredEndpoint | None:
         """Probe a single endpoint to check if it exists."""
         try:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
@@ -349,7 +348,7 @@ class EndpointDiscovery:
             enhanced.append(ep)
         self._discovered = enhanced
 
-    async def _fuzz_params(self, url: str, method: str) -> Dict[str, Any]:
+    async def _fuzz_params(self, url: str, method: str) -> dict[str, Any]:
         """Fuzz common parameter names."""
         found_params = {}
         try:
@@ -403,10 +402,10 @@ class EndpointDiscovery:
             return "file"
         return "unknown"
 
-    def get_endpoints(self) -> List[DiscoveredEndpoint]:
+    def get_endpoints(self) -> list[DiscoveredEndpoint]:
         """Get all discovered endpoints."""
         return self._discovered
 
-    def get_biz_endpoints(self) -> List[DiscoveredEndpoint]:
+    def get_biz_endpoints(self) -> list[DiscoveredEndpoint]:
         """Get only business logic endpoints (exclude unknown)."""
         return [ep for ep in self._discovered if ep.biz_type != "unknown"]

@@ -17,9 +17,9 @@ without executing anything.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
-_CLOAK_PATTERNS: List[Dict[str, Any]] = [
+_CLOAK_PATTERNS: list[dict[str, Any]] = [
     {
         "name": "F12 / devtools-keyboard blocker",
         "oracle": "cloak:keyboard-block",
@@ -73,7 +73,7 @@ _CLOAK_PATTERNS: List[Dict[str, Any]] = [
     },
 ]
 
-_MINER_JS_PATTERNS: List[Dict[str, Any]] = [
+_MINER_JS_PATTERNS: list[dict[str, Any]] = [
     {
         "name": "browser-miner API calls (startMining/stopMining)",
         "oracle": "miner:js-api",
@@ -90,7 +90,7 @@ _MINER_JS_PATTERNS: List[Dict[str, Any]] = [
     },
 ]
 
-_PUSH_JS_PATTERNS: List[Dict[str, Any]] = [
+_PUSH_JS_PATTERNS: list[dict[str, Any]] = [
     {
         "name": "service-worker push registration",
         "oracle": "push:service-worker",
@@ -114,7 +114,7 @@ _PUSH_JS_PATTERNS: List[Dict[str, Any]] = [
     },
 ]
 
-_CLICKBAIT_MECHANICS: List[Dict[str, Any]] = [
+_CLICKBAIT_MECHANICS: list[dict[str, Any]] = [
     {
         "name": "countdown / fake-download timer",
         "oracle": "clickbait:countdown",
@@ -172,7 +172,7 @@ _CLICKBAIT_WORDS = [
     "number 1", "top 10", "guaranteed", "miracle", "doctors hate", "this one trick",
 ]
 
-_TERMINAL_KEYWORDS: Dict[str, List[str]] = {
+_TERMINAL_KEYWORDS: dict[str, list[str]] = {
     "phishing": ["verify", "secure-", "account-suspended", "unusual-login",
                  "update-payment", "confirm-identity", "myaccount", "login",
                  "password-reset", "restore-account"],
@@ -184,8 +184,8 @@ _TERMINAL_KEYWORDS: Dict[str, List[str]] = {
 }
 
 
-def _signals_from_patterns(html: str, patterns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    found: List[Dict[str, Any]] = []
+def _signals_from_patterns(html: str, patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
     for p in patterns:
         try:
             if p["regex"].search(html or ""):
@@ -200,12 +200,12 @@ def _signals_from_patterns(html: str, patterns: List[Dict[str, Any]]) -> List[Di
     return found
 
 
-def detect_cloaks(html: str) -> List[Dict[str, Any]]:
+def detect_cloaks(html: str) -> list[dict[str, Any]]:
     """Anti-debug / anti-inspection cloaking signatures."""
     return _signals_from_patterns(html, _CLOAK_PATTERNS)
 
 
-def detect_miners(html: str) -> List[Dict[str, Any]]:
+def detect_miners(html: str) -> list[dict[str, Any]]:
     """Browser-miner / crypto-jacking signatures (hostname + JS behavior)."""
     found = _signals_from_patterns(html, _MINER_JS_PATTERNS)
     for host in ("coinhive.com", "authedmine.com", "coinimp.com", "cryptoloot.pro", "webminepool.com"):
@@ -221,24 +221,24 @@ def detect_miners(html: str) -> List[Dict[str, Any]]:
     return found
 
 
-def detect_push_notif(html: str) -> List[Dict[str, Any]]:
+def detect_push_notif(html: str) -> list[dict[str, Any]]:
     """Service-worker / push-notification prompt patterns."""
     return _signals_from_patterns(html, _PUSH_JS_PATTERNS)
 
 
-def detect_clickbait_mechanics(html: str) -> List[Dict[str, Any]]:
+def detect_clickbait_mechanics(html: str) -> list[dict[str, Any]]:
     """Ad-mechanics clickbait: countdowns, popunders, auto-redirects."""
     return _signals_from_patterns(html, _CLICKBAIT_MECHANICS)
 
 
-def clickbait_index(html: str) -> Dict[str, Any]:
+def clickbait_index(html: str) -> dict[str, Any]:
     """Per-page clickbait score 0-100 + the signals that produced it.
 
     Content scoring (operator decision): sensational headline words plus the
     mechanical signals. The score is a heuristic — never a vulnerability.
     """
     text = (html or "").lower()
-    word_signals: List[str] = []
+    word_signals: list[str] = []
     for word in _CLICKBAIT_WORDS:
         if word in text and len(word_signals) < 8:
             word_signals.append(word)
@@ -257,7 +257,7 @@ def clickbait_index(html: str) -> Dict[str, Any]:
     }
 
 
-def classify_terminal(url: str) -> Dict[str, Any]:
+def classify_terminal(url: str) -> dict[str, Any]:
     """Classify a redirect-chain terminal URL by keyword (M5 evidence)."""
     low = (url or "").lower()
     for category, keywords in _TERMINAL_KEYWORDS.items():

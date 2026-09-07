@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import socket
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from titan.core.models import AttackType, Finding, Severity
@@ -73,14 +73,14 @@ def _hop_allowed(url: str) -> bool:
     return all(not _ip_blocked(i[4][0]) for i in infos)
 
 
-def _origin_attr(profile: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _origin_attr(profile: dict[str, Any]) -> dict[str, Any] | None:
     """The page origin for finding URLs (first profile page, fallback '')."""
     return profile.get("page_url") or ""
 
 
-def cleartext_findings(profile: Dict[str, Any], target: str) -> List[Finding]:
+def cleartext_findings(profile: dict[str, Any], target: str) -> list[Finding]:
     """Deterministic: ad/third-party script loaded over http:// on an https page."""
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     page_url = _origin_attr(profile)
     for row in profile.get("origins", []):
         if not row.get("cleartext"):
@@ -104,9 +104,9 @@ def cleartext_findings(profile: Dict[str, Any], target: str) -> List[Finding]:
     return findings
 
 
-def sri_findings(profile: Dict[str, Any], target: str) -> List[Finding]:
+def sri_findings(profile: dict[str, Any], target: str) -> list[Finding]:
     """SRI-absent classified ad/popunder scripts — supply-chain surface (M6)."""
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     page_url = _origin_attr(profile)
     for row in profile.get("origins", []):
         if not row.get("sri_missing"):
@@ -132,13 +132,13 @@ def sri_findings(profile: Dict[str, Any], target: str) -> List[Finding]:
     return findings
 
 
-def _category_findings(profile: Dict[str, Any], target: str) -> List[Finding]:
+def _category_findings(profile: dict[str, Any], target: str) -> list[Finding]:
     """Signal findings for miners, cloaks, push abuse, clickbait mechanics."""
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     page_url = _origin_attr(profile)
 
     def _make(attack: AttackType, severity: Severity, payload: str, oracle: str,
-              confidence: float, metadata: Dict[str, Any], verified: bool = True) -> Finding:
+              confidence: float, metadata: dict[str, Any], verified: bool = True) -> Finding:
         return Finding(
             target=target,
             url=page_url,
@@ -182,9 +182,9 @@ def _category_findings(profile: Dict[str, Any], target: str) -> List[Finding]:
     return findings
 
 
-async def map_redirect_chains(session, profile: Dict[str, Any], target: str,
+async def map_redirect_chains(session, profile: dict[str, Any], target: str,
                               max_hops: int = MAX_HOPS,
-                              block_private: bool = True) -> List[Finding]:
+                              block_private: bool = True) -> list[Finding]:
     """Follow each third-party load origin's URL chain (bounded) and classify
     the terminal (M5).
 
@@ -193,7 +193,7 @@ async def map_redirect_chains(session, profile: Dict[str, Any], target: str,
     ``block_private`` is False (the explicit local-fixture test escape
     hatch); a chain that steps into private/loopback space is refused.
     """
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     page_url = _origin_attr(profile)
     seen: set = set()
     count = 0
@@ -259,8 +259,8 @@ async def map_redirect_chains(session, profile: Dict[str, Any], target: str,
     return findings
 
 
-async def probe_referrer_gate(session, profile: Dict[str, Any], target: str,
-                              block_private: bool = True) -> List[Finding]:
+async def probe_referrer_gate(session, profile: dict[str, Any], target: str,
+                              block_private: bool = True) -> list[Finding]:
     """Detect referrer-gated ad delivery: same URL, different Referer, diff (M5).
 
     Active probe — caller must gate on consent. To avoid the rotating-ad
@@ -269,7 +269,7 @@ async def probe_referrer_gate(session, profile: Dict[str, Any], target: str,
     identical); the no-referer control must also be stable. Only a referer
     whose stable fingerprint differs from the stable control is a gate.
     """
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     page_url = _origin_attr(profile)
     referers = ["", "https://google.com/", "https://facebook.com/"]
     for row in profile.get("origins", []):
@@ -278,7 +278,7 @@ async def probe_referrer_gate(session, profile: Dict[str, Any], target: str,
         for url in row.get("urls", []):
             if block_private and not _hop_allowed(url):
                 continue
-            samples: Dict[str, Optional[str]] = {}
+            samples: dict[str, str | None] = {}
             try:
                 for ref in referers[:MAX_GATE_REFERERS]:
                     fps = []
@@ -322,15 +322,15 @@ async def probe_referrer_gate(session, profile: Dict[str, Any], target: str,
     return findings
 
 
-def flux_findings(profile: Dict[str, Any], prior_observed: Optional[Dict[str, Any]],
-                  target: str) -> List[Finding]:
+def flux_findings(profile: dict[str, Any], prior_observed: dict[str, Any] | None,
+                  target: str) -> list[Finding]:
     """Ad-domain rotation between scans (M6). Deterministic from stored intel."""
     from titan.hostile.intel import domain_flux
     if not prior_observed:
         return []
     current = {r["host"]: {"category": r.get("category")} for r in profile.get("origins", [])}
     flux = domain_flux(prior_observed, current)
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     for host in flux.get("removed", []):
         findings.append(Finding(
             target=target,

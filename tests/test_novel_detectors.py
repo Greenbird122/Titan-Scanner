@@ -20,7 +20,6 @@ from titan.modules.parserdiff.detector import (
 )
 from titan.verify.oracles import enforce_evidence
 
-
 # ---------------------------------------------------------------------------
 # Fuzzer: mutation dictionary + differential classification (pure)
 # ---------------------------------------------------------------------------

@@ -5,10 +5,8 @@ Provides spoken summaries of scan results for Dawn's voice system.
 
 from __future__ import annotations
 
-from typing import List, Optional
 
-
-def findings_for_speech(findings: List[dict], limit: int = 3) -> str:
+def findings_for_speech(findings: list[dict], limit: int = 3) -> str:
     """Summarize critical/high findings for TTS output.
 
     Args:

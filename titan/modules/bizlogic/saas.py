@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -356,14 +356,14 @@ class SaaSTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_subscription_bypass(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for subscription bypass vulnerabilities."""
         findings = []
 
@@ -406,9 +406,9 @@ class SaaSTester:
     async def test_credit_manipulation(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for credit manipulation vulnerabilities."""
         findings = []
 
@@ -451,9 +451,9 @@ class SaaSTester:
     async def test_role_escalation(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for role escalation vulnerabilities."""
         findings = []
 
@@ -496,9 +496,9 @@ class SaaSTester:
     async def test_workspace_abuse(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for workspace abuse vulnerabilities."""
         findings = []
 
@@ -541,9 +541,9 @@ class SaaSTester:
     async def test_billing_bypass(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for billing bypass vulnerabilities."""
         findings = []
 
@@ -589,9 +589,9 @@ class SaaSTester:
         self,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        params: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request and return response."""
         try:
             import aiohttp
@@ -612,7 +612,7 @@ class SaaSTester:
         except Exception:
             return None
 
-    def _check_subscription_bypass(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_subscription_bypass(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if subscription bypass was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -630,7 +630,7 @@ class SaaSTester:
 
         return False
 
-    def _check_credit_manipulation(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_credit_manipulation(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if credit manipulation was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -645,7 +645,7 @@ class SaaSTester:
 
         return False
 
-    def _check_role_escalation(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_role_escalation(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if role escalation was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -660,7 +660,7 @@ class SaaSTester:
 
         return False
 
-    def _check_workspace_abuse(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_workspace_abuse(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if workspace abuse was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -675,7 +675,7 @@ class SaaSTester:
 
         return False
 
-    def _check_billing_bypass(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_billing_bypass(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if billing bypass was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -693,9 +693,9 @@ class SaaSTester:
     async def test_rate_limit_abuse(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for rate limit abuse vulnerabilities."""
         findings = []
 
@@ -782,9 +782,9 @@ class SaaSTester:
     async def test_feature_gating(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for feature gating bypass vulnerabilities."""
         findings = []
 
@@ -827,9 +827,9 @@ class SaaSTester:
     async def test_trial_abuse(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for trial abuse vulnerabilities."""
         findings = []
 
@@ -871,7 +871,7 @@ class SaaSTester:
 
     # ── Additional Helper Methods ───────────────────────────────────────
 
-    def _check_feature_gating(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_feature_gating(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if feature gating was bypassed."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -889,7 +889,7 @@ class SaaSTester:
 
         return False
 
-    def _check_trial_abuse(self, response: Dict[str, Any], payload: SaaSPayload) -> bool:
+    def _check_trial_abuse(self, response: dict[str, Any], payload: SaaSPayload) -> bool:
         """Check if trial abuse was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -907,6 +907,6 @@ class SaaSTester:
 
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings from this tester."""
         return self._findings

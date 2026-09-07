@@ -15,11 +15,10 @@ Indicators:
 
 from __future__ import annotations
 
-import json
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 # Well-known benign origins that frequently load page scripts. Ad networks,
 # tag managers and analytics are deliberately included: their scripts sit on
@@ -63,12 +62,12 @@ MIN_SCORE = 2
 
 
 class ThirdPartyDetector:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, page, target: str, url: str, params: Dict[str, str]) -> List[Finding]:
-        findings: List[Finding] = []
+    async def scan(self, page, target: str, url: str, params: dict[str, str]) -> list[Finding]:
+        findings: list[Finding] = []
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)
             try:
@@ -104,7 +103,7 @@ class ThirdPartyDetector:
         return findings
 
     @staticmethod
-    def _score_script(src: str, page_origin: str, sensitive_inputs: List[str]) -> tuple:
+    def _score_script(src: str, page_origin: str, sensitive_inputs: list[str]) -> tuple:
         score = 0
         reasons = []
         try:

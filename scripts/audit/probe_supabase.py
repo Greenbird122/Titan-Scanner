@@ -21,11 +21,11 @@ import json
 import os
 import sys
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from consent import load_consent, require_write  # noqa: E402
+from consent import load_consent, require_write
 
 MARKER = "SECPROBE" + str(int(time.time()))[-8:]
 

@@ -1,6 +1,4 @@
-import asyncio
 import re
-from typing import Optional
 
 TOOL_SCAN_RE = re.compile(r"^TOOL:scan:(.+)$", re.IGNORECASE)
 

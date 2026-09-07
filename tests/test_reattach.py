@@ -7,21 +7,18 @@ original injection point with the same session id, the consent gate
 and the CLI dispatch.
 """
 
-import asyncio
 import json
 from pathlib import Path
 from urllib.parse import unquote
 
 import pytest
-from aiohttp import ClientSession, web
+from aiohttp import web
 
 from titan.exploit.consent import ConsentError, create_consent, write_consent
 from titan.exploit.listener import ExploitListener
 from titan.exploit.reattach import REATTACH_TOKEN, list_target_sessions, reattach_target
 from titan.exploit.session import SessionStore
-
 from titan_exploit_cli import cmd_reattach_async
-
 
 # ---------------------------------------------------------------------------
 # Helpers

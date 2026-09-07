@@ -21,19 +21,16 @@ Features:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import random
 import re
 import string
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from typing import Any
+from urllib.parse import urljoin
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.verify import BaselineAnalyzer
+from titan.core.models import AttackType, Finding, Severity
 
-
-_COMMON_UPLOAD_DIRS: Tuple[str, ...] = (
+_COMMON_UPLOAD_DIRS: tuple[str, ...] = (
     "/uploads/", "/upload/", "/images/", "/files/",
     "/static/uploads/", "/media/", "/static/files/",
 )
@@ -42,7 +39,7 @@ _COMMON_UPLOAD_DIRS: Tuple[str, ...] = (
 class UploadDetector:
     """Production-grade Arbitrary File Upload detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -56,9 +53,9 @@ class UploadDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # Determine target parameters to test
         param_candidates = list(params.keys()) if params else ["file", "upload", "attachment", "avatar"]
@@ -75,7 +72,7 @@ class UploadDetector:
     # BENIGN PROBE GENERATOR
     # ------------------------------------------------------------------
 
-    def _generate_probes(self, nonce: str) -> List[Dict[str, Any]]:
+    def _generate_probes(self, nonce: str) -> list[dict[str, Any]]:
         """Generate a rich matrix of benign upload probes carrying a unique nonce."""
         php_code = f"<?php echo 'TITAN_UPLOAD_OK_{nonce}'; ?>"
         jsp_code = f"<% out.println(\"TITAN_UPLOAD_OK_{nonce}\"); %>"
@@ -188,8 +185,8 @@ class UploadDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         nonce = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
         marker = f"TITAN_UPLOAD_OK_{nonce}"
         probes = self._generate_probes(nonce)
@@ -314,7 +311,7 @@ class UploadDetector:
     # FILE URL EXTRACTOR
     # ------------------------------------------------------------------
 
-    def _extract_file_url(self, body: str, target: str, current_url: str) -> Optional[str]:
+    def _extract_file_url(self, body: str, target: str, current_url: str) -> str | None:
         """Extract uploaded file path or URL from server response."""
         if not body:
             return None

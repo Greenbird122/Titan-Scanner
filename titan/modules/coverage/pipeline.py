@@ -11,19 +11,20 @@ The final piece: a unified pipeline that:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from titan.core.models import Finding
-from titan.modules.coverage.tracker import CoverageTracker
-from titan.modules.coverage.scorer import CoverageScorer
+from titan.modules.coverage.comparison import ScanComparator
 from titan.modules.coverage.gapidentifier import GapIdentifier
+from titan.modules.coverage.gate import CoverageGate
 from titan.modules.coverage.proof import CoverageProof
 from titan.modules.coverage.report import CoverageReportGenerator
-from titan.modules.coverage.gate import CoverageGate
-from titan.modules.coverage.comparison import ScanComparator, ScanSnapshot
 from titan.modules.coverage.retest import AutoRetester
+from titan.modules.coverage.scorer import CoverageScorer
 from titan.modules.coverage.surfacemapper import AttackSurfaceMapper
+from titan.modules.coverage.tracker import CoverageTracker
 
 
 @dataclass
@@ -47,7 +48,7 @@ class PipelineResult:
 class CoveragePipeline:
     """Unified coverage pipeline."""
 
-    def __init__(self, test_executor: Optional[Callable] = None):
+    def __init__(self, test_executor: Callable | None = None):
         self.tracker = CoverageTracker()
         self.scorer = CoverageScorer(self.tracker)
         self.gap_identifier = GapIdentifier(self.tracker)
@@ -63,7 +64,7 @@ class CoveragePipeline:
         self,
         target_url: str,
         page_source: str = "",
-        scan_id: Optional[str] = None,
+        scan_id: str | None = None,
     ) -> PipelineResult:
         """Run the full coverage pipeline."""
         start_time = time.time()
@@ -129,7 +130,7 @@ class CoveragePipeline:
         """Record a finding into the pipeline."""
         self.tracker.record_finding(finding)
 
-    def record_findings(self, findings: List[Finding]) -> None:
+    def record_findings(self, findings: list[Finding]) -> None:
         """Record multiple findings."""
         self.tracker.record_batch(findings)
 
@@ -145,13 +146,13 @@ class CoveragePipeline:
         markdown: str = self.report_generator.to_markdown(report)
         return markdown
 
-    def get_proof(self) -> Dict[str, Any]:
+    def get_proof(self) -> dict[str, Any]:
         """Get coverage proof."""
         proof = self.proof_generator.generate()
-        proof_dict: Dict[str, Any] = self.proof_generator.to_dict(proof)
+        proof_dict: dict[str, Any] = self.proof_generator.to_dict(proof)
         return proof_dict
 
-    def get_gate_status(self) -> Dict[str, Any]:
+    def get_gate_status(self) -> dict[str, Any]:
         """Get gate status."""
         result = self.gate.check()
         return {
@@ -162,14 +163,14 @@ class CoveragePipeline:
             "retests_needed": result.auto_retests_needed,
         }
 
-    def compare_with_previous(self) -> Optional[Dict[str, Any]]:
+    def compare_with_previous(self) -> dict[str, Any] | None:
         """Compare with previous scan."""
         comparison = self.comparator.compare_latest()
         if comparison:
             return self.comparator.to_dict(comparison)
         return None
 
-    def to_dict(self, result: PipelineResult) -> Dict[str, Any]:
+    def to_dict(self, result: PipelineResult) -> dict[str, Any]:
         """Convert result to dict."""
         return {
             "target": result.target,

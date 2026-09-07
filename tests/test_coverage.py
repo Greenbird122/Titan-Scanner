@@ -10,7 +10,6 @@ The verdict logic lives in titan.verify.coverage.finalize_coverage (pure), so
 these tests pin the REAL function the engine calls — never a copy.
 """
 
-import pytest
 
 from titan.core.models import AttackType, Finding, ScanResult, Severity
 from titan.reporting import SiteReportWriter

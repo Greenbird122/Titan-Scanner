@@ -16,10 +16,10 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -389,14 +389,14 @@ class ECommerceTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_price_tampering(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for price tampering vulnerabilities."""
         findings = []
 
@@ -438,7 +438,7 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception as e:
+                except Exception:
                     continue
 
         self._findings.extend(findings)
@@ -447,9 +447,9 @@ class ECommerceTester:
     async def test_quantity_manipulation(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for quantity manipulation vulnerabilities."""
         findings = []
 
@@ -497,9 +497,9 @@ class ECommerceTester:
     async def test_discount_abuse(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for discount abuse vulnerabilities."""
         findings = []
 
@@ -547,9 +547,9 @@ class ECommerceTester:
     async def test_cart_manipulation(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for cart manipulation vulnerabilities."""
         findings = []
 
@@ -597,9 +597,9 @@ class ECommerceTester:
     async def test_payment_bypass(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for payment bypass vulnerabilities."""
         findings = []
 
@@ -647,9 +647,9 @@ class ECommerceTester:
     async def test_order_manipulation(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test for order manipulation vulnerabilities."""
         findings = []
 
@@ -700,9 +700,9 @@ class ECommerceTester:
         self,
         url: str,
         method: str,
-        params: Dict[str, Any],
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        params: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request and return response."""
         try:
             import aiohttp
@@ -739,7 +739,7 @@ class ECommerceTester:
         except Exception:
             return None
 
-    def _check_price_accepted(self, response: Dict[str, Any], payload: BusinessLogicPayload) -> bool:
+    def _check_price_accepted(self, response: dict[str, Any], payload: BusinessLogicPayload) -> bool:
         """Check if price tampering was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -762,7 +762,7 @@ class ECommerceTester:
 
         return False
 
-    def _check_quantity_accepted(self, response: Dict[str, Any], payload: BusinessLogicPayload) -> bool:
+    def _check_quantity_accepted(self, response: dict[str, Any], payload: BusinessLogicPayload) -> bool:
         """Check if quantity manipulation was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -780,7 +780,7 @@ class ECommerceTester:
 
         return False
 
-    def _check_discount_accepted(self, response: Dict[str, Any], payload: BusinessLogicPayload) -> bool:
+    def _check_discount_accepted(self, response: dict[str, Any], payload: BusinessLogicPayload) -> bool:
         """Check if discount abuse was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -799,7 +799,7 @@ class ECommerceTester:
 
         return False
 
-    def _check_cart_manipulation(self, response: Dict[str, Any], payload: BusinessLogicPayload) -> bool:
+    def _check_cart_manipulation(self, response: dict[str, Any], payload: BusinessLogicPayload) -> bool:
         """Check if cart manipulation was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -815,7 +815,7 @@ class ECommerceTester:
 
         return False
 
-    def _check_payment_bypass(self, response: Dict[str, Any], payload: BusinessLogicPayload) -> bool:
+    def _check_payment_bypass(self, response: dict[str, Any], payload: BusinessLogicPayload) -> bool:
         """Check if payment bypass was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -830,7 +830,7 @@ class ECommerceTester:
 
         return False
 
-    def _check_order_manipulation(self, response: Dict[str, Any], payload: BusinessLogicPayload) -> bool:
+    def _check_order_manipulation(self, response: dict[str, Any], payload: BusinessLogicPayload) -> bool:
         """Check if order manipulation was accepted."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -850,9 +850,9 @@ class ECommerceTester:
     async def test_multi_step_flow(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """
         Test multi-step e-commerce flow:
         1. Add item to cart
@@ -935,7 +935,7 @@ class ECommerceTester:
                     # Check if tampered price appears in checkout response
                     tampered_value_str = str(list(tamper.values())[0])
                     if tampered_value_str in checkout_body or \
-                       re.search(r'"total":\s*0', checkout_body) and "price" in tamper or \
+                       (re.search(r'"total":\s*0', checkout_body) and "price" in tamper) or \
                        re.search(r'"total":\s*-\d+', checkout_body):
 
                         finding = Finding(
@@ -972,9 +972,9 @@ class ECommerceTester:
     async def test_cart_state_persistence(
         self,
         target_url: str,
-        endpoints: List[Dict[str, Any]],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        endpoints: list[dict[str, Any]],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test if cart state persists across requests (race condition)."""
         findings = []
 
@@ -990,7 +990,6 @@ class ECommerceTester:
         method = cart_endpoints[0].get("method", "POST")
 
         # Send rapid concurrent requests to add same item
-        import asyncio
         try:
             tasks = [
                 self._send_request(url, method, {
@@ -1023,7 +1022,7 @@ class ECommerceTester:
                         method=method,
                         param="concurrent_cart",
                         location="body",
-                        payload=f"10 concurrent add-to-cart requests with price=0",
+                        payload="10 concurrent add-to-cart requests with price=0",
                         attack_type=AttackType.BUSINESS_LOGIC,
                         severity=Severity.HIGH,
                         confidence=0.82,
@@ -1045,6 +1044,6 @@ class ECommerceTester:
         self._findings.extend(findings)
         return findings
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings from this tester."""
         return self._findings

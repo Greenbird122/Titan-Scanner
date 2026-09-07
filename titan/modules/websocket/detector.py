@@ -14,11 +14,10 @@ This module:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -153,14 +152,14 @@ class WebSocketTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_connection_hijack(
         self,
         target_url: str,
         ws_endpoint: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test WebSocket connection hijacking."""
         findings = []
 
@@ -197,8 +196,8 @@ class WebSocketTester:
         self,
         target_url: str,
         ws_endpoint: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test WebSocket message injection."""
         findings = []
 
@@ -235,8 +234,8 @@ class WebSocketTester:
         self,
         target_url: str,
         ws_endpoint: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test XSS via WebSocket."""
         findings = []
 
@@ -273,8 +272,8 @@ class WebSocketTester:
         self,
         target_url: str,
         ws_endpoint: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test WebSocket DoS."""
         findings = []
 
@@ -312,8 +311,8 @@ class WebSocketTester:
     async def _connect_ws(
         self,
         endpoint: str,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Connect to WebSocket endpoint."""
         try:
             import aiohttp
@@ -327,8 +326,8 @@ class WebSocketTester:
         self,
         endpoint: str,
         message: str,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send message to WebSocket endpoint."""
         try:
             import aiohttp
@@ -343,7 +342,7 @@ class WebSocketTester:
         except Exception:
             return None
 
-    def _check_message_injection(self, response: Dict[str, Any], payload: WebSocketPayload) -> bool:
+    def _check_message_injection(self, response: dict[str, Any], payload: WebSocketPayload) -> bool:
         """Check if message injection worked."""
         body = response.get("response", "")
         if payload.message in body:
@@ -352,7 +351,7 @@ class WebSocketTester:
             return True
         return False
 
-    def _check_dos(self, response: Dict[str, Any], payload: WebSocketPayload) -> bool:
+    def _check_dos(self, response: dict[str, Any], payload: WebSocketPayload) -> bool:
         """Check if DoS worked."""
         if response.get("status") == 0:
             return True
@@ -360,5 +359,5 @@ class WebSocketTester:
             return True
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

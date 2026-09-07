@@ -9,10 +9,9 @@ When a critical finding is discovered, Titan sends alerts to:
 
 from __future__ import annotations
 
-import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.core.models import Finding
 
@@ -22,8 +21,8 @@ class WebhookConfig:
     """Configuration for a webhook endpoint."""
     url: str
     type: str  # "slack", "discord", "email", "custom"
-    events: List[str]  # ["finding", "critical", "scan_complete"]
-    headers: Dict[str, str] = None
+    events: list[str]  # ["finding", "critical", "scan_complete"]
+    headers: dict[str, str] = None
     enabled: bool = True
 
 
@@ -31,14 +30,14 @@ class WebhookManager:
     """Manage webhook alerts."""
 
     def __init__(self):
-        self._webhooks: List[WebhookConfig] = []
-        self._sent: List[Dict[str, Any]] = []
+        self._webhooks: list[WebhookConfig] = []
+        self._sent: list[dict[str, Any]] = []
 
     def add_webhook(self, config: WebhookConfig) -> None:
         """Add a webhook endpoint."""
         self._webhooks.append(config)
 
-    def add_slack(self, url: str, events: Optional[List[str]] = None) -> None:
+    def add_slack(self, url: str, events: list[str] | None = None) -> None:
         """Add Slack webhook."""
         self._webhooks.append(WebhookConfig(
             url=url,
@@ -46,7 +45,7 @@ class WebhookManager:
             events=events or ["finding", "critical", "scan_complete"],
         ))
 
-    def add_discord(self, url: str, events: Optional[List[str]] = None) -> None:
+    def add_discord(self, url: str, events: list[str] | None = None) -> None:
         """Add Discord webhook."""
         self._webhooks.append(WebhookConfig(
             url=url,
@@ -54,7 +53,7 @@ class WebhookManager:
             events=events or ["finding", "critical", "scan_complete"],
         ))
 
-    def add_custom(self, url: str, headers: Dict[str, str], events: Optional[List[str]] = None) -> None:
+    def add_custom(self, url: str, headers: dict[str, str], events: list[str] | None = None) -> None:
         """Add custom webhook."""
         self._webhooks.append(WebhookConfig(
             url=url,
@@ -63,7 +62,7 @@ class WebhookManager:
             headers=headers,
         ))
 
-    async def send_finding_alert(self, finding: Finding) -> List[Dict[str, Any]]:
+    async def send_finding_alert(self, finding: Finding) -> list[dict[str, Any]]:
         """Send alert for a new finding."""
         results = []
         severity = str(finding.severity)
@@ -89,7 +88,7 @@ class WebhookManager:
         score: float,
         grade: str,
         findings_count: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Send scan completion alert."""
         results = []
 
@@ -108,7 +107,7 @@ class WebhookManager:
 
         return results
 
-    def _format_finding_payload(self, finding: Finding, webhook_type: str) -> Dict[str, Any]:
+    def _format_finding_payload(self, finding: Finding, webhook_type: str) -> dict[str, Any]:
         """Format finding for webhook."""
         if webhook_type == "slack":
             return {
@@ -167,7 +166,7 @@ class WebhookManager:
         grade: str,
         findings_count: int,
         webhook_type: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Format scan complete for webhook."""
         if webhook_type == "slack":
             return {
@@ -210,7 +209,7 @@ class WebhookManager:
                 "findings_count": findings_count,
             }
 
-    async def _send(self, webhook: WebhookConfig, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def _send(self, webhook: WebhookConfig, payload: dict[str, Any]) -> dict[str, Any]:
         """Send webhook payload."""
         try:
             import aiohttp
@@ -243,8 +242,8 @@ class WebhookManager:
             self._sent.append(result)
             return result
 
-    def get_sent(self) -> List[Dict[str, Any]]:
+    def get_sent(self) -> list[dict[str, Any]]:
         return self._sent
 
-    def get_webhooks(self) -> List[WebhookConfig]:
+    def get_webhooks(self) -> list[WebhookConfig]:
         return self._webhooks

@@ -15,18 +15,18 @@ protections. A strong CSP produces no finding.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 class CSPDetector:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, page, target: str, url: str, params: Dict[str, str]) -> List[Finding]:
-        findings: List[Finding] = []
+    async def scan(self, page, target: str, url: str, params: dict[str, str]) -> list[Finding]:
+        findings: list[Finding] = []
         try:
             # Header CSP first (authoritative), meta CSP second.
             csp_header = ""
@@ -83,9 +83,9 @@ class CSPDetector:
         return findings
 
     @staticmethod
-    def _parse_directives(policy: str) -> Dict[str, List[str]]:
+    def _parse_directives(policy: str) -> dict[str, list[str]]:
         """Parse a CSP policy into {directive: [sources]}."""
-        directives: Dict[str, List[str]] = {}
+        directives: dict[str, list[str]] = {}
         for segment in re.split(r";", policy):
             segment = segment.strip()
             if not segment:

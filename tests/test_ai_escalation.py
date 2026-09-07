@@ -8,7 +8,6 @@ that every failure mode leaves findings untouched.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List
 
 import pytest
 
@@ -24,11 +23,11 @@ from titan.verify.ai_escalation import (
 class StubAI:
     """Injectable fake model client. Records prompts, replays canned outputs."""
 
-    def __init__(self, responses: List[str] = None, error: bool = False, delay: float = 0.0):
+    def __init__(self, responses: list[str] = None, error: bool = False, delay: float = 0.0):
         self.responses = list(responses or [])
         self.error = error
         self.delay = delay
-        self.calls: List[str] = []
+        self.calls: list[str] = []
 
     async def generate(self, prompt: str) -> str:
         self.calls.append(prompt)

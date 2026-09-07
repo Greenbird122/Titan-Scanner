@@ -40,7 +40,6 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -114,7 +113,7 @@ def _build_config(args: argparse.Namespace) -> dict:
     config_path = getattr(args, "config", None)
     if config_path and os.path.exists(config_path):
         import yaml
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             file_config = yaml.safe_load(f) or {}
         config.update(file_config)
         config["target"] = args.target
@@ -144,7 +143,6 @@ def _build_config(args: argparse.Namespace) -> dict:
 async def run_scan(args: argparse.Namespace) -> None:
     """Run a security scan using the real TitanEngine."""
     from titan.core.engine import TitanEngine
-    from titan.core.models import Severity
 
     target = args.target
     scan_id = args.scan_id or f"scan_{int(time.time())}"
@@ -293,7 +291,7 @@ def run_report(args: argparse.Namespace) -> None:
     if not scan_file.exists():
         print(f"[-] Scan {args.scan_id} not found at {scan_file}")
         return
-    with open(scan_file, "r", encoding="utf-8") as f:
+    with open(scan_file, encoding="utf-8") as f:
         data = json.load(f)
     target = data.get("target", "unknown")
     if args.format == "html":
@@ -345,7 +343,7 @@ def run_list(args: argparse.Namespace) -> None:
     scans = []
     for f in sorted(output_dir.glob("scan_*.json")):
         try:
-            with open(f, "r", encoding="utf-8") as fh:
+            with open(f, encoding="utf-8") as fh:
                 data = json.load(fh)
             scans.append(data)
         except Exception:
@@ -370,7 +368,7 @@ def run_status(args: argparse.Namespace) -> None:
     if not scan_file.exists():
         print(f"[-] Scan {args.scan_id} not found")
         return
-    with open(scan_file, "r", encoding="utf-8") as f:
+    with open(scan_file, encoding="utf-8") as f:
         data = json.load(f)
     findings = data.get("findings", [])
     crit = sum(1 for f in findings if f.get("severity", "").upper() == "CRITICAL")

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import random
 import string
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class InteractshClient:
@@ -28,18 +27,17 @@ class InteractshClient:
             pass
         return False
 
-    async def poll(self, timeout: int = 30) -> List[Dict[str, Any]]:
+    async def poll(self, timeout: int = 30) -> list[dict[str, Any]]:
         if not self._registered:
             await self.register()
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         try:
             import aiohttp
             url = f"{self.server}/poll?id={self.correlation_id}&format=json"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=timeout) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        results = data.get("data", {}).get("interactions", [])
+            async with aiohttp.ClientSession() as session, session.get(url, timeout=timeout) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    results = data.get("data", {}).get("interactions", [])
         except Exception:
             pass
         return results

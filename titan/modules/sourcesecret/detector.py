@@ -23,15 +23,15 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
-from urllib.parse import urljoin, urlparse
+from typing import Any
+from urllib.parse import urljoin
 
 from titan.core.models import AttackType, Finding, Severity
 
 MAX_SCRIPTS = 5
 MAX_FINDINGS = 10
 
-SECRET_PATTERNS: List[Tuple[str, re.Pattern, Severity, float]] = [
+SECRET_PATTERNS: list[tuple[str, re.Pattern, Severity, float]] = [
     ("GitHub Personal Access Token", re.compile(r"ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{40,}"), Severity.HIGH, 0.95),
     ("AWS Access Key", re.compile(r"AKIA[0-9A-Z]{16}"), Severity.HIGH, 0.95),
     ("Slack Token", re.compile(r"xox[baprs]-[0-9A-Za-z-]{10,48}"), Severity.HIGH, 0.95),
@@ -57,7 +57,7 @@ INLINE_SCRIPT_RE = re.compile(r"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", re.
 class SourceSecretDetector:
     """Production-grade Client-Side Source & Bundle Secret detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -71,8 +71,8 @@ class SourceSecretDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         try:
             resp = await context.request.get(url, headers={"Referer": target}, timeout=4000)
             body = (await resp.text()) or ""
@@ -80,7 +80,7 @@ class SourceSecretDetector:
             return []
 
         # 1. Corpus building: inline scripts + same-origin bundles + source maps
-        corpus: List[str] = list(INLINE_SCRIPT_RE.findall(body))
+        corpus: list[str] = list(INLINE_SCRIPT_RE.findall(body))
         script_srcs = SCRIPT_SRC_RE.findall(body)[:MAX_SCRIPTS]
 
         for src in script_srcs:
@@ -117,7 +117,7 @@ class SourceSecretDetector:
         if not joined.strip():
             return []
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         seen: set = set()
 
         # ── 3. High-Fidelity Secret Regex Scan ────────────────────────

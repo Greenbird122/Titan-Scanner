@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
-
 from titan.core.models import Finding
 
 
 class PoCGenerator:
     @staticmethod
-    def generate(finding: Finding) -> Dict[str, str]:
+    def generate(finding: Finding) -> dict[str, str]:
         return {
             "curl": PoCGenerator._generate_curl(finding),
             "python": PoCGenerator._generate_python(finding),

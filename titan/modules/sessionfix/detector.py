@@ -47,15 +47,13 @@ Evidence oracles:
 from __future__ import annotations
 
 import re
-import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, Severity, AttackType
-
+from titan.core.models import AttackType, Finding, Severity
 
 # ── Session Cookie Names ─────────────────────────────────────────────
-COOKIE_NAMES: List[str] = [
+COOKIE_NAMES: list[str] = [
     "session", "sessionid", "sess", "sid", "jwt", "token", "auth",
     "connect.sid", "PHPSESSID", "JSESSIONID", "ASP.NET_SessionId",
     "_session_id", "sessionId", "session_id", "accessToken",
@@ -63,7 +61,7 @@ COOKIE_NAMES: List[str] = [
 ]
 
 # ── Auth Endpoint Hints ──────────────────────────────────────────────
-AUTH_ENDPOINT_HINTS: List[str] = [
+AUTH_ENDPOINT_HINTS: list[str] = [
     "login", "auth", "session", "signin", "sign-in", "token",
     "oauth", "sso", "callback", "exchange",
 ]
@@ -77,7 +75,7 @@ STATE_PROBE = "titan_state_probe_42"
 class SessionFixationDetector:
     """Production-grade Session Fixation and Session Lifecycle detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -91,9 +89,9 @@ class SessionFixationDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         url_path = urlparse(url).path.lower()
         is_auth_endpoint = any(k in url_path for k in AUTH_ENDPOINT_HINTS)
@@ -145,9 +143,9 @@ class SessionFixationDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, str],
+        all_params: dict[str, str],
         cookie_name: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         try:
             headers = {
                 "Referer": target,
@@ -210,7 +208,7 @@ class SessionFixationDetector:
         context,
         target: str,
         url: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         """Check if session cookies have proper security flags."""
         try:
             resp = await context.request.get(url, headers={"Referer": target}, timeout=3000)
@@ -277,7 +275,7 @@ class SessionFixationDetector:
         context,
         target: str,
         url: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         """Check if session tokens leak via URL parameters or Referer header."""
         try:
             resp = await context.request.get(url, headers={"Referer": target}, timeout=3000)
@@ -326,7 +324,7 @@ class SessionFixationDetector:
         context,
         target: str,
         url: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         """Check if session cookie is set BEFORE authentication (enables fixation)."""
         try:
             # Request the login page without any cookies
@@ -383,8 +381,8 @@ class SessionFixationDetector:
         context,
         target: str,
         url: str,
-        params: Dict[str, str],
-    ) -> Optional[Finding]:
+        params: dict[str, str],
+    ) -> Finding | None:
         """Test if password reset token can be reused after first use."""
         try:
             # First use
@@ -445,7 +443,7 @@ class SessionFixationDetector:
         context,
         target: str,
         url: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         """Test OAuth state parameter validation."""
         try:
             # Request without state parameter

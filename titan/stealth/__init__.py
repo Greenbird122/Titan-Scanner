@@ -6,16 +6,16 @@ and encrypted C2 channels.
 
 from titan.stealth.advanced import (
     AntiForensics,
-    TrafficShaper,
-    PolymorphicEngine,
     DecoyGenerator,
     FingerprintRandomizer,
+    PolymorphicEngine,
+    TrafficShaper,
 )
 
 __all__ = [
     "AntiForensics",
-    "TrafficShaper",
-    "PolymorphicEngine",
     "DecoyGenerator",
     "FingerprintRandomizer",
+    "PolymorphicEngine",
+    "TrafficShaper",
 ]

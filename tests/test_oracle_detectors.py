@@ -24,7 +24,6 @@ from flask import Flask, Response, request
 from titan.ai.payloadforge import PayloadForge
 from titan.core.models import AttackType
 
-
 # ─── Mini vulnerable lab (deterministic, offline) ────────────────────────────
 
 mini = Flask(__name__)
@@ -326,7 +325,7 @@ def logic_static_form():
     # or processes it. A detector that fires on "200 + body" verifies a HIGH
     # business-logic finding off a static page.
     amt = request.args.get("custom-amount-field", "")
-    return f"<html><head><title>Donate</title></head><body>" \
+    return "<html><head><title>Donate</title></head><body>" \
         "<form action='/donate' method='post'>" \
         "<input name='custom-amount-field' value='{amt}'>" \
         "<button>Donate</button></form><p>Support our work</p></body></html>"
@@ -911,7 +910,7 @@ class TestEvidenceGrading:
 
     @staticmethod
     def _finding(diffs, verified=True, severity="critical", attack="LFI", confidence=0.9):
-        from titan.core.models import Finding, Severity, AttackType
+        from titan.core.models import AttackType, Finding, Severity
         return Finding(
             target="http://x", url="http://x/a", method="GET",
             param="page", location="query", payload="../../etc/passwd",

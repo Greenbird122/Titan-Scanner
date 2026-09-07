@@ -14,20 +14,15 @@ a fresh object inherited the probe / the CSP text is weak. A marker that
 stays inert, or a validating handler, or a strong CSP, never fires.
 """
 
-import asyncio
-import json
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
-
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from titan.core.models import AttackType
 from titan.ai.payloadforge import PayloadForge
+from titan.core.models import AttackType
 
 
 class StubSmith:
@@ -260,7 +255,7 @@ class TestPrototypePollution:
 
 class TestThirdParty:
     async def test_external_script_with_sensitive_inputs_is_flagged(self):
-        from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector, KNOWN_GOOD_ORIGINS
+        from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
         page = FakePage(
             evaluate_results={"document.querySelectorAll('script[src]')": {
                 "scripts": [{"src": "https://skimmer-evil.example/analytics.js"}],

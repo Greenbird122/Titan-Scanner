@@ -9,16 +9,13 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from titan.fleet.agents import (
     AGENT_CONFIGS,
     AGENT_RUNNERS,
-    AgentConfig,
     AgentResult,
     AgentType,
     run_learning_agent,
@@ -30,7 +27,6 @@ from titan.fleet.coordinator import (
     FleetCoordinator,
     MergedFinding,
 )
-
 
 # ---------------------------------------------------------------------------
 # Agent type tests

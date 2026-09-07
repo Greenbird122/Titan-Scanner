@@ -22,12 +22,11 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import json_differential, json_value_changes
-
 
 SENSITIVE_INDICATORS = [
     "email", "phone", "address", "ssn", "password", "secret", "token",
@@ -60,7 +59,7 @@ def _is_base64_id(v: str) -> bool:
         return False
 
 
-def _mutate_numeric(val: str) -> List[str]:
+def _mutate_numeric(val: str) -> list[str]:
     """Sequential mutations of a numeric ID, deduped."""
     n = int(val)
     candidates = [n + 1, n - 1, n + 2, n - 2, 0, 9999, 2147483647]
@@ -73,7 +72,7 @@ def _mutate_numeric(val: str) -> List[str]:
     return result
 
 
-def _mutate_uuid(val: str) -> List[str]:
+def _mutate_uuid(val: str) -> list[str]:
     """Generate plausibly different UUIDs by replacing the last segment."""
     try:
         parts = val.split('-')
@@ -87,7 +86,7 @@ def _mutate_uuid(val: str) -> List[str]:
         return []
 
 
-def _mutate_mongo_oid(val: str) -> List[str]:
+def _mutate_mongo_oid(val: str) -> list[str]:
     """Increment/decrement the last 4 bytes of a MongoDB ObjectID."""
     try:
         n = int(val[-8:], 16)
@@ -100,7 +99,7 @@ def _mutate_mongo_oid(val: str) -> List[str]:
         return []
 
 
-def _mutate_base64(val: str) -> List[str]:
+def _mutate_base64(val: str) -> list[str]:
     """Decode, mutate numeric content, re-encode."""
     try:
         import base64
@@ -116,7 +115,7 @@ def _mutate_base64(val: str) -> List[str]:
         return []
 
 
-def _generate_mutations(original_value: str) -> List[str]:
+def _generate_mutations(original_value: str) -> list[str]:
     """Dispatch to the right mutator based on value type."""
     if _NUMERIC_RE.match(original_value):
         return _mutate_numeric(original_value)
@@ -139,11 +138,11 @@ def _generate_mutations(original_value: str) -> List[str]:
 class IDORDetector:
     """Production-grade IDOR/BOLA detector with exhaustive ID mutation coverage."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         # Optional: dict with second session's auth headers for cross-tenant BOLA
-        self._second_session_headers: Optional[Dict[str, str]] = (
+        self._second_session_headers: dict[str, str] | None = (
             fingerprint.get("second_session_headers") if fingerprint else None
         )
 
@@ -157,9 +156,9 @@ class IDORDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # ── Engine 1: Query/Form Parameter Mutations (ALL params) ─────
         for param_name in list(params.keys()):
@@ -202,10 +201,10 @@ class IDORDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """Find numeric segments in the URL path and step them."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         matches = list(_URL_ID_SEGMENT_RE.finditer(url))
         if not matches:
             return findings
@@ -235,10 +234,10 @@ class IDORDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """Replay request with Session B's auth headers against Session A's resource IDs."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         if not self._second_session_headers:
             return findings
 
@@ -309,11 +308,11 @@ class IDORDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
+        all_params: dict[str, str],
         test_value: str,
         original_value: str,
-        probe_url: Optional[str] = None,
-    ) -> Optional[Finding]:
+        probe_url: str | None = None,
+    ) -> Finding | None:
         try:
             baseline_body = ""
             baseline_status = None

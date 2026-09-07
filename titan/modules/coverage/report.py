@@ -13,12 +13,12 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.modules.coverage.tracker import CoverageTracker
-from titan.modules.coverage.scorer import CoverageScorer, CoverageScore
-from titan.modules.coverage.gapidentifier import GapIdentifier, CoverageGap
+from titan.modules.coverage.gapidentifier import CoverageGap, GapIdentifier
 from titan.modules.coverage.proof import CoverageProof, CoverageProofBundle
+from titan.modules.coverage.scorer import CoverageScore, CoverageScorer
+from titan.modules.coverage.tracker import CoverageTracker
 
 
 @dataclass
@@ -28,11 +28,11 @@ class CoverageReport:
     timestamp: str
     executive_summary: str
     coverage_score: CoverageScore
-    matrix: Dict[str, Any]
-    gaps: List[Dict[str, Any]]
-    proof: Dict[str, Any]
-    recommendations: List[str]
-    raw_data: Dict[str, Any]
+    matrix: dict[str, Any]
+    gaps: list[dict[str, Any]]
+    proof: dict[str, Any]
+    recommendations: list[str]
+    raw_data: dict[str, Any]
 
 
 class CoverageReportGenerator:
@@ -47,8 +47,8 @@ class CoverageReportGenerator:
     def generate(
         self,
         target_url: str,
-        expected_endpoints: Optional[List[str]] = None,
-        expected_attack_types: Optional[List[str]] = None,
+        expected_endpoints: list[str] | None = None,
+        expected_attack_types: list[str] | None = None,
     ) -> CoverageReport:
         """Generate complete coverage report."""
         # Calculate score
@@ -84,7 +84,7 @@ class CoverageReportGenerator:
             raw_data=raw_data,
         )
 
-    def _build_matrix(self) -> Dict[str, Any]:
+    def _build_matrix(self) -> dict[str, Any]:
         """Build coverage matrix for report."""
         coverage_matrix = self.tracker.get_matrix()
 
@@ -115,7 +115,7 @@ class CoverageReportGenerator:
     def _generate_summary(
         self,
         score: CoverageScore,
-        gaps: List[CoverageGap],
+        gaps: list[CoverageGap],
         proof: CoverageProofBundle,
     ) -> str:
         """Generate executive summary."""
@@ -141,8 +141,8 @@ class CoverageReportGenerator:
     def _generate_recommendations(
         self,
         score: CoverageScore,
-        gaps: List[CoverageGap],
-    ) -> List[str]:
+        gaps: list[CoverageGap],
+    ) -> list[str]:
         """Generate recommendations."""
         recommendations = []
 
@@ -167,7 +167,7 @@ class CoverageReportGenerator:
 
         return recommendations[:10]
 
-    def _gap_to_dict(self, gap: CoverageGap) -> Dict[str, Any]:
+    def _gap_to_dict(self, gap: CoverageGap) -> dict[str, Any]:
         """Convert gap to dict."""
         return {
             "gap_type": gap.gap_type,
@@ -347,11 +347,11 @@ class CoverageReportGenerator:
             md += f"{severity_emoji} **{gap['severity'].upper()}**: {gap['description']}\n"
             md += f"   - Recommendation: {gap['recommendation']}\n\n"
 
-        md += f"\n## Recommendations\n\n"
+        md += "\n## Recommendations\n\n"
         for rec in report.recommendations:
             md += f"- {rec}\n"
 
-        md += f"\n## Proof\n\n"
+        md += "\n## Proof\n\n"
         md += f"- Root Hash: `{report.proof['root_hash']}`\n"
         md += f"- Tests Proven: {report.proof['test_proofs_count']}\n"
         md += f"- Merkle Tree Depth: {report.proof['merkle_tree_depth']}\n"

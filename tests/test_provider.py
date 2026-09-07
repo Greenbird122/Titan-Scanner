@@ -1,7 +1,9 @@
 import os
-import pytest
 from unittest.mock import patch
-from provider import DeepSeekProvider, ConfigurationError
+
+import pytest
+
+from provider import ConfigurationError, DeepSeekProvider
 
 
 @pytest.mark.asyncio

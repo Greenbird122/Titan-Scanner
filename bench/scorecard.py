@@ -10,12 +10,12 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from bench.benchmark import summarize
 
 
-def render_table(rows: List[Dict[str, Any]]) -> str:
+def render_table(rows: list[dict[str, Any]]) -> str:
     """Pure: render challenge rows as a markdown table."""
     lines = [
         "| Challenge | Endpoint | Attack type | Outcome | Evidence |",
@@ -30,7 +30,7 @@ def render_table(rows: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def render_scorecard(benchmark: Dict[str, Any]) -> str:
+def render_scorecard(benchmark: dict[str, Any]) -> str:
     """Pure: full markdown scorecard for one benchmark run."""
     s = benchmark.get("summary", {})
     lines = [
@@ -57,7 +57,7 @@ def render_scorecard(benchmark: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def write_scorecard(benchmark: Dict[str, Any], out_dir: str = "bench/results") -> Path:
+def write_scorecard(benchmark: dict[str, Any], out_dir: str = "bench/results") -> Path:
     """Persist scorecard.md + scorecard.json atomically. Returns the dir."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -70,10 +70,10 @@ def write_scorecard(benchmark: Dict[str, Any], out_dir: str = "bench/results") -
     return out
 
 
-def merge_runs(previous: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+def merge_runs(previous: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
     """Pure: merge a new run into the accumulated scorecard history (best
     outcome per challenge, keyed by challenge id)."""
-    merged_rows: Dict[str, Dict[str, Any]] = {}
+    merged_rows: dict[str, dict[str, Any]] = {}
     for r in previous.get("rows", []):
         merged_rows[r.get("id", "")] = r
     for r in new.get("rows", []):

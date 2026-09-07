@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Arkose Labs auth bypass + IDOR testing."""
-import urllib.request, urllib.error, json, re
+import json
+import urllib.error
+import urllib.request
+
 
 def get(url, timeout=10, headers=None):
     h = {'User-Agent': 'Mozilla/5.0'}

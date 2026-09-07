@@ -12,12 +12,11 @@ This module:
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from titan.modules.coverage.scorer import CoverageScorer
 from titan.modules.coverage.tracker import CoverageTracker
-from titan.modules.coverage.scorer import CoverageScorer, CoverageScore
 
 
 @dataclass
@@ -26,7 +25,7 @@ class GateResult:
     passed: bool
     current_score: float
     required_score: float
-    gaps: List[str]
+    gaps: list[str]
     auto_retests_needed: int
     estimated_time_seconds: float
 
@@ -50,7 +49,7 @@ class CoverageGate:
     def __init__(
         self,
         tracker: CoverageTracker,
-        thresholds: Optional[Dict[str, float]] = None,
+        thresholds: dict[str, float] | None = None,
     ):
         self.tracker = tracker
         self.scorer = CoverageScorer(tracker)
@@ -112,12 +111,12 @@ class CoverageGate:
             estimated_time_seconds=estimated_time,
         )
 
-    def get_missing_critical_types(self) -> List[str]:
+    def get_missing_critical_types(self) -> list[str]:
         """Get critical attack types not yet tested."""
         tested = set(self.tracker.get_attack_types())
         return [t for t in self.CRITICAL_TYPES if t not in tested]
 
-    def get_retest_plan(self) -> List[Dict[str, Any]]:
+    def get_retest_plan(self) -> list[dict[str, Any]]:
         """Generate a plan for retesting gaps."""
         plan = []
         tested = set(self.tracker.get_attack_types())
@@ -152,6 +151,6 @@ class CoverageGate:
         """Set a specific threshold."""
         self.thresholds[key] = value
 
-    def get_thresholds(self) -> Dict[str, float]:
+    def get_thresholds(self) -> dict[str, float]:
         """Get current thresholds."""
         return self.thresholds.copy()

@@ -20,9 +20,7 @@ with Playwright orchestration:
 
 from __future__ import annotations
 
-import json
-import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 
@@ -42,11 +40,11 @@ def ws_to_http(url: str) -> str:
 
 
 def select_runtime_apis(
-    captured: List[str],
-    ws_urls: Optional[List[str]] = None,
+    captured: list[str],
+    ws_urls: list[str] | None = None,
     base_url: str = "",
     scope_host: str = "",
-) -> List[str]:
+) -> list[str]:
     """Turn raw runtime captures (http + ws) into the deduped, in-scope API
     queue for the module matrix.
 
@@ -56,9 +54,9 @@ def select_runtime_apis(
     * Order is stable (sorted) so the module matrix sees a deterministic
       queue run-to-run.
     """
-    raw: List[str] = list(captured or [])
+    raw: list[str] = list(captured or [])
     raw.extend(ws_urls or [])
-    out: List[str] = []
+    out: list[str] = []
     seen: set = set()
     for u in raw:
         if not u:
@@ -79,10 +77,10 @@ def select_runtime_apis(
 
 
 def route_table_candidates(
-    blob: Dict[str, Any],
+    blob: dict[str, Any],
     base_url: str = "",
     max_routes: int = 50,
-) -> List[str]:
+) -> list[str]:
     """Extract candidate SPA routes from a JSON-safe blob the page shipped
     back (the engine's page.evaluate serializes the browser-side route table).
 
@@ -99,7 +97,7 @@ def route_table_candidates(
     Returns absolute, deduped routes sorted for determinism. Empty when the
     blob carries no route shape.
     """
-    candidates: List[str] = []
+    candidates: list[str] = []
 
     def _add(value: Any) -> None:
         if isinstance(value, str):
@@ -147,7 +145,7 @@ def route_table_candidates(
                         candidates.append(v)
                         break
 
-    out: List[str] = []
+    out: list[str] = []
     seen: set = set()
     for c in candidates:
         if not c:

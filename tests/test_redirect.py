@@ -18,11 +18,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tests.test_clientside import FakePage
 from titan.core.models import AttackType
 from titan.exploit.consent import (
-    ConsentError, FLAG_REDIRECT, create_consent, require_consent, write_consent,
+    FLAG_REDIRECT,
+    ConsentError,
+    create_consent,
+    require_consent,
+    write_consent,
 )
-from tests.test_clientside import FakePage, StubSmith
 
 
 class _FakeDetector:

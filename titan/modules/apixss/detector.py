@@ -24,7 +24,7 @@ or a route-intercept replay) is the confirm step that upgrades to verified.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from titan.core.models import AttackType, Finding, Severity
@@ -63,7 +63,7 @@ STORAGE_SEED_RE = re.compile(
 )
 
 # --- sinks ---------------------------------------------------------------
-SINK_PATTERNS: List[tuple] = [
+SINK_PATTERNS: list[tuple] = [
     (re.compile(r"""\.innerHTML\s*=\s*([^;]+)"""), "innerHTML"),
     (re.compile(r"""\.outerHTML\s*=\s*([^;]+)"""), "outerHTML"),
     (re.compile(r"""\.insertAdjacentHTML\(\s*(?:["'][^"']*["']\s*,\s*)([^)]+)"""), "insertAdjacentHTML"),
@@ -81,7 +81,7 @@ NUMERIC_FIELDS = {
     "length", "count", "total", "size", "id", "index", "number", "status",
     "stargazers_count", "forks_count", "open_issues_count", "watchers_count",
     "position", "offset", "year", "month", "day", "timestamp", "page",
-    "per_page", "limit", "offset", "width", "height", "top", "left",
+    "per_page", "limit", "width", "height", "top", "left",
 }
 
 # Fields that routinely hold attacker-influenced strings.
@@ -131,20 +131,20 @@ GENERIC_NAMES = {
 
 
 class ApiXssDetector:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
     async def scan(
-        self, context, target: str, method: str, url: str, params: Dict[str, str]
-    ) -> List[Finding]:
+        self, context, target: str, method: str, url: str, params: dict[str, str]
+    ) -> list[Finding]:
         try:
             resp = await context.request.get(url, timeout=4000)
             body = (await resp.text()) or ""
         except Exception:
             return []
 
-        chunks: List[tuple] = []  # (js, origin_url)
+        chunks: list[tuple] = []  # (js, origin_url)
         for inline in INLINE_SCRIPT_RE.findall(body):
             if inline.strip():
                 chunks.append((inline, url))
@@ -164,7 +164,7 @@ class ApiXssDetector:
             if js.strip():
                 chunks.append((js, urljoin(url, src)))
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         for js, chunk_url in chunks:
             for sink_name, snippet, source in self._analyze_chunk(js):
                 findings.append(
@@ -175,9 +175,9 @@ class ApiXssDetector:
         return findings
 
     # --- pure taint pass (the unit-testable core) ------------------------
-    def _analyze_chunk(self, js: str) -> List[tuple]:
+    def _analyze_chunk(self, js: str) -> list[tuple]:
         """Return [(sink_name, snippet, source)] for tainted sinks in one chunk."""
-        tainted: Dict[str, str] = {}
+        tainted: dict[str, str] = {}
 
         def seed(name: str, source: str) -> None:
             if name and name not in tainted and name not in GENERIC_NAMES:
@@ -226,7 +226,7 @@ class ApiXssDetector:
             if not changed:
                 break
 
-        hits: List[tuple] = []
+        hits: list[tuple] = []
         for pattern, sink_name in SINK_PATTERNS:
             for m in pattern.finditer(js):
                 arg = m.group(1)
@@ -254,7 +254,7 @@ class ApiXssDetector:
         )
         return arg
 
-    def _taint_source(self, expr: str, tainted: Dict[str, str]) -> str:
+    def _taint_source(self, expr: str, tainted: dict[str, str]) -> str:
         """Source label if ``expr`` references a tainted identifier, else ""."""
         code = self._strip_strings(expr)
         for name, source in tainted.items():
@@ -272,7 +272,7 @@ class ApiXssDetector:
             return "api"
         return ""
 
-    def _arg_source(self, arg: str, tainted: Dict[str, str]) -> str:
+    def _arg_source(self, arg: str, tainted: dict[str, str]) -> str:
         """Does a sink argument reference tainted data that can carry HTML?"""
         code = self._strip_strings(arg)
         # Direct taint tokens in code position (literals already stripped).

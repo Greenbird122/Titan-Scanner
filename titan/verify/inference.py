@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +30,10 @@ class Inference:
     inference_type: str
     severity: str
     confidence: float
-    source_findings: List[str] = field(default_factory=list)
+    source_findings: list[str] = field(default_factory=list)
     description: str = ""
     remediation: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CrossDataInferenceEngine:
@@ -42,7 +42,7 @@ class CrossDataInferenceEngine:
     def __init__(self) -> None:
         self._rules = self._build_rules()
 
-    def _build_rules(self) -> List[Dict[str, Any]]:
+    def _build_rules(self) -> list[dict[str, Any]]:
         return [
             {
                 "id": "ssrf_to_cloud_imds",
@@ -126,8 +126,8 @@ class CrossDataInferenceEngine:
             },
         ]
 
-    def infer(self, findings: List[Any]) -> List[Inference]:
-        inferences: List[Inference] = []
+    def infer(self, findings: list[Any]) -> list[Inference]:
+        inferences: list[Inference] = []
         finding_map = {str(getattr(f, "id", "")): f for f in findings}
         finding_types = {str(getattr(f, "id", "")): (getattr(getattr(f, "attack_type", None), "value", "") or "") for f in findings}
         finding_caps = {str(getattr(f, "id", "")): (getattr(f, "capabilities", []) or []) for f in findings}
@@ -163,13 +163,13 @@ class CrossDataInferenceEngine:
 
     def _find_matching(
         self,
-        findings: List[Any],
-        criteria: Dict[str, Any],
-        finding_map: Dict[str, Any],
-        finding_types: Dict[str, str],
-        finding_caps: Dict[str, List[str]],
-    ) -> List[Any]:
-        matched: List[Any] = []
+        findings: list[Any],
+        criteria: dict[str, Any],
+        finding_map: dict[str, Any],
+        finding_types: dict[str, str],
+        finding_caps: dict[str, list[str]],
+    ) -> list[Any]:
+        matched: list[Any] = []
         for f in findings:
             fid = str(getattr(f, "id", ""))
             ftype = finding_types.get(fid, "")
@@ -184,7 +184,7 @@ class CrossDataInferenceEngine:
             if "min_confidence" in criteria:
                 if getattr(f, "confidence", 0) < criteria["min_confidence"]:
                     continue
-            if "verified_only" in criteria and criteria["verified_only"]:
+            if criteria.get("verified_only"):
                 if not getattr(f, "verified", False):
                     continue
             matched.append(f)

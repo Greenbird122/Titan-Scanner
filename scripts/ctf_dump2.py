@@ -4,7 +4,6 @@ Oracle: /fetch?id=3 AND <cond> -> 500 TRUE / 404 FALSE.
 """
 import json
 import os
-import sys
 import time
 import urllib.error
 import urllib.parse

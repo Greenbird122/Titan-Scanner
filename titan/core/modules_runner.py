@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import random
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from titan.core.helpers import consume_task_exception
 
@@ -60,7 +60,7 @@ class ModuleRunner:
                 continue
             if not e._is_in_scope(link):
                 continue
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import parse_qs, urlparse
             parsed = urlparse(link)
             params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
             if not params:
@@ -288,7 +288,7 @@ class ModuleRunner:
                     "modules", name, "detector.py",
                 )
                 if os.path.exists(module_path):
-                    with open(module_path, "r", encoding="utf-8") as f:
+                    with open(module_path, encoding="utf-8") as f:
                         module_lines = sum(1 for _ in f)
                         e._module_line_counts[name] = module_lines
             except Exception:
@@ -594,8 +594,8 @@ class ModuleRunner:
 
     async def _test_rest_api(self, context, target, api_url, fingerprint):
         """Test a REST API endpoint with GET and POST phases."""
-        from urllib.parse import urlparse, parse_qs
-        from titan.core.helpers import is_soft_404
+        from urllib.parse import parse_qs, urlparse
+
         from titan.core.route_scorer import score_url
 
         e = self.engine

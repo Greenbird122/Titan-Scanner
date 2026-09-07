@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Arkose Labs bug bounty recon — Level 0-1."""
-import urllib.request, urllib.error, re, json
+import json
+import urllib.error
+import urllib.request
 
 BASE = 'https://portal.arkoselabs.com'
 

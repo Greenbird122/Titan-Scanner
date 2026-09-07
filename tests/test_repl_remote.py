@@ -15,12 +15,10 @@ import socket
 import time
 from pathlib import Path
 
-import pytest
 from aiohttp import ClientSession
 
 from titan.exploit.listener import ExploitListener, JobQueue, RemoteQueue
 from titan.exploit.session import SessionStore
-
 from titan_exploit_cli import cmd_session_async
 
 
@@ -48,7 +46,7 @@ async def _fake_agent(base: str, sid: str):
             await asyncio.sleep(0.1)
             continue
         cmd = job.get("command", "")
-        out = base64.b64encode(f"executed:{cmd}".encode("utf-8")).decode("ascii")
+        out = base64.b64encode(f"executed:{cmd}".encode()).decode("ascii")
         async with ClientSession() as c:
             await c.post(
                 f"{base}/report",

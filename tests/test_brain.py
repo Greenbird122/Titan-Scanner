@@ -8,17 +8,11 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
-import math
-import re
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
-from titan.brain.strategy import ModuleScore, ProbeStrategy
+from titan.brain.evolution import DetectorModule, EvolutionEngine, Mutation
 from titan.brain.loop import BrainLoop, BrainResult, Probe, ProbeResult
-from titan.brain.evolution import EvolutionEngine, Mutation, DetectorModule
-
+from titan.brain.strategy import ModuleScore, ProbeStrategy
 
 # ---------------------------------------------------------------------------
 # ProbeStrategy tests

@@ -19,33 +19,31 @@ import time
 from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, ScanResult
-from titan.core.fingerprint import TechFingerprinter
+from titan.ai.payloadsmith import PayloadSmith
+from titan.core.anomaly import AnomalyTracker
+from titan.core.auth import AuthEngine
 from titan.core.browser_lifecycle import BrowserLifecycleMixin
-from titan.core.post_scan_phases import PostScanPhasesMixin
 from titan.core.constants import (
     CHECKPOINT_STATUSES,
-    DRIVER_DEATH_MARKERS,
     GENERIC_CHECKPOINT_INDICATORS,
     ROOT_CAUSE_ATTACK_TYPES,
     STRONG_CHECKPOINT_INDICATORS,
 )
+from titan.core.crawl import Crawler
+from titan.core.fingerprint import TechFingerprinter
 from titan.core.helpers import (
     consume_task_exception,
     dedupe_findings,
-    normalize_url,
 )
-from titan.core.crawl import Crawler
-from titan.core.modules_runner import ModuleRunner
-from titan.core.transport_mixin import TransportMixin
 from titan.core.logger import get_logger
-from titan.ai.payloadsmith import PayloadSmith
-from titan.integrations.interactsh import InteractshClient
-from titan.core.auth import AuthEngine
-from titan.core.sessions import Identity, SessionPool
+from titan.core.models import Finding, ScanResult
+from titan.core.modules_runner import ModuleRunner
+from titan.core.post_scan_phases import PostScanPhasesMixin
 from titan.core.proxy import ProxyRotator
+from titan.core.sessions import Identity, SessionPool
 from titan.core.stealth import StealthEngine
-from titan.core.anomaly import AnomalyTracker
+from titan.core.transport_mixin import TransportMixin
+from titan.integrations.interactsh import InteractshClient
 from titan.verify.flows import apply_flows
 from titan.verify.role_aware import RoleAwareScanner
 
@@ -218,8 +216,9 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
 
     def _prior_observed(self, target: str) -> dict[str, Any] | None:
         try:
-            from pathlib import Path
             import json as _json
+            from pathlib import Path
+
             from titan.reporting import site_slug as _slug
             out_dir = Path(self.config.get("output_dir", "findings"))
             p = out_dir / _slug(target) / "intel.json"
@@ -512,6 +511,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
     async def _interact_and_capture(self, context, page, base_url: str) -> list[str]:
         """Interact with a page and capture API endpoints."""
         from urllib.parse import urlparse
+
         from titan.core.spa import select_runtime_apis
 
         logger.info(f"[+] Starting interaction on {base_url}")
@@ -615,14 +615,14 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
                 name = inp.get("name", "")
                 if not name:
                     continue
-                await page.evaluate(f'''(name) => {{
-                    const el = document.querySelector('[name="{{name}}"]');
-                    if (el) {{
+                await page.evaluate('''(name) => {
+                    const el = document.querySelector('[name="{name}"]');
+                    if (el) {
                         el.value = 'test';
-                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                        el.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                    }}
-                }}''', name)
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }''', name)
             except Exception:
                 continue
         try:
@@ -887,8 +887,8 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
 
     async def _run_hostile_pass(self, target, result):
         import aiohttp
+
         from titan.hostile import findings_from_dicts, run_pass
-        from titan.reporting import site_slug
 
         candidates = [target] + [
             u for u in self.visited
@@ -1032,7 +1032,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
             logger.warning(f"[!] Brain loop: {exc}")
 
     def _build_variant_url(self, finding, variant: str) -> str | None:
-        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, quote
+        from urllib.parse import parse_qs, quote, urlencode, urlparse, urlunparse
         try:
             parsed = urlparse(finding.url)
             if finding.location == "query":
@@ -1111,6 +1111,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
         if not verified:
             return
         from pathlib import Path
+
         from titan.exploit.consent import ConsentError
         from titan.exploit.listener import ExploitListener
         from titan.exploit.planner import PlanningError, stage_and_register, usable_findings
@@ -1221,7 +1222,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
         if not fleet_cfg.get("enabled", False):
             return
         try:
-            from titan.fleet import FleetCoordinator, AgentType
+            from titan.fleet import AgentType, FleetCoordinator
         except ImportError:
             logger.warning("[!] Fleet module not available — skipping")
             return
@@ -1250,7 +1251,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
             exists = any(f.type == merged.type and f.url == merged.url and f.param == merged.param for f in result.findings)
             if not exists:
                 try:
-                    from titan.core.models import Severity, AttackType
+                    from titan.core.models import AttackType, Severity
                     severity_map = {"critical": Severity.CRITICAL, "high": Severity.HIGH,
                                     "medium": Severity.MEDIUM, "low": Severity.LOW}
                     finding = Finding(
@@ -1391,7 +1392,7 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
                 continue
             if not self._is_in_scope(link):
                 continue
-            from urllib.parse import urlparse, parse_qs
+            from urllib.parse import parse_qs, urlparse
             parsed = urlparse(link)
             params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
             if not params:
@@ -1588,8 +1589,9 @@ class TitanEngine(TransportMixin, BrowserLifecycleMixin, PostScanPhasesMixin):
             headers = dict(resp.headers)
             body = await resp.text()
             fingerprint = await self.fingerprinter.analyze(headers, body, target)
-            from urllib.parse import urljoin, urlparse as _up
             import re as _re
+            from urllib.parse import urljoin
+            from urllib.parse import urlparse as _up
             _host = (_up(target).hostname or "").lower()
             for _m in _re.finditer(r'''(?:href|src|action)=["']([^"'#]+)''', body):
                 _u = urljoin(target, _m.group(1))

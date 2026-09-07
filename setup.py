@@ -1,5 +1,5 @@
 """Titan — setup.py fallback for older pip versions."""
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="titan-scanner",

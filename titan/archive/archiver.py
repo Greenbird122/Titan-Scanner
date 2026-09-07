@@ -15,15 +15,13 @@ a huge site archives in minutes, not hours.
 
 from __future__ import annotations
 
-import asyncio
-import hashlib
 import html
 import json
 import re
 from collections import deque
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 from aiohttp import ClientSession, ClientTimeout
@@ -47,9 +45,9 @@ class _LinkParser(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.urls: List[str] = []
+        self.urls: list[str] = []
 
-    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         for name, value in attrs:
             if name in ("href", "src", "action", "data-src", "poster") and value:
                 self.urls.append(value)
@@ -59,10 +57,10 @@ async def archive_site(
     target: str,
     output_dir: str = "findings",
     consent_dir: str = "consent",
-    key_path: Optional[Path] = None,
+    key_path: Path | None = None,
     max_pages: int = DEFAULT_MAX_PAGES,
     max_depth: int = DEFAULT_MAX_DEPTH,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """One-shot convenience wrapper around SiteArchiver.archive()."""
     archiver = SiteArchiver(
         output_dir=output_dir,
@@ -108,7 +106,7 @@ class SiteArchiver:
         self,
         output_dir: str = "findings",
         consent_dir: str = "consent",
-        key_path: Optional[Path] = None,
+        key_path: Path | None = None,
         max_pages: int = DEFAULT_MAX_PAGES,
         max_depth: int = DEFAULT_MAX_DEPTH,
         max_assets: int = DEFAULT_MAX_ASSETS,
@@ -129,7 +127,7 @@ class SiteArchiver:
             return False
         return bool(host) and (host == base_host or host.endswith("." + base_host))
 
-    async def archive(self, target: str) -> Dict[str, Any]:
+    async def archive(self, target: str) -> dict[str, Any]:
         """Mirror the target into findings/<slug>/archive/. Returns a summary."""
         from titan.exploit.consent import DEFAULT_KEY_PATH as _DEFAULT_KEY
 
@@ -144,16 +142,16 @@ class SiteArchiver:
 
         base_host = (urlparse(target).hostname or "").lower()
         timeout = ClientTimeout(total=self.request_timeout)
-        endpoints: List[Dict[str, Any]] = []
-        pages: List[Dict[str, Any]] = []
-        seen_pages: Set[str] = set()
-        seen_assets: Set[str] = set()
+        endpoints: list[dict[str, Any]] = []
+        pages: list[dict[str, Any]] = []
+        seen_pages: set[str] = set()
+        seen_assets: set[str] = set()
         assets_saved = 0
         # URL -> saved-file map, built as pages/assets land, so the link
         # rewriter can point mirrored hrefs/srcs at REAL local files (a name
         # re-derivation can't work — saved stems carry the ordinal prefix +
         # extension).
-        url_to_file: Dict[str, str] = {}
+        url_to_file: dict[str, str] = {}
 
         async with ClientSession(timeout=timeout) as client:
             queue: deque = deque([(target, 0)])
@@ -295,12 +293,12 @@ class SiteArchiver:
                 continue
 
         # De-dupe the endpoint map by URL (keep the first, most complete entry).
-        by_url: Dict[str, Dict[str, Any]] = {}
+        by_url: dict[str, dict[str, Any]] = {}
         for ep in endpoints:
             if ep["url"] not in by_url:
                 by_url[ep["url"]] = ep
         endpoints = sorted(by_url.values(), key=lambda e: (e["url"]))
-        kinds: Dict[str, int] = {}
+        kinds: dict[str, int] = {}
         for ep in endpoints:
             kinds[ep["kind"]] = kinds.get(ep["kind"], 0) + 1
 
@@ -339,7 +337,7 @@ class SiteArchiver:
         text: str,
         page_url: str,
         base_host: str,
-        url_to_file: Dict[str, str],
+        url_to_file: dict[str, str],
     ) -> str:
         """Rewrite same-origin links to the local files actually saved.
 
@@ -376,9 +374,9 @@ class SiteArchiver:
         self,
         target: str,
         slug: str,
-        pages: List[Dict[str, Any]],
-        endpoints: List[Dict[str, Any]],
-        kinds: Dict[str, int],
+        pages: list[dict[str, Any]],
+        endpoints: list[dict[str, Any]],
+        kinds: dict[str, int],
     ) -> str:
         """Self-contained explorer: searchable endpoint map + page browser."""
         page_rows = "\n".join(

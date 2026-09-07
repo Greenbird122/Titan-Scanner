@@ -4,10 +4,9 @@ Tests the service-matching logic, root-domain extraction, and
 claimability verification with mocked DNS/HTTP responses.
 """
 
-import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -16,8 +15,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from titan.modules.subdomain_takeover.detector import (
-    SubdomainTakeoverDetector,
     VULNERABLE_SERVICES,
+    SubdomainTakeoverDetector,
 )
 
 

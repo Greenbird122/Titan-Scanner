@@ -14,7 +14,6 @@ from urllib.parse import urlparse, urlunparse
 
 from titan.core.constants import SOFT_404_MARKERS
 
-
 # ---------------------------------------------------------------------------
 # Async task helpers
 # ---------------------------------------------------------------------------

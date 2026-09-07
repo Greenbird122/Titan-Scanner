@@ -18,15 +18,15 @@ Features:
 from __future__ import annotations
 
 import urllib.parse as up
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import extract_error_classes
 
 
-def _mutate(value: str) -> List[Tuple[str, str]]:
+def _mutate(value: str) -> list[tuple[str, str]]:
     """Expanded, bounded mutation dictionary for a single parameter value."""
-    out: List[Tuple[str, str]] = []
+    out: list[tuple[str, str]] = []
     if not value:
         return out
     v = value
@@ -65,11 +65,11 @@ def _mutate(value: str) -> List[Tuple[str, str]]:
 
 
 def classify_differential(
-    baseline_status: Optional[int],
+    baseline_status: int | None,
     baseline_body: str,
-    variant_status: Optional[int],
+    variant_status: int | None,
     variant_body: str,
-) -> Tuple[Optional[str], Severity, float]:
+) -> tuple[str | None, Severity, float]:
     """Classify behavioral differential a mutation produced vs the baseline.
 
     Returns (diff_label, severity, confidence). Strong sink markers are verified;
@@ -109,7 +109,7 @@ def classify_differential(
 class FuzzerDetector:
     """Production-grade mutational smart fuzzer with tiered evidence oracles."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.max_mutations = int(
@@ -122,9 +122,9 @@ class FuzzerDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         if not params:
             return findings
 

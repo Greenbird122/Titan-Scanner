@@ -29,7 +29,6 @@ from titan.core.models import AttackType, Finding, Severity
 from titan.core.sessions import Identity, SessionPool
 from titan.verify.flows import apply_flows, infer_flows
 
-
 # ─── Two-role mini vulnerable lab (deterministic, offline) ───────────────────
 
 mini = Flask(__name__)

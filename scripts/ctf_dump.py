@@ -5,7 +5,6 @@ Uses MAX(table_name) iteration (no group_concat), LIMIT i,1 for rows.
 """
 import json
 import os
-import sys
 import time
 import urllib.error
 import urllib.parse

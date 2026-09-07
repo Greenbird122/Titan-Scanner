@@ -17,7 +17,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Any
 
 from titan.transport.base import (
     AttackRequest,
@@ -134,8 +133,7 @@ class GrpcTransport(Transport):
     def _reflect(self, channel) -> list[dict]:
         """Use server reflection to discover services."""
         try:
-            from grpc_reflection.v1alpha import reflection_pb2
-            from grpc_reflection.v1alpha import reflection_pb2_grpc
+            from grpc_reflection.v1alpha import reflection_pb2, reflection_pb2_grpc
 
             stub = reflection_pb2_grpc.ServerReflectionStub(channel)
 

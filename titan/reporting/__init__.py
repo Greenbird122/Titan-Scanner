@@ -25,7 +25,6 @@ from urllib.parse import urlparse
 
 from titan.core.models import ScanResult
 
-
 # Keys redacted from the persisted config snapshot: credentials must never
 # land on disk inside per-site finding docs.
 _REDACT_KEYS = ("password", "token", "secret", "api_key", "apikey")
@@ -127,7 +126,7 @@ class SiteReportWriter:
         return site_dir
 
     @staticmethod
-    def _redacted_to_dict(result: ScanResult) -> Dict[str, Any]:
+    def _redacted_to_dict(result: ScanResult) -> dict[str, Any]:
         """result.to_dict() with credentials scrubbed from config_snapshot.
 
         The snapshot carries the live config (including auth.username/password)
@@ -157,12 +156,12 @@ class SiteReportWriter:
     # ------------------------------------------------------------------ meta
 
     @staticmethod
-    def _iso(epoch: float) -> Optional[str]:
+    def _iso(epoch: float) -> str | None:
         if not epoch:
             return None
         return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat()
 
-    def _meta(self, result: ScanResult, slug: str) -> Dict[str, Any]:
+    def _meta(self, result: ScanResult, slug: str) -> dict[str, Any]:
         meta = {
             "target": result.target,
             "slug": slug,
@@ -196,7 +195,7 @@ class SiteReportWriter:
     # --------------------------------------------------------------- markdown
 
     def _markdown(self, result: ScanResult) -> str:
-        lines: List[str] = [
+        lines: list[str] = [
             f"# Scan Report — {result.target}",
             "",
             "| | |",
@@ -305,7 +304,7 @@ class SiteReportWriter:
             lines += ["No findings recorded for this site.", ""]
         else:
             lines += ["## Findings", ""]
-            by_severity: Dict[str, List[Any]] = {}
+            by_severity: dict[str, list[Any]] = {}
             for f in result.findings:
                 by_severity.setdefault(f.severity.value, []).append(f)
 
@@ -474,7 +473,7 @@ class SiteReportWriter:
 
         return "\n".join(lines)
 
-    def _finding_section(self, ordinal: int, f) -> List[str]:
+    def _finding_section(self, ordinal: int, f) -> list[str]:
         label = f.attack_type.value if f.attack_type else "Unknown"
         if f.verified:
             mark = " — verified"
@@ -529,14 +528,14 @@ class SiteReportWriter:
             lines += ["- **PoC (python)**", "", "```python", f.poc_python, "```", ""]
         return lines
 
-    def _business_logic_section(self, result: ScanResult) -> List[str]:
+    def _business_logic_section(self, result: ScanResult) -> list[str]:
         """Translate technical findings into business-impact language."""
         from titan.core.models import Severity as _Sev
         findings = result.findings
         if not findings:
             return []
 
-        impact_groups: Dict[str, List[Any]] = {
+        impact_groups: dict[str, list[Any]] = {
             "Data breach / privacy": [],
             "Account takeover / auth": [],
             "Financial fraud": [],
@@ -586,7 +585,7 @@ class SiteReportWriter:
 
     # ------------------------------------------------------------ estate avg
 
-    def _estate_average(self) -> Optional[float]:
+    def _estate_average(self) -> float | None:
         """Average finding count across all scanned sites in the estate."""
         index_path = self.output_dir / "sites.json"
         if not index_path.exists():
@@ -603,7 +602,7 @@ class SiteReportWriter:
 
     # --------------------------------------------------------------- consent
 
-    def _consent_line(self, target: str, key_path=None, consent_dir=None) -> Optional[str]:
+    def _consent_line(self, target: str, key_path=None, consent_dir=None) -> str | None:
         """Authorization story for the target, if a consent file exists.
 
         Reads the consent ledger and returns a one-line summary: basis + flags
@@ -614,9 +613,9 @@ class SiteReportWriter:
         try:
             from titan.exploit.consent import (
                 DEFAULT_CONSENT_DIR,
+                consent_filename,
                 verify_consent,
             )
-            from titan.exploit.consent import consent_filename
 
             cdir = consent_dir if consent_dir is not None else DEFAULT_CONSENT_DIR
             file = cdir / f"{consent_filename(target)}.json"
@@ -638,7 +637,7 @@ class SiteReportWriter:
 
     def _update_index(self, slug: str, result: ScanResult) -> None:
         index_path = self.output_dir / "sites.json"
-        index: Dict[str, Any] = {"sites": []}
+        index: dict[str, Any] = {"sites": []}
         if index_path.exists():
             try:
                 index = json.loads(index_path.read_text(encoding="utf-8"))
@@ -691,7 +690,7 @@ def estate_rollup(output_dir: str = "findings") -> str:
     if not sites:
         return "# Estate Rollup\n\nNo sites scanned yet.\n"
 
-    lines: List[str] = [
+    lines: list[str] = [
         "# Estate Rollup",
         "",
         f"> Generated {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
@@ -705,8 +704,8 @@ def estate_rollup(output_dir: str = "findings") -> str:
     total_critical = 0
     total_high = 0
     total_chains = 0
-    all_findings: List[Dict[str, Any]] = []
-    attack_type_counts: Dict[str, int] = {}
+    all_findings: list[dict[str, Any]] = []
+    attack_type_counts: dict[str, int] = {}
 
     for site in sites:
         slug = site.get("slug", "")
@@ -783,7 +782,7 @@ def estate_rollup(output_dir: str = "findings") -> str:
 
     # ── Cross-site patterns ──
     # Find attack types that appear on 3+ sites
-    atk_sites: Dict[str, set] = {}
+    atk_sites: dict[str, set] = {}
     for site in sites:
         slug = site.get("slug", "")
         findings_path = out / slug / "findings.json"
@@ -1045,7 +1044,7 @@ def remediation_rollup(output_dir: str = "findings") -> str:
     if not sites:
         return "# Remediation Rollup\n\nNo sites scanned yet.\n"
 
-    lines: List[str] = [
+    lines: list[str] = [
         "# Remediation Rollup",
         "",
         f"> Generated {datetime.now(tz=timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
@@ -1054,8 +1053,8 @@ def remediation_rollup(output_dir: str = "findings") -> str:
     ]
 
     # Collect all unique finding types with their patches
-    seen_patches: Dict[str, str] = {}  # atk_type -> remediation text
-    finding_count_by_type: Dict[str, int] = {}
+    seen_patches: dict[str, str] = {}  # atk_type -> remediation text
+    finding_count_by_type: dict[str, int] = {}
 
     for site in sites:
         slug = site.get("slug", "")

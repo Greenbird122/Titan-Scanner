@@ -5,7 +5,6 @@ one-shot CLI path (browse_session), and the data-session guard that refuses
 to queue agent jobs against a sqli-extraction session (no agent polls them).
 """
 
-import asyncio
 from pathlib import Path
 
 import pytest

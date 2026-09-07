@@ -29,7 +29,6 @@ from titan.learn.trends import (  # noqa: E402
     build_profiles,
     find_trend_groups,
     flag_anomalies,
-    render_trends,
     write_trends,
 )
 

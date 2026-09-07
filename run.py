@@ -32,7 +32,7 @@ from titan.core.engine import TitanEngine
 
 def load_config(path: str = "config.yaml") -> dict:
     import yaml
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
@@ -126,8 +126,8 @@ def cmd_dashboard(argv: list) -> int:
     resolves the URL to its slug first. No slug defaults to the most recently
     scanned site in the sites.json index.
     """
-    from titan.reporting.dashboard import build_dashboard
     from titan.reporting import site_slug
+    from titan.reporting.dashboard import build_dashboard
 
     out_dir = Path(_arg_value("--output-dir", "findings"))
     slug = None

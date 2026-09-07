@@ -12,13 +12,11 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urljoin, urlparse
 
 logger = logging.getLogger(__name__)
@@ -35,7 +33,7 @@ class CloudConfig:
     messaging_sender_id: str = ""
     app_id: str = ""
     region: str = "us-central1"
-    raw: Dict[str, Any] = field(default_factory=dict)
+    raw: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -51,18 +49,18 @@ class AuditFinding:
     category: str  # "pii_exposure", "auth_bypass", "misconfiguration", etc.
     cvss: float = 0.0
     verified: bool = False
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class AuditResult:
     """Complete audit results."""
     target: str
-    findings: List[AuditFinding] = field(default_factory=list)
-    cloud_config: Optional[CloudConfig] = None
-    collections: List[Dict[str, Any]] = field(default_factory=list)
-    attack_chain: List[str] = field(default_factory=list)
-    positive_controls: List[str] = field(default_factory=list)
+    findings: list[AuditFinding] = field(default_factory=list)
+    cloud_config: CloudConfig | None = None
+    collections: list[dict[str, Any]] = field(default_factory=list)
+    attack_chain: list[str] = field(default_factory=list)
+    positive_controls: list[str] = field(default_factory=list)
     duration: float = 0.0
 
 
@@ -178,7 +176,7 @@ class DeepAuditor:
 
     async def _extract_cloud_configs(
         self, session: Any, target: str
-    ) -> List[CloudConfig]:
+    ) -> list[CloudConfig]:
         """Parse JavaScript files for cloud service configurations."""
         configs = []
 
@@ -229,7 +227,7 @@ class DeepAuditor:
 
     def _parse_js_for_config(
         self, js: str, source: str
-    ) -> List[CloudConfig]:
+    ) -> list[CloudConfig]:
         """Extract cloud configs from JavaScript code."""
         configs = []
 
@@ -298,7 +296,7 @@ class DeepAuditor:
 
     def _audit_cloud_config(
         self, config: CloudConfig, target: str
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """Generate findings from exposed cloud configs."""
         findings = []
 
@@ -347,7 +345,7 @@ class DeepAuditor:
 
     async def _probe_sensitive_files(
         self, session: Any, target: str
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """Probe for exposed sensitive files."""
         findings = []
         parsed = urlparse(target)
@@ -385,7 +383,7 @@ class DeepAuditor:
 
     async def _probe_firebase(
         self, session: Any, config: CloudConfig
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """Deep probe Firebase services."""
         findings = []
 
@@ -479,7 +477,7 @@ class DeepAuditor:
                         severity="info",
                         title="Firebase Auth: Password Login Disabled",
                         description="Email/password login is disabled.",
-                        proof=f"signInWithPassword -> PASSWORD_LOGIN_DISABLED",
+                        proof="signInWithPassword -> PASSWORD_LOGIN_DISABLED",
                         impact="Positive control — password brute force not possible",
                         remediation="N/A — correctly configured",
                         category="positive_control",
@@ -568,7 +566,7 @@ class DeepAuditor:
                             severity="info",
                             title="Firebase Auth: Anonymous Auth Disabled",
                             description="Anonymous sign-up is disabled.",
-                            proof=f"signUp (anonymous) -> ADMIN_ONLY_OPERATION",
+                            proof="signUp (anonymous) -> ADMIN_ONLY_OPERATION",
                             impact="Positive control — anonymous auth not possible",
                             remediation="N/A — correctly configured",
                             category="positive_control",
@@ -611,7 +609,7 @@ class DeepAuditor:
 
     async def _probe_supabase(
         self, session: Any, config: CloudConfig
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """Deep probe Supabase services."""
         findings = []
         base = config.raw.get("url", "")
@@ -667,7 +665,7 @@ class DeepAuditor:
 
     async def _check_security_headers(
         self, session: Any, target: str
-    ) -> List[AuditFinding]:
+    ) -> list[AuditFinding]:
         """Check for missing security headers."""
         findings = []
 
@@ -713,7 +711,7 @@ class DeepAuditor:
 
         return findings
 
-    def _build_attack_chain(self, result: AuditResult) -> List[str]:
+    def _build_attack_chain(self, result: AuditResult) -> list[str]:
         """Build a complete attack chain from findings."""
         chain = []
         categories = {f.category for f in result.findings}
@@ -741,7 +739,7 @@ class DeepAuditor:
 
         return chain
 
-    def _build_positive_controls(self, result: AuditResult) -> List[str]:
+    def _build_positive_controls(self, result: AuditResult) -> list[str]:
         """List what's working correctly (positive controls)."""
         controls = []
         for f in result.findings:

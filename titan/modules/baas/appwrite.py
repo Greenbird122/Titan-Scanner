@@ -14,11 +14,10 @@ This module tests:
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -32,7 +31,7 @@ class AppWritePayload:
     expected_effect: str
     severity: Severity
     confidence: float
-    headers: Optional[Dict[str, str]] = None
+    headers: dict[str, str] | None = None
 
 
 class AppWriteTester:
@@ -356,16 +355,16 @@ class AppWriteTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
-        self._endpoint: Optional[str] = None
-        self._api_key: Optional[str] = None
-        self._project_id: Optional[str] = None
+        self._findings: list[Finding] = []
+        self._endpoint: str | None = None
+        self._api_key: str | None = None
+        self._project_id: str | None = None
 
     def set_credentials(
         self,
         endpoint: str,
-        api_key: Optional[str] = None,
-        project_id: Optional[str] = None,
+        api_key: str | None = None,
+        project_id: str | None = None,
     ) -> None:
         """Set AppWrite credentials for testing."""
         self._endpoint = endpoint
@@ -375,11 +374,11 @@ class AppWriteTester:
     async def test_database_permissions(
         self,
         target_url: str,
-        databases: List[str],
-        collections: List[str],
-        documents: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        databases: list[str],
+        collections: list[str],
+        documents: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test database permissions."""
         findings = []
 
@@ -425,9 +424,9 @@ class AppWriteTester:
     async def test_auth_permissions(
         self,
         target_url: str,
-        user_ids: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        user_ids: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test authentication permissions."""
         findings = []
 
@@ -470,10 +469,10 @@ class AppWriteTester:
     async def test_storage_permissions(
         self,
         target_url: str,
-        buckets: List[str],
-        files: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        buckets: list[str],
+        files: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test storage permissions."""
         findings = []
 
@@ -517,9 +516,9 @@ class AppWriteTester:
     async def test_team_abuse(
         self,
         target_url: str,
-        team_ids: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        team_ids: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test team/workspace abuse."""
         findings = []
 
@@ -562,9 +561,9 @@ class AppWriteTester:
     async def test_function_abuse(
         self,
         target_url: str,
-        function_ids: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        function_ids: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test function abuse."""
         findings = []
 
@@ -610,8 +609,8 @@ class AppWriteTester:
         url: str,
         method: str,
         payload: Any,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request."""
         try:
             import aiohttp
@@ -638,7 +637,7 @@ class AppWriteTester:
         except Exception:
             return None
 
-    def _check_permission(self, response: Dict[str, Any], payload: AppWritePayload) -> bool:
+    def _check_permission(self, response: dict[str, Any], payload: AppWritePayload) -> bool:
         """Check if permission was bypassed."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -661,6 +660,6 @@ class AppWriteTester:
 
         return False
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings."""
         return self._findings

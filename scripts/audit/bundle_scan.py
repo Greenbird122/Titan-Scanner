@@ -12,13 +12,12 @@ Prints findings to stdout; writes the estate map JSON when --out is given.
 Consent: read-only — no consent file required, but flags are printed if present.
 """
 import argparse
-import html
 import json
 import os
 import re
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 

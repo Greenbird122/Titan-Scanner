@@ -21,21 +21,18 @@ from __future__ import annotations
 
 import copy
 import json
-import random
 import re
-import string
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, score_signals
-
 
 # ---------------------------------------------------------------------------
 # Multi-Engine Template Injection Probes
 # ---------------------------------------------------------------------------
 
-_SSTI_MATH_PROBES: Tuple[Tuple[str, str, str], ...] = (
+_SSTI_MATH_PROBES: tuple[tuple[str, str, str], ...] = (
     # (payload, expected_standalone_result, engine_family)
     ("{{777*777}}", "603729", "jinja2/twig/nunjucks"),
     ("{{7*'7'}}", "7777777", "jinja2_discriminator"),
@@ -53,7 +50,7 @@ _SSTI_MATH_PROBES: Tuple[Tuple[str, str, str], ...] = (
     ("*{777*777}", "603729", "thymeleaf"),
 )
 
-_SSTI_ESCAPE_PROBES: Tuple[str, ...] = (
+_SSTI_ESCAPE_PROBES: tuple[str, ...] = (
     "{{config}}",
     "{{self.__init__.__globals__.__builtins__}}",
     "{{_self.env.registerUndefinedFilterCallback('exec')}}",
@@ -62,7 +59,7 @@ _SSTI_ESCAPE_PROBES: Tuple[str, ...] = (
     "${T(java.lang.Runtime).getRuntime()}",
 )
 
-_INJECTABLE_HEADERS_SSTI: Tuple[str, ...] = (
+_INJECTABLE_HEADERS_SSTI: tuple[str, ...] = (
     "User-Agent",
     "Referer",
     "X-Forwarded-For",
@@ -74,7 +71,7 @@ _INJECTABLE_HEADERS_SSTI: Tuple[str, ...] = (
 class SSTIDetector:
     """Production-grade SSTI detector with exhaustive template engine coverage."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -88,9 +85,9 @@ class SSTIDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         context_data = {
             "fingerprint": self.fingerprint,
@@ -139,11 +136,11 @@ class SSTIDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
-        safe_headers: Dict[str, str] = {"Referer": target}
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
+        safe_headers: dict[str, str] = {"Referer": target}
 
         try:
             if method == "GET":
@@ -206,10 +203,10 @@ class SSTIDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-        payloads: List[str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+        payloads: list[str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         if method.upper() == "GET":
             return findings
 
@@ -283,7 +280,7 @@ class SSTIDetector:
 
         return findings
 
-    def _json_leaves(self, node: Any, path: Optional[list] = None):
+    def _json_leaves(self, node: Any, path: list | None = None):
         if path is None:
             path = []
         if isinstance(node, dict):
@@ -312,9 +309,9 @@ class SSTIDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         baseline_body = ""
         baseline_status = None
 
@@ -339,7 +336,7 @@ class SSTIDetector:
                 body = await resp.text()
 
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-                signals: List[str] = []
+                signals: list[str] = []
 
                 # Math-eval deterministic oracle:
                 # 1. Probe 777*777 -> 603729
@@ -415,7 +412,7 @@ class SSTIDetector:
             return False
         return re.search(rf"(?<![0-9A-Za-z]){re.escape(answer)}(?![0-9A-Za-z])", body) is not None
 
-    def _detect_error_class(self, body: str, baseline: str) -> List[str]:
+    def _detect_error_class(self, body: str, baseline: str) -> list[str]:
         """Detect template engine error classes."""
         bl = baseline.lower() if baseline else ""
         tl = body.lower()

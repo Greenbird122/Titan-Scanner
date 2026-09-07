@@ -1,6 +1,5 @@
 """Tests for proxy rotation."""
 
-import pytest
 from titan.core.proxy import ProxyRotator
 
 

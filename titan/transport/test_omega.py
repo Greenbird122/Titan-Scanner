@@ -8,15 +8,15 @@ Usage:
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add titan-lab to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 async def test_transports():
-    from titan.transport import TransportRegistry, AttackRequest
+    from titan.transport import AttackRequest, TransportRegistry
     from titan.transport.base import RequestMethod
 
     print("=" * 60)
@@ -39,7 +39,7 @@ async def test_transports():
         print(f"    Status: {resp.status}")
         print(f"    Body length: {len(resp.body)} bytes")
         print(f"    Elapsed: {resp.elapsed:.2f}s")
-        print(f"    [OK] HTTP works!" if resp.ok else "    [FAIL] HTTP failed!")
+        print("    [OK] HTTP works!" if resp.ok else "    [FAIL] HTTP failed!")
     else:
         print("\n[2] HTTP transport not available ❌")
 
@@ -57,21 +57,21 @@ async def test_transports():
             data = json.loads(resp.body)
             print(f"    IsTor: {data.get('IsTor')}")
             print(f"    IP: {data.get('IP')}")
-            print(f"    [OK] Tor works!")
+            print("    [OK] Tor works!")
         else:
             print(f"    Error: {resp.error}")
-            print(f"    ❌ Tor failed!")
+            print("    ❌ Tor failed!")
     else:
         print("\n[3] Tor transport not available (is tor running?)")
 
     # 4. Test .onion resolution (without actually connecting)
     print("\n[4] Testing .onion URL handling...")
-    from titan.transport.base import TargetDescriptor, TransportProtocol
+    from titan.transport.base import TargetDescriptor
     target = TargetDescriptor(url="http://example.onion/api/test")
     print(f"    Host: {target.host}")
     print(f"    Protocol: {target.protocol}")
     print(f"    Is .onion: {'onion' in target.host}")
-    print(f"    [OK] .onion parsing works!")
+    print("    [OK] .onion parsing works!")
 
     print("\n" + "=" * 60)
     print("  TEST COMPLETE")

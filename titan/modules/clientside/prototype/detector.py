@@ -17,10 +17,10 @@ Features:
 from __future__ import annotations
 
 import secrets
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 POLLUTION_READ_JS = """
 (marker) => {
@@ -50,12 +50,12 @@ PROBE_VECTORS = [
 class PrototypePollutionDetector:
     """Production-grade client-side prototype pollution detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, page, target: str, url: str, params: Dict[str, str]) -> List[Finding]:
-        findings: List[Finding] = []
+    async def scan(self, page, target: str, url: str, params: dict[str, str]) -> list[Finding]:
+        findings: list[Finding] = []
         marker = "titanpp" + secrets.token_hex(6)
         probe_value = "polluted_" + marker
 
@@ -129,7 +129,7 @@ class PrototypePollutionDetector:
     async def _find_api_url(self, page, base_url: str) -> str:
         try:
             urls = await page.evaluate(
-                """() => {
+                r"""() => {
                     const out = [];
                     for (const a of document.querySelectorAll('a[href], form[action]')) {
                         out.push(a.href || a.action || '');

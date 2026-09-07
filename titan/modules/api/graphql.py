@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 
 
 class GraphQLScanner:
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, context, target: str, api_url: str) -> List[Finding]:
-        findings: List[Finding] = []
+    async def scan(self, context, target: str, api_url: str) -> list[Finding]:
+        findings: list[Finding] = []
 
         # ── Engine 1: Introspection ─────────────────────────────────────
         introspection_queries = [

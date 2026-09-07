@@ -13,10 +13,9 @@ This module:
 from __future__ import annotations
 
 import hashlib
-import json
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from typing import Any
 
 from titan.core.models import Finding
 
@@ -38,9 +37,9 @@ class TestRecord:
 @dataclass
 class CoverageMatrix:
     """Matrix of coverage across endpoints and attack types."""
-    endpoints: List[str]
-    attack_types: List[str]
-    matrix: Dict[Tuple[str, str], TestRecord]
+    endpoints: list[str]
+    attack_types: list[str]
+    matrix: dict[tuple[str, str], TestRecord]
     total_combinations: int
     tested_combinations: int
     passed_combinations: int
@@ -93,12 +92,12 @@ class CoverageTracker:
     }
 
     def __init__(self):
-        self._records: List[TestRecord] = []
-        self._endpoints: Set[str] = set()
-        self._attack_types: Set[str] = set()
+        self._records: list[TestRecord] = []
+        self._endpoints: set[str] = set()
+        self._attack_types: set[str] = set()
         self._start_time = time.time()
-        self._parallel_groups: Dict[str, List[str]] = {}  # group_id -> [endpoints]
-        self._dependency_graph: Dict[str, List[str]] = dict(self.DEPENDENCIES)
+        self._parallel_groups: dict[str, list[str]] = {}  # group_id -> [endpoints]
+        self._dependency_graph: dict[str, list[str]] = dict(self.DEPENDENCIES)
 
     def record_test(
         self,
@@ -146,14 +145,14 @@ class CoverageTracker:
             notes=finding.notes or "",
         )
 
-    def record_batch(self, findings: List[Finding]) -> None:
+    def record_batch(self, findings: list[Finding]) -> None:
         """Record multiple findings."""
         for finding in findings:
             self.record_finding(finding)
 
     def get_matrix(self) -> CoverageMatrix:
         """Build coverage matrix."""
-        matrix: Dict[Tuple[str, str], TestRecord] = {}
+        matrix: dict[tuple[str, str], TestRecord] = {}
 
         for record in self._records:
             key = (record.endpoint, record.attack_type)
@@ -177,26 +176,26 @@ class CoverageTracker:
             passed_combinations=passed,
         )
 
-    def get_tested_pairs(self) -> Set[Tuple[str, str]]:
+    def get_tested_pairs(self) -> set[tuple[str, str]]:
         """Get all tested (endpoint, attack_type) pairs."""
         return {(r.endpoint, r.attack_type) for r in self._records}
 
-    def get_untested_pairs(self, all_endpoints: List[str], all_attack_types: List[str]) -> Set[Tuple[str, str]]:
+    def get_untested_pairs(self, all_endpoints: list[str], all_attack_types: list[str]) -> set[tuple[str, str]]:
         """Get all untested (endpoint, attack_type) pairs."""
         tested = self.get_tested_pairs()
         all_pairs = {(e, a) for e in all_endpoints for a in all_attack_types}
         return all_pairs - tested
 
-    def get_records(self) -> List[TestRecord]:
+    def get_records(self) -> list[TestRecord]:
         return self._records
 
-    def get_endpoints(self) -> List[str]:
+    def get_endpoints(self) -> list[str]:
         return sorted(self._endpoints)
 
-    def get_attack_types(self) -> List[str]:
+    def get_attack_types(self) -> list[str]:
         return sorted(self._attack_types)
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get coverage summary."""
         matrix = self.get_matrix()
         duration = time.time() - self._start_time
@@ -261,7 +260,7 @@ class CoverageTracker:
 
         return round((covered_weight / max(total_weight, 1)) * 100, 1)
 
-    def get_time_analysis(self) -> Dict[str, Any]:
+    def get_time_analysis(self) -> dict[str, Any]:
         """Analyze test timing."""
         if not self._records:
             return {}
@@ -278,7 +277,7 @@ class CoverageTracker:
             )[:5],
         }
 
-    def get_dependency_analysis(self) -> Dict[str, Any]:
+    def get_dependency_analysis(self) -> dict[str, Any]:
         """Analyze test dependencies."""
         tested = set(self._attack_types)
         satisfied = {}

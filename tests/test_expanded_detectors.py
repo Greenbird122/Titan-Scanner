@@ -1,7 +1,5 @@
 """Tests for expanded detector modules."""
 
-import pytest
-from titan.core.models import Finding, Severity, AttackType
 
 
 class TestCryptoDetectorLogic:
@@ -11,8 +9,9 @@ class TestCryptoDetectorLogic:
         assert detector is not None
 
     def test_jwt_none_algorithm(self):
-        from titan.modules.crypto.detector import CryptoDetector
         import base64
+
+        from titan.modules.crypto.detector import CryptoDetector
         header = base64.urlsafe_b64encode(b'{"alg":"none","typ":"JWT"}').decode().rstrip("=")
         payload = base64.urlsafe_b64encode(b'{"sub":"123"}').decode().rstrip("=")
         jwt = f"{header}.{payload}.signature"

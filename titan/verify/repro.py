@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import json
 from difflib import SequenceMatcher
-from typing import List, Optional
 
 from titan.core.models import Finding
 
@@ -69,8 +68,8 @@ def _first_differential_chunk(a: str, b: str, min_len: int = 12) -> str:
     return ""
 
 
-def _error_classes_from_diffs(diffs: List[str]) -> List[str]:
-    out: List[str] = []
+def _error_classes_from_diffs(diffs: list[str]) -> list[str]:
+    out: list[str] = []
     for d in diffs or []:
         d = d.lower()
         if d.startswith(_ERROR_CLASS_DIFF_PREFIX):
@@ -111,7 +110,7 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
     if signature:
         checks.append(
             (f"oracle signature {signature[:24]!r} in response body",
-             f"signature in body")
+             "signature in body")
         )
     if status:
         checks.append((f"response status is {status}", "status match"))
@@ -213,7 +212,7 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
     return "\n".join(lines)
 
 
-def generate_repros(findings: List[Finding]) -> dict:
+def generate_repros(findings: list[Finding]) -> dict:
     """Generate repro scripts for all CONFIRMED findings.
 
     Returns ``{finding_index_in_list: script}``. Suspicious/no-evidence

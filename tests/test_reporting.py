@@ -156,8 +156,8 @@ def test_governance_denial_keeps_sane_duration(monkeypatch, tmp_path):
     """Regression: the engine switched started_at/finished_at from monotonic
     to wall-clock; the governance-denial early return must not mix clock
     bases (which would persist a garbage negative duration)."""
-    from titan.core.engine import TitanEngine
     import titan.integrations.titan_gov as gov_mod
+    from titan.core.engine import TitanEngine
 
     async def _deny(*a, **k):
         return False

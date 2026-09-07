@@ -142,21 +142,22 @@ class PostScanPhasesMixin:
         ssrf_param = ssrf_findings[0].param or "url"
 
         async def _ssrf_sink(imds_url, method="GET", headers=None, timeout=5.0):
+            from urllib.parse import parse_qs, urlencode
+            from urllib.parse import urlparse as _up
+
             import aiohttp
-            from urllib.parse import urlparse as _up, parse_qs, urlencode
             parsed = _up(ssrf_url)
             params = parse_qs(parsed.query, keep_blank_values=True)
             params[ssrf_param] = [imds_url]
             new_query = urlencode(params, doseq=True)
             sink_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.request(
-                        method=method, url=sink_url, headers=headers or {},
-                        timeout=aiohttp.ClientTimeout(total=timeout), ssl=False,
-                    ) as resp:
-                        body = await resp.text(errors="replace")
-                        return (resp.status, dict(resp.headers), body)
+                async with aiohttp.ClientSession() as session, session.request(
+                    method=method, url=sink_url, headers=headers or {},
+                    timeout=aiohttp.ClientTimeout(total=timeout), ssl=False,
+                ) as resp:
+                    body = await resp.text(errors="replace")
+                    return (resp.status, dict(resp.headers), body)
             except Exception:
                 return (0, {}, "")
 
@@ -185,7 +186,7 @@ class PostScanPhasesMixin:
         if report.findings:
             for f_dict in report.findings:
                 try:
-                    from titan.core.models import Severity, AttackType
+                    from titan.core.models import AttackType, Severity
                     severity_map = {"critical": Severity.CRITICAL, "high": Severity.HIGH,
                                     "medium": Severity.MEDIUM, "low": Severity.LOW}
                     finding = Finding(
@@ -210,7 +211,7 @@ class PostScanPhasesMixin:
             audit_result = await auditor.audit(
                 target, budget=float(self.config.get("deep_audit", {}).get("budget", 60)),
             )
-            from titan.core.models import Severity, AttackType
+            from titan.core.models import AttackType, Severity
             for af in audit_result.findings:
                 if af.severity in ("critical", "high", "medium"):
                     try:

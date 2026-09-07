@@ -17,9 +17,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -184,9 +185,6 @@ async def run_identity_agent(
     result = AgentResult(agent_type=AgentType.IDENTITY, target=target)
 
     try:
-        from titan.modules.bola.detector import BOLADetector
-        from titan.modules.massassignment.detector import MassAssignmentDetector
-        from titan.modules.jwt.detector import JWTDetector
 
         # These detectors need the full engine context — run what we can
         # with the transport layer for pure HTTP probing
@@ -290,23 +288,23 @@ async def run_post_exploit_agent(
 
             if ssrf_url:
                 async def _sink(url, method="GET", headers=None, timeout=5.0):
+                    from urllib.parse import parse_qs, urlencode, urlparse
+
                     import aiohttp
-                    from urllib.parse import urlparse, parse_qs, urlencode
                     parsed = urlparse(ssrf_url)
                     params = parse_qs(parsed.query, keep_blank_values=True)
                     params[ssrf_param] = [url]
                     new_query = urlencode(params, doseq=True)
                     sink_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
                     try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.request(
-                                method=method, url=sink_url,
-                                headers=headers or {},
-                                timeout=aiohttp.ClientTimeout(total=timeout),
-                                ssl=False,
-                            ) as resp:
-                                body = await resp.text(errors="replace")
-                                return (resp.status, dict(resp.headers), body)
+                        async with aiohttp.ClientSession() as session, session.request(
+                            method=method, url=sink_url,
+                            headers=headers or {},
+                            timeout=aiohttp.ClientTimeout(total=timeout),
+                            ssl=False,
+                        ) as resp:
+                            body = await resp.text(errors="replace")
+                            return (resp.status, dict(resp.headers), body)
                     except Exception:
                         return (0, {}, "")
 

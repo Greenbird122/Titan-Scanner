@@ -16,12 +16,10 @@ This module tests:
 from __future__ import annotations
 
 import json
-import re
-import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -35,7 +33,7 @@ class SupabasePayload:
     expected_effect: str
     severity: Severity
     confidence: float
-    headers: Optional[Dict[str, str]] = None
+    headers: dict[str, str] | None = None
 
 
 class SupabaseTester:
@@ -581,16 +579,16 @@ class SupabaseTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
-        self._supabase_url: Optional[str] = None
-        self._anon_key: Optional[str] = None
-        self._service_role_key: Optional[str] = None
+        self._findings: list[Finding] = []
+        self._supabase_url: str | None = None
+        self._anon_key: str | None = None
+        self._service_role_key: str | None = None
 
     def set_credentials(
         self,
         supabase_url: str,
-        anon_key: Optional[str] = None,
-        service_role_key: Optional[str] = None,
+        anon_key: str | None = None,
+        service_role_key: str | None = None,
     ) -> None:
         """Set Supabase credentials for testing."""
         self._supabase_url = supabase_url
@@ -600,9 +598,9 @@ class SupabaseTester:
     async def test_rls_policies(
         self,
         target_url: str,
-        tables: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        tables: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Row-Level Security policies on all tables."""
         findings = []
 
@@ -644,8 +642,8 @@ class SupabaseTester:
     async def test_auth_enumeration(
         self,
         target_url: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test auth settings enumeration."""
         findings = []
 
@@ -685,9 +683,9 @@ class SupabaseTester:
     async def test_edge_functions(
         self,
         target_url: str,
-        functions: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        functions: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Edge Functions."""
         findings = []
 
@@ -737,9 +735,9 @@ class SupabaseTester:
     async def test_storage_abuse(
         self,
         target_url: str,
-        buckets: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        buckets: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test Storage bucket abuse."""
         findings = []
 
@@ -781,8 +779,8 @@ class SupabaseTester:
     async def test_metadata_escalation(
         self,
         target_url: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test user metadata escalation."""
         findings = []
 
@@ -822,8 +820,8 @@ class SupabaseTester:
     async def test_jwt_manipulation(
         self,
         target_url: str,
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test JWT manipulation."""
         findings = []
 
@@ -878,9 +876,9 @@ class SupabaseTester:
     async def test_db_functions(
         self,
         target_url: str,
-        functions: List[str],
-        auth_headers: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        functions: list[str],
+        auth_headers: dict[str, str] | None = None,
+    ) -> list[Finding]:
         """Test database function enumeration."""
         findings = []
 
@@ -926,8 +924,8 @@ class SupabaseTester:
         url: str,
         method: str,
         payload: Any,
-        headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[Dict[str, Any]]:
+        headers: dict[str, str] | None = None,
+    ) -> dict[str, Any] | None:
         """Send HTTP request and return response."""
         try:
             import aiohttp
@@ -956,7 +954,7 @@ class SupabaseTester:
         except Exception:
             return None
 
-    def _check_rls_bypass(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_rls_bypass(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if RLS was bypassed."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -966,16 +964,14 @@ class SupabaseTester:
             if body and body not in ("[]", "{}", "null", ""):
                 try:
                     data = json.loads(body)
-                    if isinstance(data, list) and len(data) > 0:
-                        return True
-                    elif isinstance(data, dict) and len(data) > 0:
+                    if (isinstance(data, list) and len(data) > 0) or (isinstance(data, dict) and len(data) > 0):
                         return True
                 except json.JSONDecodeError:
                     pass
 
         return False
 
-    def _check_auth_enumeration(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_auth_enumeration(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if auth enumeration was successful."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -989,7 +985,7 @@ class SupabaseTester:
 
         return False
 
-    def _check_edge_function(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_edge_function(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if edge function was accessible."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -1005,7 +1001,7 @@ class SupabaseTester:
 
         return False
 
-    def _check_storage_abuse(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_storage_abuse(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if storage abuse was successful."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -1017,7 +1013,7 @@ class SupabaseTester:
 
         return False
 
-    def _check_metadata_escalation(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_metadata_escalation(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if metadata escalation was successful."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -1029,7 +1025,7 @@ class SupabaseTester:
 
         return False
 
-    def _check_jwt_manipulation(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_jwt_manipulation(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if JWT manipulation was successful."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -1041,7 +1037,7 @@ class SupabaseTester:
 
         return False
 
-    def _check_db_function(self, response: Dict[str, Any], payload: SupabasePayload) -> bool:
+    def _check_db_function(self, response: dict[str, Any], payload: SupabasePayload) -> bool:
         """Check if database function was accessible."""
         status = response.get("status", 0)
         body = response.get("body", "")
@@ -1059,8 +1055,8 @@ class SupabaseTester:
     def _generate_jwt_with_role(self, role: str) -> str:
         """Generate a JWT with specified role claim."""
         import base64
-        import hmac
         import hashlib
+        import hmac
 
         # Header
         header = json.dumps({"alg": "HS256", "typ": "JWT"})
@@ -1090,8 +1086,8 @@ class SupabaseTester:
     def _generate_expired_jwt(self) -> str:
         """Generate an expired JWT."""
         import base64
-        import hmac
         import hashlib
+        import hmac
 
         header = json.dumps({"alg": "HS256", "typ": "JWT"})
         header_b64 = base64.urlsafe_b64encode(header.encode()).rstrip(b"=").decode()
@@ -1112,11 +1108,11 @@ class SupabaseTester:
 
         return f"{header_b64}.{payload_b64}.{sig_b64}"
 
-    def _generate_jwt_with_claims(self, claims: Dict[str, Any]) -> str:
+    def _generate_jwt_with_claims(self, claims: dict[str, Any]) -> str:
         """Generate a JWT with arbitrary claims."""
         import base64
-        import hmac
         import hashlib
+        import hmac
 
         header = json.dumps({"alg": "HS256", "typ": "JWT"})
         header_b64 = base64.urlsafe_b64encode(header.encode()).rstrip(b"=").decode()
@@ -1136,6 +1132,6 @@ class SupabaseTester:
 
         return f"{header_b64}.{payload_b64}.{sig_b64}"
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         """Get all findings from this tester."""
         return self._findings

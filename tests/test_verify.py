@@ -3,8 +3,6 @@
 import asyncio
 from types import SimpleNamespace
 
-import pytest
-
 from titan.verify import BaselineAnalyzer, BlindDetector
 
 

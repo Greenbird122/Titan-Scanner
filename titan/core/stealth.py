@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import random
 import time
-from typing import List, Optional
 
 
 class StealthEngine:
@@ -14,7 +13,7 @@ class StealthEngine:
         jitter: float = 0.3,
         min_delay: float = 0.5,
         max_delay: float = 2.0,
-        user_agents: Optional[List[str]] = None,
+        user_agents: list[str] | None = None,
     ):
         self.jitter = jitter
         self.min_delay = min_delay
@@ -25,7 +24,7 @@ class StealthEngine:
         # Once we know the target responds fast, delays collapse toward a
         # minimal floor; slow/hostile targets keep the configured stealth.
         self.adaptive = True
-        self._base_rtt: Optional[float] = None
+        self._base_rtt: float | None = None
         self.user_agents = user_agents or [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

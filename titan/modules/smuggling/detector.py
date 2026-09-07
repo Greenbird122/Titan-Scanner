@@ -21,16 +21,13 @@ Features:
 
 from __future__ import annotations
 
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
-from titan.verify import BaselineAnalyzer
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import payload_encodings
 
-
 # ── Active CRLF & Desync Payloads ─────────────────────────────────────────────
-_SMUGGLE_CRLF_PROBES: Tuple[str, ...] = (
+_SMUGGLE_CRLF_PROBES: tuple[str, ...] = (
     "test%0d%0aContent-Length:%200%0d%0a%0d%0aGET%20/test%20HTTP/1.1%0d%0aX-Test: true",
     "0%0d%0a%0d%0aGET%20/admin%20HTTP/1.1%0d%0aHost:%20localhost%0d%0a%0d%0a",
     "test%0d%0aTransfer-Encoding:%20chunked%0d%0a%0d%0a0%0d%0a%0d%0a",
@@ -38,21 +35,21 @@ _SMUGGLE_CRLF_PROBES: Tuple[str, ...] = (
 )
 
 # Obfuscated TE header variations
-_TE_OBFUSCATION_HEADERS: Tuple[Dict[str, str], ...] = (
+_TE_OBFUSCATION_HEADERS: tuple[dict[str, str], ...] = (
     {"Transfer-Encoding": "chunked", "Transfer-Encoding ": "identity"},
     {"Transfer-Encoding": "chunked, identity"},
     {"Transfer-Encoding": "xchunked"},
     {"Transfer-Encoding": "chunked", "X": "x\r\nTransfer-Encoding: chunked"},
 )
 
-_SMUGGLE_ERROR_MARKERS: Tuple[str, ...] = (
+_SMUGGLE_ERROR_MARKERS: tuple[str, ...] = (
     "bad request", "invalid request", "parse error",
     "unrecognized header", "invalid transfer-encoding",
     "request header or cookie too large", "too many headers",
     "http protocol error", "stream error",
 )
 
-_SMUGGLE_KEYWORDS_TO_STRIP: Tuple[str, ...] = (
+_SMUGGLE_KEYWORDS_TO_STRIP: tuple[str, ...] = (
     "content-length", "transfer-encoding", "chunked", "http/1.1",
     "x-test", "get /test", "get /admin", "identity",
 )
@@ -61,7 +58,7 @@ _SMUGGLE_KEYWORDS_TO_STRIP: Tuple[str, ...] = (
 class SmugglingDetector:
     """Production-grade HTTP Request Smuggling detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -75,9 +72,9 @@ class SmugglingDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # 1. Baseline Request
         baseline_body = ""
@@ -128,11 +125,11 @@ class SmugglingDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         param_keys = list(params.keys()) if params else ["q"]
 
         for param_name in param_keys:
@@ -176,11 +173,11 @@ class SmugglingDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         for te_hdr in _TE_OBFUSCATION_HEADERS:
             try:
@@ -211,7 +208,7 @@ class SmugglingDetector:
     def _evaluate_smuggle_response(
         self,
         baseline_body: str,
-        baseline_status: Optional[int],
+        baseline_status: int | None,
         body: str,
         resp: Any,
         target: str,
@@ -220,7 +217,7 @@ class SmugglingDetector:
         param_name: str,
         location: str,
         payload: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         resp_status = getattr(resp, "status", None)
         if resp_status is None:
             return None

@@ -13,12 +13,11 @@ This module:
 
 from __future__ import annotations
 
-import re
 import subprocess
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -37,13 +36,13 @@ class EmailSecurityTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_spf(
         self,
         target_url: str,
         domain: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test SPF record."""
         findings = []
 
@@ -93,7 +92,7 @@ class EmailSecurityTester:
                         status=0,
                         body=f"Weak SPF: {spf}",
                         diffs=["email:weak_spf"],
-                        notes=f"SPF uses soft fail (~all) — spoofed emails may be delivered",
+                        notes="SPF uses soft fail (~all) — spoofed emails may be delivered",
                     )
                     findings.append(finding)
         except Exception:
@@ -106,7 +105,7 @@ class EmailSecurityTester:
         self,
         target_url: str,
         domain: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test DMARC record."""
         findings = []
 
@@ -156,7 +155,7 @@ class EmailSecurityTester:
                         status=0,
                         body=f"DMARC policy is none: {dmarc}",
                         diffs=["email:dmarc_none"],
-                        notes=f"DMARC policy is 'none' — spoofed emails will be delivered",
+                        notes="DMARC policy is 'none' — spoofed emails will be delivered",
                     )
                     findings.append(finding)
         except Exception:
@@ -169,7 +168,7 @@ class EmailSecurityTester:
         self,
         target_url: str,
         domain: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test DKIM record."""
         findings = []
 
@@ -228,5 +227,5 @@ class EmailSecurityTester:
         self._findings.extend(findings)
         return findings
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

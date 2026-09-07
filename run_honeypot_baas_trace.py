@@ -10,9 +10,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from run import load_config  # noqa: E402
-from titan.core.engine import TitanEngine  # noqa: E402
-from titan.modules.baas.detector import BaasDetector  # noqa: E402
+from run import load_config
+from titan.core.engine import TitanEngine
+from titan.modules.baas.detector import BaasDetector
 
 TARGET = "https://acme-store-adversarial.vercel.app"
 

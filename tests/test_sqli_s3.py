@@ -82,10 +82,11 @@ class TestS3PayloadInventory:
 
     def test_expanded_error_signatures_present(self):
         """The oracle's error list must include the mssql/sqlite/db2 shapes."""
-        from titan.modules.sqli.detector import SQLiDetector as SD
         # The signatures live in the _test_param method; pull the source and
         # assert the new shapes are present (guards against silent revert).
         import inspect
+
+        from titan.modules.sqli.detector import SQLiDetector as SD
         src = inspect.getsource(SD._test_param)
         for sig in ("incorrect syntax near", "microsoft ole db",
                     "sqlite3.operationalerror", "database error",

@@ -15,15 +15,15 @@ in isolation and the engine can never drift from its tests.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 def finalize_coverage(
-    coverage: Dict[str, Any],
+    coverage: dict[str, Any],
     driver_dead: bool = False,
     max_pages: int = 0,
     max_depth: int = 0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compute the coverage verdict from the accumulated counters.
 
     Returns a NEW dict (the counters ride along, so the claim is auditable).

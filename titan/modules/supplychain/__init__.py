@@ -9,6 +9,6 @@ Components:
 """
 
 from titan.modules.supplychain.detector import SupplyChainDetector
-from titan.modules.supplychain.sbom import SBOMAnalyzer, SBOMReport, KNOWN_VULNERABLE
+from titan.modules.supplychain.sbom import KNOWN_VULNERABLE, SBOMAnalyzer, SBOMReport
 
-__all__ = ["SupplyChainDetector", "SBOMAnalyzer", "SBOMReport", "KNOWN_VULNERABLE"]
+__all__ = ["KNOWN_VULNERABLE", "SBOMAnalyzer", "SBOMReport", "SupplyChainDetector"]

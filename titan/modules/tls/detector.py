@@ -14,14 +14,13 @@ This module:
 
 from __future__ import annotations
 
-import json
-import ssl
 import socket
+import ssl
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 
 
 @dataclass
@@ -49,12 +48,12 @@ class TLSSecurityTester:
 
     def __init__(self, context: Any = None):
         self.context = context
-        self._findings: List[Finding] = []
+        self._findings: list[Finding] = []
 
     async def test_certificate(
         self,
         target_url: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test TLS certificate."""
         findings = []
         parsed = urlparse(target_url)
@@ -164,7 +163,7 @@ class TLSSecurityTester:
     async def test_protocols(
         self,
         target_url: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test for insecure TLS protocols."""
         findings = []
         parsed = urlparse(target_url)
@@ -196,7 +195,7 @@ class TLSSecurityTester:
                             notes=f"Insecure protocol: {description}",
                         )
                         findings.append(finding)
-            except (ssl.SSLError, ConnectionRefusedError, socket.timeout, OSError):
+            except (TimeoutError, ssl.SSLError, ConnectionRefusedError, OSError):
                 # Protocol not supported — good
                 pass
             except Exception:
@@ -208,7 +207,7 @@ class TLSSecurityTester:
     async def test_hsts(
         self,
         target_url: str,
-    ) -> List[Finding]:
+    ) -> list[Finding]:
         """Test HSTS configuration."""
         findings = []
 
@@ -286,5 +285,5 @@ class TLSSecurityTester:
         self._findings.extend(findings)
         return findings
 
-    def get_findings(self) -> List[Finding]:
+    def get_findings(self) -> list[Finding]:
         return self._findings

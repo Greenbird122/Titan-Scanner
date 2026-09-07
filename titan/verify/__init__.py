@@ -27,7 +27,7 @@ class ConfirmationOracle:
     }
 
     @classmethod
-    def score(cls, diffs: List[str], attack_type: str, payload: str, baseline: str, test: str, status: int, baseline_status: int) -> Tuple[float, bool]:
+    def score(cls, diffs: list[str], attack_type: str, payload: str, baseline: str, test: str, status: int, baseline_status: int) -> tuple[float, bool]:
         score = 0.0
         verified = False
 
@@ -58,10 +58,7 @@ class ConfirmationOracle:
         elif attack_type == "LFI" and any(ind in test.lower() for ind in ["root:", "daemon:", "etc/passwd", "windows", "system32"]):
             verified = True
             score = max(score, 0.9)
-        elif attack_type == "RCE" and any(ind in test.lower() for ind in ["root:", "uid=", "gid=", "directory of", "volume serial"]):
-            verified = True
-            score = max(score, 0.95)
-        elif attack_type == "SSRF" and any(ind in test.lower() for ind in ["ami-id", "meta-data", "root:", "internal", "127.0.0.1"]):
+        elif (attack_type == "RCE" and any(ind in test.lower() for ind in ["root:", "uid=", "gid=", "directory of", "volume serial"])) or (attack_type == "SSRF" and any(ind in test.lower() for ind in ["ami-id", "meta-data", "root:", "internal", "127.0.0.1"])):
             verified = True
             score = max(score, 0.95)
         elif attack_type == "IDOR" and "json:" in " ".join(diffs):
@@ -77,7 +74,7 @@ class ConfirmationOracle:
 
 class BaselineAnalyzer:
     @staticmethod
-    def diff_responses(baseline: str, injected: str, payload: str) -> List[str]:
+    def diff_responses(baseline: str, injected: str, payload: str) -> list[str]:
         diffs = []
         if not baseline:
             return diffs
@@ -113,7 +110,7 @@ class BaselineAnalyzer:
         return diffs
 
     @staticmethod
-    def diff_json(baseline: Any, injected: Any) -> List[str]:
+    def diff_json(baseline: Any, injected: Any) -> list[str]:
         diffs = []
         if isinstance(baseline, dict) and isinstance(injected, dict):
             b_keys = set(baseline.keys())
@@ -129,10 +126,10 @@ class BaselineAnalyzer:
         return diffs
 
     @staticmethod
-    def diff_headers(baseline: Dict[str, str], injected: Dict[str, str]) -> List[str]:
+    def diff_headers(baseline: dict[str, str], injected: dict[str, str]) -> list[str]:
         diffs = []
-        b_keys = {k.lower(): k for k in baseline.keys()}
-        i_keys = {k.lower(): k for k in injected.keys()}
+        b_keys = {k.lower(): k for k in baseline}
+        i_keys = {k.lower(): k for k in injected}
         for key in set(b_keys) | set(i_keys):
             b_val = baseline.get(b_keys.get(key, key), "")
             i_val = injected.get(i_keys.get(key, key), "")
@@ -180,14 +177,14 @@ class BlindDetector:
         context,
         url: str,
         method: str,
-        params: Dict[str, str],
-        data: Dict[str, str],
-        headers: Dict[str, str],
+        params: dict[str, str],
+        data: dict[str, str],
+        headers: dict[str, str],
         payload: str,
         location: str,
-        baseline_times: List[float],
-        param_name: Optional[str] = None,
-    ) -> Tuple[bool, float]:
+        baseline_times: list[float],
+        param_name: str | None = None,
+    ) -> tuple[bool, float]:
         injected_times = []
         # Time-based detection is statistical: it needs a minimum of 2 samples
         # (and ideally 3+) to be meaningful. Never let samples=1 silently kill it.
@@ -277,15 +274,14 @@ class OOBDetector:
         except Exception:
             return False
 
-    async def poll(self, timeout: int = 30) -> List[Dict[str, Any]]:
+    async def poll(self, timeout: int = 30) -> list[dict[str, Any]]:
         try:
             import aiohttp
             url = f"{self.server}/poll?id={self.correlation_id}&format=json"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=timeout) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        return data.get("data", {}).get("interactions", [])
+            async with aiohttp.ClientSession() as session, session.get(url, timeout=timeout) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("data", {}).get("interactions", [])
         except Exception:
             pass
         return []

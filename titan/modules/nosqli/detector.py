@@ -24,16 +24,15 @@ from __future__ import annotations
 
 import copy
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, is_echo_differential, score_signals
 
-
 # ── Operator payloads ─────────────────────────────────────────────────────────
 # Bracket-notation (query string): param[$ne]=1
-_BRACKET_PAYLOADS: Tuple[str, ...] = (
+_BRACKET_PAYLOADS: tuple[str, ...] = (
     "[$ne]=1",
     "[$gt]=",
     "[$regex]=.*",
@@ -43,7 +42,7 @@ _BRACKET_PAYLOADS: Tuple[str, ...] = (
 )
 
 # JSON value substitutions for JSON-body endpoints
-_JSON_OPERATOR_VALUES: Tuple[Any, ...] = (
+_JSON_OPERATOR_VALUES: tuple[Any, ...] = (
     {"$ne": None},
     {"$ne": ""},
     {"$gt": ""},
@@ -57,7 +56,7 @@ _JSON_OPERATOR_VALUES: Tuple[Any, ...] = (
 )
 
 # String payloads for URL-encoded parameters (tries to break query parsing)
-_STRING_PAYLOADS: Tuple[str, ...] = (
+_STRING_PAYLOADS: tuple[str, ...] = (
     '{"$ne": null}',
     '{"$ne": ""}',
     '{"$gt": ""}',
@@ -72,7 +71,7 @@ _STRING_PAYLOADS: Tuple[str, ...] = (
 )
 
 # Logical opposite pairs for the boolean differential oracle
-_OPPOSITE_MAP: List[Tuple[str, str]] = [
+_OPPOSITE_MAP: list[tuple[str, str]] = [
     ("$ne", "$eq"),
     ("$gt", "$lt"),
     ("$gte", "$lte"),
@@ -84,7 +83,7 @@ _OPPOSITE_MAP: List[Tuple[str, str]] = [
     ("return true", "return false"),
 ]
 
-_INJECTABLE_HEADERS: Tuple[str, ...] = (
+_INJECTABLE_HEADERS: tuple[str, ...] = (
     "X-User-Id",
     "X-Filter",
     "X-Query",
@@ -94,7 +93,7 @@ _INJECTABLE_HEADERS: Tuple[str, ...] = (
 class NoSQLiDetector:
     """Production-grade NoSQLi detector with full operator injection coverage."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -108,9 +107,9 @@ class NoSQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         context_data = {
             "fingerprint": self.fingerprint,
@@ -169,12 +168,12 @@ class NoSQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        params: dict[str, str],
+    ) -> list[Finding]:
         """Send JSON body payloads where each parameter value is replaced with
         a MongoDB operator dict. Works on both GET (via JSON-encoded query string)
         and POST endpoints."""
-        findings: List[Finding] = []
+        findings: list[Finding] = []
 
         try:
             # Baseline: original params as JSON body
@@ -225,9 +224,9 @@ class NoSQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         if method.upper() == "GET":
             return findings
 
@@ -290,9 +289,9 @@ class NoSQLiDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         try:
             if method == "GET":
@@ -333,7 +332,7 @@ class NoSQLiDetector:
     # HELPERS
     # ------------------------------------------------------------------
 
-    def _json_leaves(self, node: Any, path: Optional[list] = None):
+    def _json_leaves(self, node: Any, path: list | None = None):
         if path is None:
             path = []
         if isinstance(node, dict):
@@ -351,7 +350,7 @@ class NoSQLiDetector:
             node = node[key]
         node[path[-1]] = value
 
-    def _get_opposite_payload(self, payload: str) -> Optional[str]:
+    def _get_opposite_payload(self, payload: str) -> str | None:
         """Logical opposite for the boolean-differential oracle."""
         pl = payload.lower()
         for token, opposite in [
@@ -376,7 +375,7 @@ class NoSQLiDetector:
     def _evaluate(
         self,
         baseline_body: str,
-        baseline_status: Optional[int],
+        baseline_status: int | None,
         body: str,
         resp: Any,
         target: str,
@@ -385,11 +384,11 @@ class NoSQLiDetector:
         param_name: str,
         location: str,
         payload: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         """Score signals and return a Finding if threshold met."""
         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-        signals: List[str] = []
+        signals: list[str] = []
 
         # Boolean differential oracle
         opposite = self._get_opposite_payload(payload)
@@ -454,9 +453,9 @@ class NoSQLiDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-        payloads: List[str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+        payloads: list[str],
+    ) -> Finding | None:
         baseline_body = ""
         baseline_status = None
 

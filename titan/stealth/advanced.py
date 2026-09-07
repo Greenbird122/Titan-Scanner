@@ -27,16 +27,12 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
 import logging
-import math
 import random
-import re
 import time
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from urllib.parse import urlparse, urlencode, parse_qs
+from dataclasses import dataclass
+from typing import Any
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 

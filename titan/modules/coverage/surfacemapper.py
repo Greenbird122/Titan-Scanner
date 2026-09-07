@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 from urllib.parse import urlparse
 
 from titan.modules.coverage.tracker import CoverageTracker
@@ -26,10 +26,10 @@ class SurfaceEndpoint:
     url: str
     method: str
     category: str  # "api", "page", "admin", "auth", "static"
-    parameters: List[str]
+    parameters: list[str]
     auth_required: bool
     risk_level: str  # "high", "medium", "low"
-    relevant_attacks: List[str]
+    relevant_attacks: list[str]
 
 
 class AttackSurfaceMapper:
@@ -67,9 +67,9 @@ class AttackSurfaceMapper:
 
     def __init__(self, tracker: CoverageTracker):
         self.tracker = tracker
-        self._surface: List[SurfaceEndpoint] = []
+        self._surface: list[SurfaceEndpoint] = []
 
-    async def map_surface(self, target_url: str, page_source: str = "") -> List[SurfaceEndpoint]:
+    async def map_surface(self, target_url: str, page_source: str = "") -> list[SurfaceEndpoint]:
         """Map the attack surface of a target."""
         self._surface = []
 
@@ -198,7 +198,7 @@ class AttackSurfaceMapper:
             return "medium"
         return "low"
 
-    def _get_relevant_attacks(self, endpoint: SurfaceEndpoint) -> List[str]:
+    def _get_relevant_attacks(self, endpoint: SurfaceEndpoint) -> list[str]:
         """Get relevant attack types for an endpoint."""
         base_attacks = self.CATEGORY_ATTACKS.get(endpoint.category, [])
 
@@ -219,7 +219,7 @@ class AttackSurfaceMapper:
 
         return list(set(base_attacks))
 
-    def _extract_params(self, url: str) -> List[str]:
+    def _extract_params(self, url: str) -> list[str]:
         """Extract parameters from URL."""
         params = []
         if "?" in url:
@@ -243,10 +243,10 @@ class AttackSurfaceMapper:
                     notes=f"Discovered: {endpoint.category} endpoint",
                 )
 
-    def get_surface(self) -> List[SurfaceEndpoint]:
+    def get_surface(self) -> list[SurfaceEndpoint]:
         return self._surface
 
-    def get_surface_summary(self) -> Dict[str, Any]:
+    def get_surface_summary(self) -> dict[str, Any]:
         """Get summary of attack surface."""
         categories = {}
         risk_counts = {"high": 0, "medium": 0, "low": 0}

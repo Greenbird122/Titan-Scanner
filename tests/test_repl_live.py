@@ -8,16 +8,13 @@ listener; a busy port degrades to a queue-only REPL, never a crash.
 
 import asyncio
 import base64
-import json
 import socket
 from pathlib import Path
 
-import pytest
 from aiohttp import ClientSession
 
 from titan.exploit.listener import ExploitListener, JobQueue
 from titan.exploit.session import SessionStore
-
 from titan_exploit_cli import _repl_listener, cmd_session_async
 
 
@@ -43,11 +40,10 @@ async def test_repl_listener_binds_recorded_port(tmp_path: Path):
         assert listener is not None
         assert listener.port == port
         # The queue is actually served over HTTP (empty poll round-trips).
-        async with ClientSession() as client:
-            async with client.post(
-                f"{listener.bound_url}/poll", json={"sid": "sess-1"}
-            ) as r:
-                assert (await r.json())["job"] is None
+        async with ClientSession() as client, client.post(
+            f"{listener.bound_url}/poll", json={"sid": "sess-1"}
+        ) as r:
+            assert (await r.json())["job"] is None
     finally:
         if listener:
             await listener.stop()
@@ -103,11 +99,10 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
         # and hang the test.
         while True:
             try:
-                async with ClientSession() as client:
-                    async with client.post(
-                        f"{listener_url}/poll", json={"sid": sid}
-                    ) as r:
-                        resp = await r.json()
+                async with ClientSession() as client, client.post(
+                    f"{listener_url}/poll", json={"sid": sid}
+                ) as r:
+                    resp = await r.json()
             except Exception:
                 resp = None
             job = (resp or {}).get("job")
@@ -116,17 +111,16 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
                 continue
             out = base64.b64encode(b"uid=0(root) fake\n").decode("ascii")
             try:
-                async with ClientSession() as client:
-                    async with client.post(
-                        f"{listener_url}/report",
-                        json={
-                            "sid": sid,
-                            "job_id": job["job_id"],
-                            "exit_code": 0,
-                            "output": out,
-                        },
-                    ) as r:
-                        await r.read()
+                async with ClientSession() as client, client.post(
+                    f"{listener_url}/report",
+                    json={
+                        "sid": sid,
+                        "job_id": job["job_id"],
+                        "exit_code": 0,
+                        "output": out,
+                    },
+                ) as r:
+                    await r.read()
             except Exception:
                 pass
             await asyncio.sleep(0.05)
@@ -137,12 +131,11 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
     # Wait for the REPL's listener to come up on the recorded port.
     for _ in range(100):
         try:
-            async with ClientSession() as client:
-                async with client.get(
-                    f"http://127.0.0.1:{port}/agent.sh", params={"sid": "x"}
-                ) as r:
-                    if r.status == 200:
-                        break
+            async with ClientSession() as client, client.get(
+                f"http://127.0.0.1:{port}/agent.sh", params={"sid": "x"}
+            ) as r:
+                if r.status == 200:
+                    break
         except Exception:
             pass
         await asyncio.sleep(0.05)

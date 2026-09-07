@@ -51,14 +51,11 @@ Evidence oracles:
 from __future__ import annotations
 
 import asyncio
-import json
 import re
-import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
-
 
 # ── Numeric patterns that indicate counters/balances ──────────────────
 _COUNTER_PATTERNS = re.compile(
@@ -73,7 +70,7 @@ _STATE_MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 class RaceDetector:
     """Production-grade Race Condition, TOCTOU, and Double-Spend detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -87,9 +84,9 @@ class RaceDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         if method.upper() not in _STATE_MUTATING_METHODS:
             return findings
@@ -132,7 +129,7 @@ class RaceDetector:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _is_counter_divergence(bodies: List[str]) -> bool:
+    def _is_counter_divergence(bodies: list[str]) -> bool:
         """True when divergent bodies differ ONLY in embedded digit runs.
 
         The monotonic-counter shape of a TOCTOU double-spend or limit-overrun.
@@ -143,7 +140,7 @@ class RaceDetector:
         return len(stripped) == 1
 
     @staticmethod
-    def _extract_counters(body: str) -> Dict[str, float]:
+    def _extract_counters(body: str) -> dict[str, float]:
         """Extract numeric counter values from a response body."""
         counters = {}
         for match in _COUNTER_PATTERNS.finditer(body):
@@ -165,8 +162,8 @@ class RaceDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         try:
             # Serial baseline
             baseline_resp = await self._send(context, method, url, all_params, target)
@@ -248,8 +245,8 @@ class RaceDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         """Send 10 requests as fast as possible without waiting for each to complete.
 
         Catches locks that release between requests (not true synchronized race).
@@ -322,8 +319,8 @@ class RaceDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         """Send request A, then immediately fire B while A is in-flight.
 
         Catches TOCTOU where the lock is released before B arrives.
@@ -387,8 +384,8 @@ class RaceDetector:
         context,
         target: str,
         url: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         """Try to create the same resource concurrently → duplicate entries."""
         try:
             # Fire 5 identical creation requests
@@ -464,8 +461,8 @@ class RaceDetector:
         target: str,
         method: str,
         url: str,
-        all_params: Dict[str, str],
-    ) -> Optional[Finding]:
+        all_params: dict[str, str],
+    ) -> Finding | None:
         """Concurrent application of coupon/points → double benefit."""
         try:
             # Get baseline counters
@@ -565,7 +562,7 @@ class RaceDetector:
     # HTTP HELPER
     # ------------------------------------------------------------------
 
-    async def _send(self, context, method: str, url: str, params: Dict[str, str], target: str):
+    async def _send(self, context, method: str, url: str, params: dict[str, str], target: str):
         if method.upper() == "GET":
             return await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
         return await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)

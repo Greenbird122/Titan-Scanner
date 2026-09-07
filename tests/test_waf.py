@@ -1,9 +1,15 @@
 """Tests for titan.core.waf — WAF detection and payload re-encoding."""
 
 from titan.core.waf import (
-    WAFTracker, WAFInfo, reencode_payload, get_bypass_variants,
-    _url_encode, _double_encode, _unicode_encode, _sql_comment_inject,
+    WAFInfo,
+    WAFTracker,
     _case_variation,
+    _double_encode,
+    _sql_comment_inject,
+    _unicode_encode,
+    _url_encode,
+    get_bypass_variants,
+    reencode_payload,
 )
 
 
@@ -170,7 +176,9 @@ class TestWAFIntegration:
 
     def test_engine_has_waf_tracker(self):
         """TitanEngine initializes a WAFTracker."""
-        import yaml, os
+        import os
+
+        import yaml
         os.chdir(os.path.join(os.path.dirname(__file__), '..'))
         from titan.core.engine import TitanEngine
         with open("config.example.yaml") as f:

@@ -5,9 +5,7 @@ selection so BaaS-specific modules are prioritized when a backend is found.
 """
 from __future__ import annotations
 
-import re
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 _SUPABASE_INDICATORS = [
     "supabase",
@@ -54,16 +52,16 @@ class BaaSDetector:
     def detect(
         self,
         html: str = "",
-        headers: Dict[str, str] = None,
-        js_hints: List[str] = None,
-        api_hints: List[str] = None,
-    ) -> List[Dict[str, Any]]:
+        headers: dict[str, str] = None,
+        js_hints: list[str] = None,
+        api_hints: list[str] = None,
+    ) -> list[dict[str, Any]]:
         headers = headers or {}
         js_hints = js_hints or []
         api_hints = api_hints or []
         blob = " ".join([html or "", " ".join(headers.values()), " ".join(js_hints), " ".join(api_hints)])
         lower = blob.lower()
-        hits: List[Dict[str, Any]] = []
+        hits: list[dict[str, Any]] = []
 
         for indicator in _SUPABASE_INDICATORS:
             if indicator.lower() in lower:

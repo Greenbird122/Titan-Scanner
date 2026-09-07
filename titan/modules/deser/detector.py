@@ -22,19 +22,14 @@ Features:
 from __future__ import annotations
 
 import asyncio
-import base64
-import copy
-import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
+from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
-from titan.verify.oracles import extract_error_classes, payload_encodings, score_signals
-
 
 # ── Active probe payloads across language ecosystems ─────────────────────────
-_JAVA_DESER_PROBES: Tuple[str, ...] = (
+_JAVA_DESER_PROBES: tuple[str, ...] = (
     # Java serialized object magic bytes in base64: \xac\xed\x00\x05 (version 5)
     "rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcAUH2sYRxQV4AwACRgAKbG9hZEZhY3RvckkACXRocmVzaG9sZHhwP0AAAAAAAAx3CAAAABAAAAAAeA==",
     # Fastjson / Jackson @type JNDI probe
@@ -42,14 +37,14 @@ _JAVA_DESER_PROBES: Tuple[str, ...] = (
     '{"@type":"java.lang.AutoCloseable"}',
 )
 
-_PHP_DESER_PROBES: Tuple[str, ...] = (
+_PHP_DESER_PROBES: tuple[str, ...] = (
     # PHP serialized objects
     'O:8:"stdClass":0:{}',
     'a:1:{s:4:"test";O:8:"stdClass":0:{}}',
     'O:4:"User":2:{s:8:"username";s:5:"admin";s:7:"isAdmin";b:1;}',
 )
 
-_PYTHON_DESER_PROBES: Tuple[str, ...] = (
+_PYTHON_DESER_PROBES: tuple[str, ...] = (
     # Python pickle (loads a benign string object)
     "cos\nsystem\n(S'echo titan'\ntR.",
     # Base64 pickle protocol 4
@@ -59,13 +54,13 @@ _PYTHON_DESER_PROBES: Tuple[str, ...] = (
     "!!python/module:os",
 )
 
-_DOTNET_DESER_PROBES: Tuple[str, ...] = (
+_DOTNET_DESER_PROBES: tuple[str, ...] = (
     # .NET BinaryFormatter header in base64
     "AAEAAAD/////AQAAAAAAAAAMAgAAAF9TeXN0ZW1EZWxlZ2F0ZVNlcmlhbGl6YXRpb25Ib2xkZXIrRGVsZWdhdGVIb2xkZXIrRGVsZWdhdGVFbnRyeQIAAAAM",
     '{"$type":"System.Windows.Data.ObjectDataProvider, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"}',
 )
 
-_NODEJS_DESER_PROBES: Tuple[str, ...] = (
+_NODEJS_DESER_PROBES: tuple[str, ...] = (
     '{"rce":"_$$ND_FUNC$$_function(){return 1;}()"}',
 )
 
@@ -77,7 +72,7 @@ _ALL_ACTIVE_PROBES = (
     + _NODEJS_DESER_PROBES
 )
 
-_DESER_ERROR_MARKERS: Tuple[str, ...] = (
+_DESER_ERROR_MARKERS: tuple[str, ...] = (
     "java.io.invalidclassexception",
     "java.lang.classnotfoundexception",
     "java.io.streamcorruptedexception",
@@ -118,7 +113,7 @@ class DeserDetector:
         (r'ObjectStateFormatter', "objectstateformatter", Severity.HIGH, 0.80),
     ]
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.interactsh = fingerprint.get("interactsh") if fingerprint else None
@@ -133,9 +128,9 @@ class DeserDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # 1. Baseline Request
         try:
@@ -200,9 +195,9 @@ class DeserDetector:
         url: str,
         resp: Any,
         body: str,
-        status: Optional[int],
-        params: Dict[str, str],
-    ) -> List[Finding]:
+        status: int | None,
+        params: dict[str, str],
+    ) -> list[Finding]:
         findings = []
         body_lower = body.lower()
         param_name = list(params.keys())[0] if params else "data"
@@ -246,10 +241,10 @@ class DeserDetector:
         method: str,
         url: str,
         param_name: str,
-        all_params: Dict[str, str],
+        all_params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> Optional[Finding]:
+        baseline_status: int | None,
+    ) -> Finding | None:
         for payload in _ALL_ACTIVE_PROBES:
             try:
                 test_params = dict(all_params)
@@ -287,11 +282,11 @@ class DeserDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         baseline_body: str,
-        baseline_status: Optional[int],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        baseline_status: int | None,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         cookie_names = ["session", "rememberMe", "token", "state", "user", "auth"]
 
         for c_name in cookie_names:
@@ -326,8 +321,8 @@ class DeserDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> Optional[Finding]:
+        params: dict[str, str],
+    ) -> Finding | None:
         if not self.interactsh:
             return None
         try:
@@ -381,7 +376,7 @@ class DeserDetector:
     def _evaluate_response(
         self,
         baseline_body: str,
-        baseline_status: Optional[int],
+        baseline_status: int | None,
         body: str,
         resp: Any,
         target: str,
@@ -390,7 +385,7 @@ class DeserDetector:
         param_name: str,
         location: str,
         payload: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
         body_lower = body.lower()
         baseline_lower = baseline_body.lower()

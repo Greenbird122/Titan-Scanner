@@ -21,16 +21,16 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from titan.core.models import ScanResult
 
 
 def score_challenge(
-    challenge: Dict[str, Any],
-    result: Optional[ScanResult],
+    challenge: dict[str, Any],
+    result: ScanResult | None,
     scan_error: str = "",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Pure: score one challenge against a scan result.
 
     Returns a row dict: ``{id, name, endpoint, attack_type, outcome,
@@ -61,7 +61,7 @@ def score_challenge(
     ep_findings = [
         f for f in result.findings
         if (f.url or "").rstrip("/") == expected_ep
-        or expected_ep and expected_ep in (f.url or "")
+        or (expected_ep and expected_ep in (f.url or ""))
     ]
     if not ep_findings:
         row["evidence"] = "endpoint not reached"
@@ -86,7 +86,7 @@ def score_challenge(
     return row
 
 
-def summarize(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Pure: aggregate challenge rows into a scorecard summary."""
     total = len(rows)
     hits = sum(1 for r in rows if r["outcome"] == "hit")
@@ -106,14 +106,14 @@ def summarize(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def load_manifest(path: str) -> Dict[str, Any]:
+def load_manifest(path: str) -> dict[str, Any]:
     """Load a manifest file, preserving the top-level ``target`` field.
 
     Returns ``{"target": ..., "challenges": [...]}`` so callers can resolve
     the benchmark target from the manifest itself instead of falling back to
     a default. A bare list is accepted and wrapped.
     """
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
     if isinstance(data, list):
         return {"target": "", "challenges": data}
@@ -125,10 +125,10 @@ def load_manifest(path: str) -> Dict[str, Any]:
 
 async def run_benchmark(
     target: str,
-    challenges: List[Dict[str, Any]],
+    challenges: list[dict[str, Any]],
     engine,
     max_scan_seconds: int = 300,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Scan the target once, then score every challenge against the result.
 
     One scan per target (not per challenge) — the scan already covers the
@@ -171,7 +171,7 @@ async def run_benchmark(
             if "checkpoint" in err.lower() or "authorization" in err.lower():
                 scan_error = err
                 break
-    except Exception as exc:  # noqa: BLE001 - a broken target can't kill the rig
+    except Exception as exc:
         scan_error = str(exc)[:200]
 
     rows = [score_challenge(c, result, scan_error=scan_error) for c in challenges]

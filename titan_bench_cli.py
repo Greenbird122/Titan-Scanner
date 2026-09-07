@@ -76,7 +76,6 @@ async def _run(
         if cookies:
             cfg["auth"] = {"cookies": cookies}
 
-    from titan.core.engine import TitanEngine
     engine = TitanEngine(cfg)
     print(f"[+] Benchmark scan: {target} ({len(challenges)} challenges)")
     result = await run_benchmark(target, challenges, engine)
@@ -115,7 +114,6 @@ async def _estate(out_dir: str, limit: int, rebuild_only: bool, auth_cookies: st
     Phase C engine config; per-site scorecards accumulate in out_dir.
     """
     from bench.estate import build_estate_manifest, write_estate_manifest
-    from bench.scorecard import render_scorecard, write_scorecard
 
     manifest = build_estate_manifest("findings", include_practice=False)
     manifest_path = write_estate_manifest(manifest)
@@ -136,7 +134,6 @@ async def _estate(out_dir: str, limit: int, rebuild_only: bool, auth_cookies: st
         if cookies:
             cfg["auth"] = {"cookies": cookies}
 
-    from titan.core.engine import TitanEngine
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     score_path = out / "scorecard.json"
@@ -156,7 +153,7 @@ async def _estate(out_dir: str, limit: int, rebuild_only: bool, auth_cookies: st
         engine = TitanEngine(cfg)
         try:
             result = await run_benchmark(site["target"], site["challenges"], engine)
-        except Exception as exc:  # noqa: BLE001 - a broken site can't kill the estate run
+        except Exception as exc:
             result = {
                 "target": site["target"],
                 "scanned_at": __import__("time").strftime("%Y-%m-%dT%H:%M:%S"),

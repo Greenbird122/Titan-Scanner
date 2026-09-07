@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
-from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 
 async def request_scan_approval(target: str, aggression: str) -> bool:
@@ -48,7 +45,7 @@ async def _prompt_approval(desc: str) -> bool:
         return False
 
 
-def get_recent_audit(limit: int = 20) -> List[Dict[str, str]]:
+def get_recent_audit(limit: int = 20) -> list[dict[str, str]]:
     try:
         import sqlite3
         audit_db = os.path.expanduser("~/.kilo/dawn/scanner/audit.db")

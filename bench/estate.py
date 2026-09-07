@@ -17,14 +17,14 @@ from __future__ import annotations
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from titan.learn.notes import mine_findings_md_file
 
 MAX_ATTACK_TYPES_PER_SITE = 3
 
 
-def _load_json(path: Path) -> Dict[str, Any]:
+def _load_json(path: Path) -> dict[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
@@ -50,7 +50,7 @@ def _host_norm(host: str) -> str:
     return host.replace(".", "-").replace("_", "-")
 
 
-def _is_estate_site(slug: str, target: str, meta: Dict[str, Any], index: Dict[str, Any], roster: set) -> bool:
+def _is_estate_site(slug: str, target: str, meta: dict[str, Any], index: dict[str, Any], roster: set) -> bool:
     """A site belongs to the owned estate when consent is on file for its host
     (the authoritative roster), or it was deep-audited (sites.json ``deep_audit``
     or a reverification round on its scan_meta). Local lab hosts count as
@@ -70,7 +70,7 @@ def _is_estate_site(slug: str, target: str, meta: Dict[str, Any], index: Dict[st
 
 
 def build_estate_manifest(findings_root: str = "findings", include_practice: bool = False,
-                          consent_dir: str = "consent") -> Dict[str, Any]:
+                          consent_dir: str = "consent") -> dict[str, Any]:
     """Pure: build the estate corpus from the findings/ ledger.
 
     Returns ``{"manifest", "generated_at", "sites": [{slug, target, estate,
@@ -85,7 +85,7 @@ def build_estate_manifest(findings_root: str = "findings", include_practice: boo
     # slug -> consent host, so notes-only sites (no scan_meta/findings.json)
     # still get a target from the consent roster.
     slug_to_host = {_host_norm(r): r for r in roster}
-    sites: List[Dict[str, Any]] = []
+    sites: list[dict[str, Any]] = []
 
     for slug in sorted(p.name for p in root.iterdir() if p.is_dir()):
         sdir = root / slug
@@ -111,9 +111,9 @@ def build_estate_manifest(findings_root: str = "findings", include_practice: boo
         # merged with FINDINGS.md-mined attack types so deep-audit sites whose
         # machine ledger is empty (documented in notes only) still get
         # benchmark challenges. Ranked by how many records carry them.
-        counts: Dict[str, int] = {}
-        methods: Dict[str, str] = {}
-        mined: Dict[str, int] = {}
+        counts: dict[str, int] = {}
+        methods: dict[str, str] = {}
+        mined: dict[str, int] = {}
         for f in raw_findings:
             atk = (f.get("attack_type") or "").strip()
             if not atk or not f.get("verified"):
@@ -125,7 +125,7 @@ def build_estate_manifest(findings_root: str = "findings", include_practice: boo
             atk = row.get("attack_type") or ""
             if atk:
                 mined[atk] = mined.get(atk, 0) + 1
-        merged: Dict[str, int] = {k: counts.get(k, 0) + mined.get(k, 0) for k in set(counts) | set(mined)}
+        merged: dict[str, int] = {k: counts.get(k, 0) + mined.get(k, 0) for k in set(counts) | set(mined)}
         top = sorted(merged.items(), key=lambda kv: -kv[1])[:MAX_ATTACK_TYPES_PER_SITE]
 
         challenges = []
@@ -167,7 +167,7 @@ def build_estate_manifest(findings_root: str = "findings", include_practice: boo
     }
 
 
-def write_estate_manifest(manifest: Dict[str, Any], out_path: str = "bench/manifests/estate.json") -> Path:
+def write_estate_manifest(manifest: dict[str, Any], out_path: str = "bench/manifests/estate.json") -> Path:
     """Atomically persist the estate corpus. Returns the written path."""
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)

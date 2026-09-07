@@ -1,8 +1,7 @@
 """Tests for CVSS scoring engine."""
 
-import pytest
-from titan.core.models import Finding, Severity, AttackType
 from titan.core.cvss import CVSSScorer
+from titan.core.models import AttackType, Finding, Severity
 
 
 class TestCVSSScorer:

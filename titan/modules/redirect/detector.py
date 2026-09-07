@@ -21,15 +21,13 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 from titan.core.models import AttackType, Finding, Severity
-from titan.verify import BaselineAnalyzer
-
 
 # ── Active Server-Side Open Redirect Payloads ─────────────────────────────────
-_OPEN_REDIRECT_PROBES: Tuple[str, ...] = (
+_OPEN_REDIRECT_PROBES: tuple[str, ...] = (
     "https://evil.com",
     "http://evil.com",
     "//evil.com",
@@ -122,7 +120,7 @@ READ_REDIRECTS_JS = """() => ({
 class RedirectDetector:
     """Production-grade Redirect detector supporting both active HTTP scanning and browser execution."""
 
-    def __init__(self, payload_smith, fingerprint: Dict[str, Any]):
+    def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
@@ -136,8 +134,8 @@ class RedirectDetector:
         target: str,
         method_or_url: str = "GET",
         url_or_params: Any = None,
-        params: Optional[Dict[str, str]] = None,
-    ) -> List[Finding]:
+        params: dict[str, str] | None = None,
+    ) -> list[Finding]:
         # Handle dispatch: Browser page object vs HTTP scanner context
         if hasattr(context_or_page, "add_init_script") or hasattr(context_or_page, "evaluate"):
             # Browser page mode
@@ -161,9 +159,9 @@ class RedirectDetector:
         target: str,
         method: str,
         url: str,
-        params: Dict[str, str],
-    ) -> List[Finding]:
-        findings: List[Finding] = []
+        params: dict[str, str],
+    ) -> list[Finding]:
+        findings: list[Finding] = []
         target_host = urlparse(target).hostname or ""
 
         # Baseline request
@@ -223,7 +221,7 @@ class RedirectDetector:
     def _evaluate_http_redirect(
         self,
         baseline_body: str,
-        baseline_status: Optional[int],
+        baseline_status: int | None,
         body: str,
         resp: Any,
         target: str,
@@ -233,7 +231,7 @@ class RedirectDetector:
         location: str,
         payload: str,
         target_host: str,
-    ) -> Optional[Finding]:
+    ) -> Finding | None:
         status = getattr(resp, "status", None)
         if status is None:
             return None
@@ -303,8 +301,8 @@ class RedirectDetector:
     # ENGINE 2 — BROWSER CLIENT-SIDE HIJACK DETECTOR (TRACK F)
     # ------------------------------------------------------------------
 
-    async def _scan_browser(self, page: Any, target: str, url: str, params: Dict[str, str]) -> List[Finding]:
-        findings: List[Finding] = []
+    async def _scan_browser(self, page: Any, target: str, url: str, params: dict[str, str]) -> list[Finding]:
+        findings: list[Finding] = []
         try:
             await page.add_init_script(REDIRECT_HOOK_JS)
         except Exception:

@@ -15,8 +15,8 @@ from __future__ import annotations
 import json
 import os
 import time
-from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from titan.core.models import Finding
 
@@ -30,12 +30,12 @@ class ScanState:
     updated_at: str
     status: str  # "running", "paused", "completed", "failed"
     phase: str  # current phase
-    findings: List[Dict[str, Any]]
-    coverage_summary: Dict[str, Any]
-    endpoints_discovered: List[str]
-    attack_types_tested: List[str]
+    findings: list[dict[str, Any]]
+    coverage_summary: dict[str, Any]
+    endpoints_discovered: list[str]
+    attack_types_tested: list[str]
     notes: str
-    errors: List[str]
+    errors: list[str]
 
 
 class StateManager:
@@ -43,7 +43,7 @@ class StateManager:
 
     DEFAULT_STATE_DIR = "titan_states"
 
-    def __init__(self, state_dir: Optional[str] = None):
+    def __init__(self, state_dir: str | None = None):
         self.state_dir = state_dir or self.DEFAULT_STATE_DIR
         os.makedirs(self.state_dir, exist_ok=True)
 
@@ -55,12 +55,12 @@ class StateManager:
             json.dump(data, f, indent=2, default=str)
         return filepath
 
-    def load(self, scan_id: str) -> Optional[ScanState]:
+    def load(self, scan_id: str) -> ScanState | None:
         """Load state from disk."""
         filepath = self._get_filepath(scan_id)
         if not os.path.exists(filepath):
             return None
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             data = json.load(f)
         return ScanState(**data)
 
@@ -68,7 +68,7 @@ class StateManager:
         """Check if state exists."""
         return os.path.exists(self._get_filepath(scan_id))
 
-    def list_scans(self) -> List[str]:
+    def list_scans(self) -> list[str]:
         """List all saved scan IDs."""
         scans = []
         for filename in os.listdir(self.state_dir):
@@ -87,7 +87,7 @@ class StateManager:
     def merge_findings(
         self,
         scan_id: str,
-        new_findings: List[Finding],
+        new_findings: list[Finding],
     ) -> ScanState:
         """Merge new findings with existing state."""
         state = self.load(scan_id)
