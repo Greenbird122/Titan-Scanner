@@ -10,6 +10,10 @@ confirmed. Probe:
 
 Railway backend tulia-ai-production.up.railway.app was leaked by Firebase
 config, but is intentionally not probed here until explicitly named in-scope.
+
+The API key must be supplied via the FIREBASE_API_KEY env var — it is never
+committed in source. Run with FIREBASE_API_KEY set (and FIREBASE_PROJECT for
+non-default projects).
 """
 import asyncio
 import json

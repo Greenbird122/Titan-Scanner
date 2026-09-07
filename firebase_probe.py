@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Firebase API key abuse probe — owned, consented (ownership).
 
-The key AIzaSyB-wn4pMXrk7GpnTKEUELY290qpQ0kIQgI is hardcoded in both
+The exposed Firebase Web API key (value redacted — supply via the
+FIREBASE_API_KEY env var, never committed) is hardcoded in both
 git-vizor and database-tulia JS bundles. Tests:
 
   1. createAuthUri  — confirm the Firebase project exists
