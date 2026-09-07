@@ -324,7 +324,7 @@ def logic_static_form():
     # with a real body to ANY amount value — including -1 — but never echoes
     # or processes it. A detector that fires on "200 + body" verifies a HIGH
     # business-logic finding off a static page.
-    amt = request.args.get("custom-amount-field", "")
+    request.args.get("custom-amount-field", "")
     return "<html><head><title>Donate</title></head><body>" \
         "<form action='/donate' method='post'>" \
         "<input name='custom-amount-field' value='{amt}'>" \
@@ -478,7 +478,7 @@ def nosqli_echo():
     # Echoes back the operator payload — an endpoint that reflects JSON
     # operators in a "query" field, like the lab's /sqli endpoint.
     val = request.args.get("id", "")
-    return json.dumps({"query": f"SELECT * FROM users WHERE id = {val}", "result": "user"})
+    return json.dumps({"query": f"SELECT * FROM users WHERE id = {val}", "result": "user"})  # noqa: S608
 
 
 # ─── Fake playwright-style context ────────────────────────────────────────────

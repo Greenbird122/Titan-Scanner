@@ -11,7 +11,7 @@ and:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class PlatformBrain(ABC):
@@ -61,4 +61,4 @@ class BrainRegistry:
 # Imported last to avoid a circular import: moodle.py does
 # `from titan.brains import PlatformBrain` at module load, so it must run
 # after PlatformBrain is defined above.
-from titan.brains.moodle import MoodleBrain
+from titan.brains.moodle import MoodleBrain as MoodleBrain

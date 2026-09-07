@@ -21,11 +21,11 @@ class DeepSeekProvider:
             return await self._call_deepseek(prompt)
         try:
             return await self._call_ollama(prompt)
-        except Exception:
+        except Exception as e:
             raise ConfigurationError(
                 "No LLM provider configured. Set DEEPSEEK_API_KEY for the official API, "
                 "or ensure Ollama is running at OLLAMA_HOST with OLLAMA_MODEL."
-            )
+            ) from e
 
     async def _call_deepseek(self, prompt: str) -> str:
         url = f"{self.base_url}/chat/completions"

@@ -54,7 +54,7 @@ def _reader(lines: list):
         try:
             return next(it)
         except StopIteration:
-            raise EOFError
+            raise EOFError from None
 
     return read
 

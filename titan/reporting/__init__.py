@@ -20,7 +20,7 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from titan.core.models import ScanResult
@@ -530,7 +530,6 @@ class SiteReportWriter:
 
     def _business_logic_section(self, result: ScanResult) -> list[str]:
         """Translate technical findings into business-impact language."""
-        from titan.core.models import Severity as _Sev
         findings = result.findings
         if not findings:
             return []

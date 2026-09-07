@@ -53,7 +53,7 @@ LAB_USERS = [
 def sqli():
     user_id = request.args.get("id", "1")
     # Vulnerable: string concatenation
-    query = f"SELECT * FROM users WHERE id = {user_id}"
+    query = f"SELECT * FROM users WHERE id = {user_id}"  # noqa: S608 — intentionally vulnerable lab endpoint
     upper = user_id.upper()
 
     def _eval_cond(cond: str) -> bool:

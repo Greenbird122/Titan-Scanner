@@ -329,7 +329,7 @@ def products():
     # legacy-catalog bug. A tautology in q returns the entire catalog.
     with _LOCK:
         rows = _db().execute(
-            "SELECT id, name, category, price_cents FROM products "
+            "SELECT id, name, category, price_cents FROM products "  # noqa: S608 — intentionally vulnerable lab endpoint
             f"WHERE name LIKE '%{q}%' OR category LIKE '%{q}%'").fetchall()
     cards = "".join(
         f"<li>{r[0]} - {r[1]} ({r[2]}) ${r[3] / 100:.2f}</li>" for r in rows)
