@@ -76,7 +76,7 @@ class ResponseAnalyzer:
     @classmethod
     def analyze_blocked(cls, payload: str, status: int, body: str, headers: Dict[str, str]) -> Dict[str, Any]:
         """Analyze WHY a payload was blocked."""
-        analysis = {
+        analysis: Dict[str, Any] = {
             "blocked": True,
             "status": status,
             "waf_rule": None,
@@ -151,7 +151,7 @@ class ResponseAnalyzer:
     @classmethod
     def analyze_success(cls, payload: str, status: int, body: str, headers: Dict[str, str]) -> Dict[str, Any]:
         """Analyze WHY a payload succeeded."""
-        analysis = {
+        analysis: Dict[str, Any] = {
             "blocked": False,
             "status": status,
             "dialect": None,
@@ -625,7 +625,7 @@ class AdaptivePayloadEngine:
         """Generate adaptive payloads based on target profile and learned patterns."""
         context = context or {}
         profile = self.profiles.get(target_url)
-        waf_profile = self.waf_profiles.get(profile.waf) if profile else None
+        waf_profile = self.waf_profiles.get(profile.waf) if profile and profile.waf else None
 
         # Start with base payloads
         base_payloads = self.forge.get_context_payloads(attack_type, context)
@@ -1458,7 +1458,7 @@ class AdaptivePayloadEngine:
         mutated = self.mutate_blocked_payloads(blocked_payloads, attack_type, target_url, waf)
 
         # Test concurrently
-        successful = []
+        successful: List[str] = []
         
         async def test_payload(payload: str) -> Optional[str]:
             try:
@@ -1474,9 +1474,10 @@ class AdaptivePayloadEngine:
         # Run concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
-        # Collect successful bypasses
+        # Collect successful bypasses (only actual payload strings count;
+        # None placeholders and raised exceptions are skipped)
         for result in results:
-            if result and not isinstance(result, Exception):
+            if isinstance(result, str):
                 successful.append(result)
 
         return successful
