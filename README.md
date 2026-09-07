@@ -17,8 +17,8 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/Greenbird122/titan-lab.git
-cd titan-lab
+git clone https://github.com/Greenbird122/Titan-Scanner.git
+cd Titan-Scanner
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -35,6 +35,28 @@ python -m titan lab start
 # 6. In another terminal, scan the lab
 python -m titan scan http://localhost:5000
 ```
+
+## Architecture
+
+Titan is organized into four layers. `titan/core` holds the engine, crawler, and
+scope/consent enforcement; `titan/modules` contains the attack detectors (SQLi,
+XSS, SSRF, BaaS, business-logic, and more) that run against discovered endpoints;
+`titan/ai` mutates and grades payloads, including LLM-assisted payload smithing;
+and `titan/verify` grades evidence and applies negative controls so only findings
+with proof survive. `titan/reporting` writes the final findings/report artifacts,
+and `titan/transport` abstracts the HTTP layer behind pluggable transports.
+
+## Running the tests
+
+The suite is pytest-based and runs from the repo root. Install dependencies first
+(`pip install -r requirements.txt`), then:
+
+```bash
+python -m pytest tests/ -q
+```
+
+The same command is what CI runs on every push (lint, typecheck, and the test
+matrix are in `.github/workflows/tests.yml`).
 
 ## Local lab
 
