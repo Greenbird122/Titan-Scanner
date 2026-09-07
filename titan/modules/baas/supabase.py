@@ -19,6 +19,7 @@ import json
 from typing import Any
 
 from titan.core.models import AttackType, Finding
+from titan.modules.baas.supabase_jwt import expired_jwt, jwt_with_role
 from titan.modules.baas.supabase_payloads import (
     AUTH_ENUM_PAYLOADS,
     DB_FUNCTION_PAYLOADS,
@@ -301,9 +302,9 @@ class SupabaseTester:
                     for k, v in payload.headers.items():
                         if "{jwt_with_role_claim}" in v:
                             # Generate JWT with role claim
-                            headers[k] = self._generate_jwt_with_role("admin")
+                            headers[k] = jwt_with_role(self._anon_key or "fake-secret", "admin")
                         elif "{expired_jwt}" in v:
-                            headers[k] = self._generate_expired_jwt()
+                            headers[k] = expired_jwt(self._anon_key or "fake-secret")
                         elif "{service_role_jwt}" in v:
                             headers[k] = self._service_role_key or ""
                         elif "{decoded_jwt}" in v:
@@ -518,85 +519,6 @@ class SupabaseTester:
             return False
 
         return False
-
-    def _generate_jwt_with_role(self, role: str) -> str:
-        """Generate a JWT with specified role claim."""
-        import base64
-        import hashlib
-        import hmac
-
-        # Header
-        header = json.dumps({"alg": "HS256", "typ": "JWT"})
-        header_b64 = base64.urlsafe_b64encode(header.encode()).rstrip(b"=").decode()
-
-        # Payload with role claim
-        payload = json.dumps({
-            "role": role,
-            "aud": "authenticated",
-            "exp": 9999999999,
-            "sub": "fake-user-id",
-            "email": "fake@evil.com",
-            "app_metadata": {"provider": "email", "providers": ["email"]},
-            "user_metadata": {"role": role},
-        })
-        payload_b64 = base64.urlsafe_b64encode(payload.encode()).rstrip(b"=").decode()
-
-        # Signature (using anon key as secret — will likely fail but tests the endpoint)
-        signing_input = f"{header_b64}.{payload_b64}"
-        secret = (self._anon_key or "fake-secret").encode()
-        signature = hmac.new(secret, signing_input.encode(), hashlib.sha256).digest()
-        sig_b64 = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
-
-        return f"{header_b64}.{payload_b64}.{sig_b64}"
-
-    def _generate_expired_jwt(self) -> str:
-        """Generate an expired JWT."""
-        import base64
-        import hashlib
-        import hmac
-
-        header = json.dumps({"alg": "HS256", "typ": "JWT"})
-        header_b64 = base64.urlsafe_b64encode(header.encode()).rstrip(b"=").decode()
-
-        # Expired timestamp
-        payload = json.dumps({
-            "role": "authenticated",
-            "aud": "authenticated",
-            "exp": 1000000000,  # Long expired
-            "sub": "fake-user-id",
-        })
-        payload_b64 = base64.urlsafe_b64encode(payload.encode()).rstrip(b"=").decode()
-
-        signing_input = f"{header_b64}.{payload_b64}"
-        secret = (self._anon_key or "fake-secret").encode()
-        signature = hmac.new(secret, signing_input.encode(), hashlib.sha256).digest()
-        sig_b64 = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
-
-        return f"{header_b64}.{payload_b64}.{sig_b64}"
-
-    def _generate_jwt_with_claims(self, claims: dict[str, Any]) -> str:
-        """Generate a JWT with arbitrary claims."""
-        import base64
-        import hashlib
-        import hmac
-
-        header = json.dumps({"alg": "HS256", "typ": "JWT"})
-        header_b64 = base64.urlsafe_b64encode(header.encode()).rstrip(b"=").decode()
-
-        payload = json.dumps({
-            "role": "authenticated",
-            "aud": "authenticated",
-            "exp": 9999999999,
-            **claims,
-        })
-        payload_b64 = base64.urlsafe_b64encode(payload.encode()).rstrip(b"=").decode()
-
-        signing_input = f"{header_b64}.{payload_b64}"
-        secret = (self._anon_key or "fake-secret").encode()
-        signature = hmac.new(secret, signing_input.encode(), hashlib.sha256).digest()
-        sig_b64 = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
-
-        return f"{header_b64}.{payload_b64}.{sig_b64}"
 
     def get_findings(self) -> list[Finding]:
         """Get all findings from this tester."""
