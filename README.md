@@ -52,10 +52,11 @@ The suite is pytest-based and runs from the repo root. Install dependencies firs
 (`pip install -r requirements.txt`), then:
 
 ```bash
-python -m pytest tests/ -q
+python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=44
 ```
 
-The same command is what CI runs on every push (lint, typecheck, and the test
+The coverage gate (44%) fails the run if the suite drops below the floor. The
+same command is what CI runs on every push (lint, typecheck, and the test
 matrix are in `.github/workflows/tests.yml`).
 
 ## Local lab
