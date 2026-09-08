@@ -171,6 +171,17 @@ class TitanLogger:
         if self.verbose:
             self._print_entry(entry)
 
+    def log_debug(self, message: str, data: dict[str, Any] | None = None) -> None:
+        """Record a debug entry without console output (diagnostics only)."""
+        entry = LogEntry(
+            timestamp=_utc_now(),
+            level="debug",
+            category="debug",
+            message=message,
+            data=data or {},
+        )
+        self._entries.append(entry)
+
     def save(self, filename: str | None = None) -> str:
         """Save logs to file."""
         if filename is None:
@@ -253,6 +264,10 @@ class _ModuleLogger:
         self._name = name
         self._sink = sink
 
+    def debug(self, message: str, **data: Any) -> None:
+        """Record a debug entry; silent on console by design (per-variant noise)."""
+        self._sink.log_debug(message, {"module": self._name, **(data or {})})
+
     def info(self, message: str, **data: Any) -> None:
         """Record an info entry and mirror it to the console."""
         self._sink.log_info(message, {"module": self._name, **(data or {})})
@@ -295,7 +310,9 @@ def _configure_standard_logging() -> None:
     )
     root = logging.getLogger()
     root.addHandler(handler)
-    root.setLevel(logging.INFO)
+    root.setLevel(
+        getattr(logging, os.environ.get("TITAN_LOG_LEVEL", "INFO").upper(), logging.INFO)
+    )
 
 
 _configure_standard_logging()
