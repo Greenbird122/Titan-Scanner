@@ -268,6 +268,14 @@ cosmetic, and the new test pins it.
 
 **Target:** `titan/ai/adaptive.py` drops below 800 LOC without losing behavior.
 
+**Status: COMPLETE — adaptive.py is 581 LOC (was 1,483).** Three extraction
+commits: `platform_payloads.py` (11 platform catalogs as `PlatformPayloadsMixin`),
+`payload_mutations.py` (5 mutation helpers as `MutationMixin`), and
+`adaptive_support.py` (8 support classes, re-exported so `from
+titan.ai.adaptive import ResponseAnalyzer` keeps working). Every piece
+verified AST-identical or behavior-identical (110 payload combos, 24
+mutation combos); suite green (1,125 passed), detect-secrets clean.
+
 **Tests to add or update:**
 
 - `tests/test_engine_transport.py` — cover the extracted transport helpers directly.
