@@ -1,10 +1,16 @@
 """Static payload library, encoding engine, and context-aware payload selection."""
 
+
 from __future__ import annotations
 
 import base64
 import random
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("payloadforge")
+
 
 
 class PayloadForge:
@@ -23,7 +29,8 @@ class PayloadForge:
         for enc in encodings:
             try:
                 result.append(self._encode(payload, enc))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return result
 

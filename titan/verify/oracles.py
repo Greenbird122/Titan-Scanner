@@ -9,6 +9,7 @@ This is the differential-confirmation layer: the payload is a *hypothesis*,
 the oracles produce *evidence*, and the score decides how much to trust it.
 """
 
+
 from __future__ import annotations
 
 import html
@@ -18,6 +19,11 @@ from collections.abc import Iterable
 from difflib import SequenceMatcher
 from typing import Any
 from urllib.parse import quote, quote_plus, unquote, unquote_plus
+
+from titan.core.logger import get_logger
+
+logger = get_logger("oracles")
+
 
 # ─── Error-class extraction ─────────────────────────────────────────────────
 # Error classes are *behavioral* signatures: they indicate the parameter
@@ -81,7 +87,8 @@ def extract_error_classes(body: str) -> list[str]:
                 if _compile(pattern).search(lower):
                     found.append(name)
                     break
-            except re.error:
+            except re.error as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
     return found
 

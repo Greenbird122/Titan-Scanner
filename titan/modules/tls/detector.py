@@ -12,6 +12,7 @@ This module:
 6. Certificate pinning testing
 """
 
+
 from __future__ import annotations
 
 import socket
@@ -20,7 +21,11 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 
 @dataclass
@@ -154,7 +159,8 @@ class TLSSecurityTester:
                 notes=f"Certificate verification failed: {e}",
             )
             findings.append(finding)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)
@@ -195,10 +201,12 @@ class TLSSecurityTester:
                             notes=f"Insecure protocol: {description}",
                         )
                         findings.append(finding)
-            except (TimeoutError, ssl.SSLError, ConnectionRefusedError, OSError):
+            except (TimeoutError, ssl.SSLError, ConnectionRefusedError, OSError) as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 # Protocol not supported — good
                 pass
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         self._findings.extend(findings)
@@ -279,7 +287,8 @@ class TLSSecurityTester:
                                 notes="HSTS header does not include includeSubDomains",
                             )
                             findings.append(finding)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)

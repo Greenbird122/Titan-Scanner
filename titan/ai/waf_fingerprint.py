@@ -8,11 +8,17 @@ This module goes beyond simple signature detection to:
 5. Generate adaptive bypass payloads
 """
 
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("waf_fingerprint")
+
 
 
 @dataclass
@@ -407,7 +413,8 @@ class WAFFingerprinter:
                     "body": response.get("body", ""),
                     "headers": response.get("headers", {}),
                 })
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return probes

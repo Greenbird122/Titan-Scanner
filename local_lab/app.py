@@ -4,6 +4,7 @@ Run: python local_lab/app.py
 Then scan: http://localhost:5000
 """
 
+
 import os
 import re
 import secrets
@@ -15,6 +16,11 @@ import uuid
 
 import jwt
 from flask import Flask, jsonify, make_response, request, send_from_directory
+
+from titan.core.logger import get_logger
+
+logger = get_logger("app")
+
 
 app = Flask(__name__)
 try:
@@ -277,7 +283,8 @@ def cmd():
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     return jsonify({"status": "pong"})
 

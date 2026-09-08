@@ -11,13 +11,18 @@ This module:
 5. Tests injection in business logic context
 """
 
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("fuzzer")
+
 
 
 @dataclass
@@ -189,7 +194,8 @@ class ParameterFuzzer:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -257,7 +263,8 @@ class ParameterFuzzer:
                             findings.append(finding)
                             break
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -325,7 +332,8 @@ class ParameterFuzzer:
                             )
                             findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -364,7 +372,8 @@ class ParameterFuzzer:
             if current_val is not None and not isinstance(current_val, (int, float)):
                 try:
                     float(str(current_val))
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
             for bname, bvalue in boundary_values:
@@ -402,7 +411,8 @@ class ParameterFuzzer:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)

@@ -19,12 +19,17 @@ Features:
      • Prevents self-verification when a target reflects probe URLs in SPA JS state or 404s.
 """
 
+
 from __future__ import annotations
 
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import payload_encodings
+
+logger = get_logger("detector")
+
 
 # ── Active CRLF & Desync Payloads ─────────────────────────────────────────────
 _SMUGGLE_CRLF_PROBES: tuple[str, ...] = (
@@ -90,7 +95,8 @@ class SmugglingDetector:
                 )
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # ── Engine 1: CRLF Injection into Parameters (all params) ─────
@@ -158,7 +164,8 @@ class SmugglingDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -196,7 +203,8 @@ class SmugglingDetector:
                 if f:
                     findings.append(f)
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings

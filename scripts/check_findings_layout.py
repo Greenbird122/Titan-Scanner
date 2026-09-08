@@ -11,9 +11,15 @@ Exit code 0  = clean layout
 Exit code 1  = violations found (each printed with a remediation hint)
 """
 
+
 import json
 import os
 import sys
+
+from titan.core.logger import get_logger
+
+logger = get_logger("check_findings_layout")
+
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FINDINGS = os.path.join(ROOT, "findings")
@@ -76,7 +82,8 @@ def load_slugs():
             for s in data.get("sites", []):
                 if s.get("slug"):
                     slugs.add(s["slug"])
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     return slugs
 

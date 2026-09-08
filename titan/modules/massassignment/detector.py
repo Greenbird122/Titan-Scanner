@@ -42,13 +42,18 @@ Evidence oracles:
   • Differential Oracle: response differs from baseline ONLY by injected field
 """
 
+
 from __future__ import annotations
 
 import copy
 import json
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # ── Privilege-Bearing Fields ─────────────────────────────────────────
 PRIVILEGE_FIELDS: list[tuple[str, Any, str]] = [
@@ -266,7 +271,8 @@ class MassAssignmentDetector:
                 data = json.loads(test_body)
                 if self._verify_json_field(data, field, value, val_str):
                     reflected = True
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             if not reflected:
@@ -534,7 +540,8 @@ class MassAssignmentDetector:
                 data = json.loads(test_body)
                 if self._verify_json_field(data, field, value, val_str):
                     reflected = True
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             if not reflected:
                 return None
@@ -579,7 +586,8 @@ class MassAssignmentDetector:
                 try:
                     tree = json.loads(first_val)
                     is_json = True
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
         if not is_json:
             try:

@@ -4,6 +4,7 @@ Pure functions and small helpers that have no engine state dependencies.
 Keeps the engine focused on orchestration.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -13,6 +14,10 @@ from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 from titan.core.constants import SOFT_404_MARKERS
+from titan.core.logger import get_logger
+
+logger = get_logger("helpers")
+
 
 # ---------------------------------------------------------------------------
 # Async task helpers
@@ -28,7 +33,8 @@ def consume_task_exception(task: asyncio.Task) -> None:
     """
     try:
         task.exception()
-    except BaseException:
+    except BaseException as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
 
 
@@ -152,7 +158,8 @@ def extract_urls_from_json(json_text: str, is_in_scope: Any) -> list[str]:
     try:
         data = json.loads(json_text)
         urls.extend(_scan_json_for_urls(data, is_in_scope))
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     return urls
 

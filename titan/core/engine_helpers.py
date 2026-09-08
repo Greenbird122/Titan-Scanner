@@ -8,6 +8,7 @@ State the helpers read (``config``, ``_scan_target``, ``_coverage``,
 this mixin only supplies behavior.
 """
 
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,7 +19,11 @@ from titan.core.constants import (
     GENERIC_CHECKPOINT_INDICATORS,
     STRONG_CHECKPOINT_INDICATORS,
 )
+from titan.core.logger import get_logger
 from titan.core.models import ScanResult
+
+logger = get_logger("engine_helpers")
+
 
 
 class EngineHelpersMixin:
@@ -134,7 +139,8 @@ class EngineHelpersMixin:
             if p.exists():
                 parsed: dict[str, Any] = _json.loads(p.read_text(encoding="utf-8"))
                 return parsed
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

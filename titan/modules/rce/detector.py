@@ -12,6 +12,7 @@ Features:
   7. Out-of-Band (Interactsh) Execution: triggers DNS/HTTP callbacks for blind sinks.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -23,9 +24,13 @@ import time
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer, BlindDetector
 from titan.verify.oracles import extract_error_classes, score_signals
+
+logger = get_logger("detector")
+
 
 _INJECTABLE_HEADERS_RCE: tuple[str, ...] = (
     "User-Agent",
@@ -192,7 +197,8 @@ class RCEDetector:
                             metadata={"injection_location": "http_header"},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -281,7 +287,8 @@ class RCEDetector:
                             metadata={"injection_location": "json_ast", "json_path": path},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -330,7 +337,8 @@ class RCEDetector:
                 if not baseline_body:
                     baseline_body = await r.text()
                     baseline_status = r.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Reflection oracle: a unique marker echoed back proves command execution.
@@ -347,7 +355,8 @@ class RCEDetector:
         if self.interactsh:
             try:
                 oob_url = self.interactsh.generate_oob_url("rce")
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         all_test_payloads = list(dict.fromkeys(payloads + marker_payloads))
@@ -480,7 +489,8 @@ class RCEDetector:
                             verification_body=body[:2000],
                             verification_status=resp.status,
                         )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # OOB phase
@@ -501,7 +511,8 @@ class RCEDetector:
                         test_params = dict(all_params)
                         test_params[param_name] = oob_payload
                         await self._request(context, method, url, test_params, target)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
                 await asyncio.sleep(2)
                 oob_results = await self.interactsh.poll(timeout=10)
@@ -526,7 +537,8 @@ class RCEDetector:
                         verification_body="OOB interaction confirmed",
                         verification_status=200,
                     )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return None

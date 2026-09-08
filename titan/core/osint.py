@@ -10,6 +10,7 @@ Usage:
     report = await engine.enumerate("example.com")
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -17,6 +18,11 @@ import logging
 import re
 from dataclasses import dataclass, field
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("osint")
+
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +176,8 @@ class OSINTEngine:
                         ip_addresses=[ip],
                         source="dns_bruteforce",
                     ))
-                except socket.gaierror:
+                except socket.gaierror as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
         return subdomains
@@ -192,7 +199,8 @@ class OSINTEngine:
                             value=str(answer),
                             ttl=answer.ttl if hasattr(answer, "ttl") else 0,
                         ))
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
         except ImportError:
             # Fallback: basic A record lookup
@@ -201,7 +209,8 @@ class OSINTEngine:
                 ips = socket.gethostbyname_ex(target)
                 for ip in ips[2]:
                     records.append(DNSRecord(type="A", name=target, value=ip))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return records
@@ -257,7 +266,8 @@ class OSINTEngine:
                                             secret_type=secret_type,
                                             value=match.group(1) if match.lastindex else match.group(0),
                                         ))
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
         except Exception as e:

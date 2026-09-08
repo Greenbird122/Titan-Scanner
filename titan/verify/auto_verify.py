@@ -6,11 +6,16 @@ or contain the same error classes, the finding is auto-demoted.
 
 This eliminates the majority of scanner noise without any AI involvement.
 """
+
 from __future__ import annotations
 
 from difflib import SequenceMatcher
 
+from titan.core.logger import get_logger
 from titan.core.models import Finding
+
+logger = get_logger("auto_verify")
+
 
 
 class AutoVerifier:
@@ -51,7 +56,8 @@ class AutoVerifier:
                     finding.baseline_body or "", body
                 )
                 results.append((body, error_classes, status))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return results

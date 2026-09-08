@@ -92,7 +92,8 @@ class PostScanPhasesMixin:
                     result.findings.extend(findings)
                     if findings:
                         logger.info(f"    [+] Track C: {len(findings)} LLM findings on {ep}")
-                except (asyncio.TimeoutError, Exception):
+                except (asyncio.TimeoutError, Exception) as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
         except Exception:
             return
@@ -179,7 +180,8 @@ class PostScanPhasesMixin:
         if page:
             try:
                 html = await page.content()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
         if not html:
             return
@@ -201,7 +203,8 @@ class PostScanPhasesMixin:
                         metadata=f_dict.get("metadata", {}),
                     )
                     result.findings.append(finding)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
             logger.info(f"[+] SBOM: {len(report.findings)} finding(s)")
 

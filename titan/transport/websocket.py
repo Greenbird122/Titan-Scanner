@@ -14,6 +14,7 @@ Features:
 Requirements: pip install aiohttp
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -21,6 +22,7 @@ import logging
 import time
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.transport.base import (
     AttackRequest,
     AttackResponse,
@@ -29,6 +31,9 @@ from titan.transport.base import (
     TransportIdentity,
     TransportProtocol,
 )
+
+logger = get_logger("websocket")
+
 
 logger = logging.getLogger(__name__)
 
@@ -184,12 +189,14 @@ class WebSocketTransport(Transport):
         if ws:
             try:
                 await ws.close()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
         if session:
             try:
                 await session.close()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
     async def close_all(self) -> None:

@@ -11,13 +11,18 @@ This module:
 5. DNSSEC validation
 """
 
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 
 @dataclass
@@ -99,7 +104,8 @@ class DNSSecurityTester:
                 if not isinstance(result, Exception) and result:
                     discovered.append(result)
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return discovered
@@ -143,9 +149,11 @@ class DNSSecurityTester:
                                     )
                                     findings.append(finding)
                                     break
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)
@@ -195,9 +203,11 @@ class DNSSecurityTester:
                             notes=f"DNS zone transfer allowed from {ns.strip()}",
                         )
                         findings.append(finding)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)

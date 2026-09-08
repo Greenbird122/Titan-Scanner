@@ -213,7 +213,8 @@ class MqttTransport(Transport):
                         "messages": messages,
                         "vulnerable": True,
                     })
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return results

@@ -1,10 +1,16 @@
 """Dawn integration for Titan Scanner."""
 
+
 from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("dawn")
+
 
 MEMORY_DIR = Path.home() / ".kilo" / "dawn" / "memory"
 
@@ -74,6 +80,7 @@ class DawnMemory:
                                 }
                                 if target is None or entry["target"] == target:
                                     results.append(entry)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return results

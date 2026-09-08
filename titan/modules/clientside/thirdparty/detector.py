@@ -13,12 +13,17 @@ Indicators:
 - the script is tiny and self-contained (skimmers are usually small)
 """
 
+
 from __future__ import annotations
 
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # Well-known benign origins that frequently load page scripts. Ad networks,
 # tag managers and analytics are deliberately included: their scripts sit on
@@ -72,7 +77,8 @@ class ThirdPartyDetector:
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)
             try:
                 await page.wait_for_load_state("networkidle", timeout=2500)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             state = await page.evaluate(SCRIPT_ENUM_JS)
@@ -128,7 +134,8 @@ class ThirdPartyDetector:
 
             if script_origin and script_origin == page_origin:
                 score -= 1
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return score, reasons
 

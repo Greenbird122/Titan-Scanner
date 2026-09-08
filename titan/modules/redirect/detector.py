@@ -17,6 +17,7 @@
    • Flags unsolicited off-origin navigations.
 """
 
+
 from __future__ import annotations
 
 import re
@@ -24,7 +25,11 @@ import time
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # ── Active Server-Side Open Redirect Payloads ─────────────────────────────────
 _OPEN_REDIRECT_PROBES: tuple[str, ...] = (
@@ -213,7 +218,8 @@ class RedirectDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -315,11 +321,13 @@ class RedirectDetector:
             return findings
         try:
             await page.wait_for_load_state("networkidle", timeout=2500)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         try:
             await page.wait_for_timeout(500)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:

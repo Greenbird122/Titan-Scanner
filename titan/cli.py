@@ -7,10 +7,13 @@ Usage:
     tscan list
 """
 
+
 from __future__ import annotations
 
 import os
 import sys
+
+from titan.core.logger import get_logger
 
 # ── CWD SHADOW FIX ──────────────────────────────────────────────────────
 # When tscan runs from a directory that contains a `titan/` folder (e.g.
@@ -40,6 +43,9 @@ import asyncio
 import json
 import time
 from pathlib import Path
+
+logger = get_logger("cli")
+
 
 
 def _http_url(value: str) -> str:
@@ -357,7 +363,8 @@ def run_list(args: argparse.Namespace) -> None:
             with open(f, encoding="utf-8") as fh:
                 data = json.load(fh)
             scans.append(data)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"variant failed, continuing: {exc}")
             continue
     if not scans:
         print("[*] No saved scans found")

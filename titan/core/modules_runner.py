@@ -5,6 +5,7 @@ timeouts, early-exit optimization, identity-level testing, and
 browser-side detectors.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -12,6 +13,10 @@ import random
 from typing import TYPE_CHECKING, Any
 
 from titan.core.helpers import consume_task_exception
+from titan.core.logger import get_logger
+
+logger = get_logger("modules_runner")
+
 
 if TYPE_CHECKING:
     from titan.core.models import Finding, ScanResult
@@ -333,7 +338,8 @@ class ModuleRunner:
             from titan.modules.bola.detector import BOLADetector
             bola = BOLADetector(e.payload_smith, fingerprint)
             findings.extend(await bola.scan(context, target, method, url, params, identities))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Mass assignment
@@ -342,7 +348,8 @@ class ModuleRunner:
                 from titan.modules.massassignment.detector import MassAssignmentDetector
                 ma = MassAssignmentDetector(e.payload_smith, fingerprint)
                 findings.extend(await ma.scan(context, target, "POST", url, params))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         # JWT
@@ -350,7 +357,8 @@ class ModuleRunner:
             from titan.modules.jwt.detector import JWTDetector
             jwt_det = JWTDetector(e.payload_smith, fingerprint)
             findings.extend(await jwt_det.scan(context, target, method, url, params))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Session fixation
@@ -359,7 +367,8 @@ class ModuleRunner:
                 from titan.modules.sessionfix.detector import SessionFixationDetector
                 sf = SessionFixationDetector(e.payload_smith, fingerprint)
                 findings.extend(await sf.scan(context, target, "POST", url, params))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return findings
@@ -398,7 +407,8 @@ class ModuleRunner:
                 continue
             try:
                 b_page = np_task.result()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
             try:
                 from urllib.parse import parse_qs, urlparse
@@ -434,7 +444,8 @@ class ModuleRunner:
                     close_done, _ = await asyncio.wait({close_task}, timeout=5)
                     if close_task not in close_done:
                         close_task.cancel()
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
     # ------------------------------------------------------------------

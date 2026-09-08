@@ -20,15 +20,20 @@ Features:
   9. Data volume oracle: $ne/$regex returning more rows than baseline.
 """
 
+
 from __future__ import annotations
 
 import copy
 import json
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, is_echo_differential, score_signals
+
+logger = get_logger("detector")
+
 
 # ── Operator payloads ─────────────────────────────────────────────────────────
 # Bracket-notation (query string): param[$ne]=1
@@ -209,7 +214,8 @@ class NoSQLiDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -274,7 +280,8 @@ class NoSQLiDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -323,7 +330,8 @@ class NoSQLiDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -397,7 +405,8 @@ class NoSQLiDetector:
                 if not is_echo_differential(body, baseline_body, payload, opposite):
                     signals.append("sanity_pair")
                     diffs.append("sanity_pair:boolean_confirmed")
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         # Error class oracle (MongoDB/JS eval errors — not filesystem)
@@ -470,7 +479,8 @@ class NoSQLiDetector:
                 )
             baseline_body = await r0.text()
             baseline_status = r0.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         for payload in payloads:
@@ -495,7 +505,8 @@ class NoSQLiDetector:
                 )
                 if f:
                     return f
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None

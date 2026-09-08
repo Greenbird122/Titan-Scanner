@@ -10,6 +10,7 @@ This module:
 4. Feeds into coverage tracker
 """
 
+
 from __future__ import annotations
 
 import re
@@ -17,7 +18,11 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.modules.coverage.tracker import CoverageTracker
+
+logger = get_logger("surfacemapper")
+
 
 
 @dataclass
@@ -175,9 +180,11 @@ class AttackSurfaceMapper:
                                     risk_level=self._assess_risk(category),
                                     relevant_attacks=[],
                                 ))
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def _categorize_endpoint(self, url: str) -> str:

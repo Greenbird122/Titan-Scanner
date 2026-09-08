@@ -20,6 +20,7 @@ Everything is pure and deterministic — the tests pin the exact shapes. The
 CLI (``titan_learn_cli.py trends``) writes findings/TRENDS.md + TRENDS.json.
 """
 
+
 from __future__ import annotations
 
 import json
@@ -27,7 +28,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.learn.notes import mine_findings_md_file
+
+logger = get_logger("trends")
+
 
 # ---------------------------------------------------------------------------
 # signal extraction
@@ -46,13 +51,15 @@ def _notes_text(slug: str, root: Path) -> str:
             m = json.loads(meta.read_text(encoding="utf-8"))
             if m.get("recheck_notes"):
                 parts.append(str(m["recheck_notes"]))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     fmd = root / slug / "FINDINGS.md"
     if fmd.exists():
         try:
             parts.append(fmd.read_text(encoding="utf-8")[:4000])
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     return "\n".join(parts)
 

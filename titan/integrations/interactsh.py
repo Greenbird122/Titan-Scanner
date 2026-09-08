@@ -1,10 +1,16 @@
 """Interactsh OOB integration for Titan Scanner."""
 
+
 from __future__ import annotations
 
 import random
 import string
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("interactsh")
+
 
 
 class InteractshClient:
@@ -23,7 +29,8 @@ class InteractshClient:
                     if resp.status == 200:
                         self._registered = True
                         return True
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return False
 
@@ -38,7 +45,8 @@ class InteractshClient:
                 if resp.status == 200:
                     data = await resp.json()
                     results = data.get("data", {}).get("interactions", [])
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return results
 

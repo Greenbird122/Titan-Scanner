@@ -12,6 +12,7 @@ from:
         scan_meta.json           target, timing, counts, errors, fingerprint
 """
 
+
 from __future__ import annotations
 
 import copy
@@ -23,7 +24,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import ScanResult
+
+logger = get_logger("__init__")
+
 
 # Keys redacted from the persisted config snapshot: credentials must never
 # land on disk inside per-site finding docs.
@@ -715,7 +720,8 @@ def estate_rollup(output_dir: str = "findings") -> str:
         if meta_path.exists():
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         site_findings = []
@@ -724,7 +730,8 @@ def estate_rollup(output_dir: str = "findings") -> str:
                 site_findings = json.loads(findings_path.read_text(encoding="utf-8"))
                 if isinstance(site_findings, dict):
                     site_findings = site_findings.get("findings", [])
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         f_count = meta.get("findings", len(site_findings))
@@ -794,7 +801,8 @@ def estate_rollup(output_dir: str = "findings") -> str:
             for f in site_findings:
                 atk = f.get("attack_type", "unknown")
                 atk_sites.setdefault(atk, set()).add(site.get("target", slug))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"variant failed, continuing: {exc}")
             continue
 
     patterns = {atk: s for atk, s in atk_sites.items() if len(s) >= 3}
@@ -1069,7 +1077,8 @@ def remediation_rollup(output_dir: str = "findings") -> str:
                 finding_count_by_type[atk] = finding_count_by_type.get(atk, 0) + 1
                 if atk not in seen_patches:
                     seen_patches[atk] = generate_remediation(f)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"variant failed, continuing: {exc}")
             continue
 
     # Sort by frequency

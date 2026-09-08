@@ -5,6 +5,7 @@ Dual persistence:
 - SQLite findings table (structured queries)
 """
 
+
 from __future__ import annotations
 
 import json
@@ -13,6 +14,11 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("memory")
+
 
 MEMORY_DIR = os.path.expanduser("~/.kilo/dawn/memory")
 FINDINGS_DB_PATH = os.path.join(MEMORY_DIR, "findings.db")
@@ -110,7 +116,8 @@ class DawnMemory:
             )
             conn.commit()
             conn.close()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return daily_ok
@@ -124,7 +131,8 @@ class DawnMemory:
             for day_file in days:
                 with open(day_file, encoding="utf-8") as f:
                     lines.extend(f.readlines()[-40:])
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return lines
 
@@ -149,7 +157,8 @@ class DawnMemory:
             rows = conn.execute(query, params).fetchall()
             conn.close()
             results = [dict(r) for r in rows]
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return results
 

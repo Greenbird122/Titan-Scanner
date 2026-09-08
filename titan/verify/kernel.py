@@ -19,6 +19,7 @@ Usage:
         print(f"{obs.type}: {obs.data}")
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -29,6 +30,11 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("kernel")
+
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +301,8 @@ class FallbackKernelObserver:
                 for conn in proc.net_connections():
                     key = (conn.laddr, conn.raddr if conn.raddr else None)
                     initial_connections.add(key)
-            except (psutil.AccessDenied, psutil.NoSuchProcess):
+            except (psutil.AccessDenied, psutil.NoSuchProcess) as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             # Monitor for the specified duration
@@ -322,7 +329,8 @@ class FallbackKernelObserver:
                                     metadata={"source": "psutil", "pid": pid},
                                 ))
                         initial_connections = current_connections
-                    except (psutil.AccessDenied, psutil.NoSuchProcess):
+                    except (psutil.AccessDenied, psutil.NoSuchProcess) as exc:
+                        logger.debug(f"suppressed exception: {exc}")
                         pass
 
                     # Check file descriptors (Linux only)
@@ -337,12 +345,14 @@ class FallbackKernelObserver:
                                 data={"open_fds": len(fds)},
                                 metadata={"source": "/proc", "pid": pid},
                             ))
-                        except (OSError, PermissionError):
+                        except (OSError, PermissionError) as exc:
+                            logger.debug(f"suppressed exception: {exc}")
                             pass
 
                 except asyncio.CancelledError:
                     break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         except ImportError:
@@ -454,7 +464,8 @@ class KernelObserver:
                 if conn.status == "LISTEN":
                     if conn.laddr.port == port:
                         return conn.pid
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

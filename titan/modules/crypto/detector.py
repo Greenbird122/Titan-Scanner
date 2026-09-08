@@ -23,13 +23,18 @@ Features:
      • Detects cryptographic padding exceptions upon single-byte ciphertext tampering
 """
 
+
 from __future__ import annotations
 
 import base64
 import re
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # ── Credential & Key Extraction Patterns ─────────────────────────────────────
 # Provider-specific signatures first, then generic assignments
@@ -214,7 +219,8 @@ class CryptoDetector:
                     )
                     if jwt_finding:
                         return jwt_finding
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         # ── 4. Hardcoded Secrets & Credentials Matrix ──────────────────
@@ -280,6 +286,7 @@ class CryptoDetector:
                             verification_body=body[:2000],
                             verification_status=status,
                         )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return None

@@ -1,5 +1,6 @@
 """AI-powered payload mutation using DeepSeek."""
 
+
 from __future__ import annotations
 
 import asyncio
@@ -9,6 +10,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 from titan.ai.payloadforge import PayloadForge
+from titan.core.logger import get_logger
+
+logger = get_logger("payloadsmith")
+
 
 
 class PayloadSmith:
@@ -64,7 +69,8 @@ class PayloadSmith:
                 writer.close()
                 try:
                     await writer.wait_closed()
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
                 return True
             except Exception:
@@ -220,6 +226,7 @@ CHAINS:"""
             if start >= 0 and end > start:
                 chains = json.loads(text[start:end])
                 return chains if isinstance(chains, list) else []
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return []

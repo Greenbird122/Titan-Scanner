@@ -48,14 +48,19 @@ Evidence oracles:
   • Timing Oracle: response times indicate lock contention
 """
 
+
 from __future__ import annotations
 
 import asyncio
 import re
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
+
+logger = get_logger("detector")
+
 
 # ── Numeric patterns that indicate counters/balances ──────────────────
 _COUNTER_PATTERNS = re.compile(
@@ -147,7 +152,8 @@ class RaceDetector:
             key = match.group(0).split(":")[0].split("=")[0].strip().strip('"')
             try:
                 counters[key] = float(match.group(1))
-            except ValueError:
+            except ValueError as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return counters
 
@@ -230,7 +236,8 @@ class RaceDetector:
                 metadata={"concurrency": len(race_bodies), "unique_states": len(unique_bodies)},
             )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -270,7 +277,8 @@ class RaceDetector:
                         body = await res.text()
                         if res.status == 200:
                             bodies.append(body)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
             if len(bodies) < 5:
@@ -304,7 +312,8 @@ class RaceDetector:
                     metadata={"technique": "rapid_fire", "concurrency": len(bodies)},
                 )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -371,7 +380,8 @@ class RaceDetector:
                     metadata={"technique": "interleaved"},
                 )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -447,7 +457,8 @@ class RaceDetector:
                         metadata={"success_count": success_count, "technique": "concurrent_create"},
                     )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -554,7 +565,8 @@ class RaceDetector:
                                 metadata={"counter": counter_name, "values": values},
                             )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

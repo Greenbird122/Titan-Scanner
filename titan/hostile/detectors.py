@@ -14,10 +14,16 @@ devtools window-size detection — all deterministic JS text, all detectable
 without executing anything.
 """
 
+
 from __future__ import annotations
 
 import re
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("detectors")
+
 
 _CLOAK_PATTERNS: list[dict[str, Any]] = [
     {
@@ -195,7 +201,8 @@ def _signals_from_patterns(html: str, patterns: list[dict[str, Any]]) -> list[di
                     "severity": p["severity"],
                     "confidence": p["confidence"],
                 })
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"variant failed, continuing: {exc}")
             continue
     return found
 

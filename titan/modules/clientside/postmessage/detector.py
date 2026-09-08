@@ -15,11 +15,16 @@ A page with no handlers, or handlers that compare event.origin against an
 allowlist, produces no finding.
 """
 
+
 from __future__ import annotations
 
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # Installed on every page before navigation. Wraps addEventListener so any
 # registration of a "message" handler is captured with its source text; the
@@ -93,7 +98,8 @@ class PostMessageDetector:
             await page.goto(url, wait_until="domcontentloaded", timeout=15000)
             try:
                 await page.wait_for_load_state("networkidle", timeout=2500)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             # Fire a probe message from an attacker origin and see if any

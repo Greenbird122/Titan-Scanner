@@ -8,6 +8,7 @@ This module wraps PayloadForge and adds:
 5. Feedback loop — learn from each scan, improve for next
 """
 
+
 from __future__ import annotations
 
 import json
@@ -28,6 +29,10 @@ from titan.ai.adaptive_support import (
 from titan.ai.payload_mutations import MutationMixin
 from titan.ai.payloadforge import PayloadForge
 from titan.ai.platform_payloads import PlatformPayloadsMixin
+from titan.core.logger import get_logger
+
+logger = get_logger("adaptive")
+
 
 
 class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
@@ -54,7 +59,8 @@ class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
                     self.waf_profiles[waf_name] = profile
                 for pattern in data.get("learned_bypasses", {}).get("global", []):
                     self._learned_bypasses["global"].append(pattern)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
     def _save_state(self) -> None:
@@ -77,7 +83,8 @@ class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
                 },
             }
             self._state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     # ── Target Profile ──────────────────────────────────────────────────

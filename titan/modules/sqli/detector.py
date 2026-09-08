@@ -8,6 +8,7 @@ Five engines beyond basic query-param injection:
   5. Polymorphic WAF Encodings       (versioned comments, hex strings, HPP, %0a/%09 WS)
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -18,9 +19,13 @@ import string
 import time
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer, BlindDetector
 from titan.verify.oracles import is_echo_differential
+
+logger = get_logger("detector")
+
 
 # ---------------------------------------------------------------------------
 # Error signatures — comprehensive across 10+ DB engines
@@ -380,7 +385,8 @@ class SQLiDetector:
                             metadata={"injection_location": "http_header"},
                         ))
                         break  # First confirmed payload per header is enough
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -479,7 +485,8 @@ class SQLiDetector:
                             metadata={"injection_location": "json_ast", "json_path": path},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -544,7 +551,8 @@ class SQLiDetector:
                             await context.request.get(url, params=test_params, timeout=5000)
                         else:
                             await context.request.post(url, data=test_params, timeout=5000)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
                         pass
 
         # Wait for OOB callbacks
@@ -577,7 +585,8 @@ class SQLiDetector:
 
         try:
             await client.deregister()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return findings
@@ -655,7 +664,8 @@ class SQLiDetector:
                             "injection_location": "union_bisect",
                         },
                     ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return findings
@@ -748,7 +758,8 @@ class SQLiDetector:
                 has_error = any(s in body.lower() for s in _SQLI_ERROR_SIGNATURES)
                 if not has_error and r.status < 500:
                     string_cols.append(i)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return string_cols
@@ -784,7 +795,8 @@ class SQLiDetector:
                     if not baseline_body:
                         baseline_body = await r.text()
                         baseline_status = r.status
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             timing_runs = 0
@@ -896,7 +908,8 @@ class SQLiDetector:
                             verification_body=body[:2000],
                             verification_status=resp.status,
                         )
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
             return None
         except Exception:

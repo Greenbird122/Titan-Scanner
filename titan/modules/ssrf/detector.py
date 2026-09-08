@@ -16,6 +16,7 @@ Features:
   7. Strict Encoded-Echo Stripping: prevents self-verification on reflected probe URLs.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -24,9 +25,13 @@ import json
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, payload_encodings, score_signals
+
+logger = get_logger("detector")
+
 
 _INJECTABLE_HEADERS_SSRF: tuple[str, ...] = (
     "X-Forwarded-For",
@@ -268,7 +273,8 @@ class SSRFDetector:
                             metadata={"injection_location": "http_header"},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -362,7 +368,8 @@ class SSRFDetector:
                             metadata={"injection_location": "json_ast", "json_path": path},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -406,14 +413,16 @@ class SSRFDetector:
             baseline_resp = await self._request(context, method, url, all_params, target)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         oob_url = None
         if self.interactsh:
             try:
                 oob_url = self.interactsh.generate_oob_url("ssrf")
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         best_weak = None
@@ -442,7 +451,8 @@ class SSRFDetector:
                             if len(part) > 2:
                                 for form in payload_encodings(part):
                                     stripped = stripped.replace(form.lower(), "")
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
                 content_indicators = [
@@ -533,7 +543,8 @@ class SSRFDetector:
                             verification_body=body[:2000],
                             verification_status=resp.status,
                         )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         if best_weak is not None:
@@ -569,7 +580,8 @@ class SSRFDetector:
                         verification_body="OOB interaction confirmed",
                         verification_status=200,
                     )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return None

@@ -24,6 +24,7 @@ Usage:
     decoys = af.generate_decoys(target_url, count=5)
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -33,6 +34,11 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
+
+from titan.core.logger import get_logger
+
+logger = get_logger("advanced")
+
 
 logger = logging.getLogger(__name__)
 
@@ -422,7 +428,8 @@ class DecoyGenerator:
                     timeout=10.0,
                 ))
                 sent += 1
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return sent

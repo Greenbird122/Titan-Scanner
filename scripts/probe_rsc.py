@@ -1,6 +1,12 @@
 """Phase 1 helper: extract RSC payload from saved Next.js HTML pages."""
+
 import re
 import sys
+
+from titan.core.logger import get_logger
+
+logger = get_logger("probe_rsc")
+
 
 URL_RE = re.compile(r'https?://[a-zA-Z0-9.\-]+[^\s"\'<>\\]{0,80}')
 API_RE = re.compile(r'/api/[a-zA-Z0-9_/\-]+')
@@ -13,7 +19,8 @@ def extract(path: str) -> None:
     text = "".join(chunks)
     try:
         text = text.encode().decode("unicode_escape", errors="ignore")
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     print(f"\n## {path} (rsc {len(text)}b)")
     for u in sorted(set(URL_RE.findall(text)))[:14]:

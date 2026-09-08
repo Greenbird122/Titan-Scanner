@@ -12,12 +12,17 @@ This module:
 6. Data exfiltration via WS
 """
 
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 
 @dataclass
@@ -186,7 +191,8 @@ class WebSocketTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -224,7 +230,8 @@ class WebSocketTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -262,7 +269,8 @@ class WebSocketTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -300,7 +308,8 @@ class WebSocketTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)

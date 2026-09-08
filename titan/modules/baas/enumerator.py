@@ -7,6 +7,7 @@ This module:
 4. Selects and runs appropriate testing modules
 """
 
+
 from __future__ import annotations
 
 import json
@@ -14,7 +15,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("enumerator")
+
 
 
 @dataclass
@@ -249,7 +254,8 @@ class BaaSEnumerator:
                                 raw_detection="x-appwrite header",
                             ))
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _detect_from_js(self, target_url: str):
@@ -303,10 +309,12 @@ class BaaSEnumerator:
                                         if fp:
                                             fp.api_key = key_match.group(0)
 
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _enumerate_resources(self, fingerprint: BaasFingerprint):
@@ -338,7 +346,8 @@ class BaaSEnumerator:
                                 body = await resp.text()
                                 if body and body != "[]":
                                     fingerprint.tables.append(table)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
                 # Try to list storage buckets
@@ -352,10 +361,12 @@ class BaaSEnumerator:
                                 for bucket in data:
                                     if isinstance(bucket, dict) and "id" in bucket:
                                         fingerprint.buckets.append(bucket["id"])
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _enumerate_firebase(self, fingerprint: BaasFingerprint):
@@ -372,10 +383,12 @@ class BaaSEnumerator:
                                 body = await resp.text()
                                 if body and body != "null":
                                     fingerprint.collections.append(table)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _enumerate_appwrite(self, fingerprint: BaasFingerprint):
@@ -395,10 +408,12 @@ class BaaSEnumerator:
                                 for db in data["databases"]:
                                     if "name" in db:
                                         fingerprint.collections.append(db["name"])
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def get_fingerprints(self) -> list[BaasFingerprint]:

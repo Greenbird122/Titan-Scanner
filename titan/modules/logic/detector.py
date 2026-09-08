@@ -52,6 +52,7 @@ Evidence oracles:
   • Differential Oracle: two different inputs produce same charged amount
 """
 
+
 from __future__ import annotations
 
 import json
@@ -59,7 +60,11 @@ import re
 from typing import Any
 from urllib.parse import urlencode
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # ── Parameter Tampering Value Probes ──────────────────────────────────
 _LOGIC_TAMPER_PROBES: tuple[tuple[str, str, str], ...] = (
@@ -336,7 +341,8 @@ class LogicDetector:
                         metadata={"tampered_param": param_name, "test_value": test_val},
                     )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -409,7 +415,8 @@ class LogicDetector:
                         metadata={"param": param_name, "type": test_val},
                     )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -492,10 +499,12 @@ class LogicDetector:
                                         verification_status=resp.status,
                                         metadata={"coupon_value": test_val, "final_amount": amt},
                                     )
-                            except ValueError:
+                            except ValueError as exc:
+                                logger.debug(f"variant failed, continuing: {exc}")
                                 continue
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -553,7 +562,8 @@ class LogicDetector:
                         metadata={"from": from_cur, "to": to_cur},
                     )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -606,7 +616,8 @@ class LogicDetector:
                             metadata={"state_param": param_name, "target_state": state},
                         )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -664,7 +675,8 @@ class LogicDetector:
                                 metadata={"param": param_name, "plan": plan},
                             )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -731,10 +743,12 @@ class LogicDetector:
                                     "tampered": "0",
                                 },
                             )
-                    except ValueError:
+                    except ValueError as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -810,7 +824,8 @@ class LogicDetector:
                     metadata={"param": param_name, "technique": "hpp"},
                 )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

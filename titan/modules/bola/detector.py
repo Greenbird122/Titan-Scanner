@@ -16,13 +16,18 @@ Features:
      • Eliminates shared records where both users share the same data.
 """
 
+
 from __future__ import annotations
 
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify.identity_oracles import markers_present, unique_owner_markers
+
+logger = get_logger("detector")
+
 
 
 class BOLADetector:
@@ -241,7 +246,8 @@ class BOLADetector:
                         metadata={"identities": {"owner": owner_name, "attacker": attacker_name}, "markers": present[:5]},
                         tags=[f"identity:{attacker_name}", f"owner:{owner_name}"],
                     )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return None

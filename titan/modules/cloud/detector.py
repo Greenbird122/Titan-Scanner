@@ -12,12 +12,17 @@ This module:
 6. Cloud function enumeration
 """
 
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 
 @dataclass
@@ -211,7 +216,8 @@ class CloudSecurityTester:
                         notes=f"AWS metadata: {payload.name}",
                     )
                     findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         self._findings.extend(findings)
         return findings
@@ -242,7 +248,8 @@ class CloudSecurityTester:
                         notes=f"GCP metadata: {payload.name}",
                     )
                     findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         self._findings.extend(findings)
         return findings
@@ -273,7 +280,8 @@ class CloudSecurityTester:
                         notes=f"Azure metadata: {payload.name}",
                     )
                     findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         self._findings.extend(findings)
         return findings

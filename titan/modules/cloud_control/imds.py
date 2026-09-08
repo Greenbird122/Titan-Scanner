@@ -18,6 +18,7 @@ Supports:
   - IPv6 IMDS (fd00::2 for AWS)
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -26,6 +27,11 @@ import logging
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
+
+from titan.core.logger import get_logger
+
+logger = get_logger("imds")
+
 
 logger = logging.getLogger(__name__)
 
@@ -507,7 +513,8 @@ class IMDSProber:
                 data = json.loads(body)
                 if "RoleName" in data:
                     report.role_name = data["RoleName"]
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
     def _extract_gcp_metadata(self, report: IMDSReport, body: str, ep: IMDSEndpoint) -> None:
@@ -541,7 +548,8 @@ class IMDSProber:
                 report.instance_id = compute.get("vmId", "")
                 report.instance_type = compute.get("vmSize", "")
                 report.region = compute.get("location", "")
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def _try_extract_creds(self, body: str, provider: str) -> dict | None:

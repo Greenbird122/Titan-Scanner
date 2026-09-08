@@ -19,14 +19,19 @@ Features:
      • OOB interaction confirmation.
 """
 
+
 from __future__ import annotations
 
 import asyncio
 import re
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
+
+logger = get_logger("detector")
+
 
 # ── Active probe payloads across language ecosystems ─────────────────────────
 _JAVA_DESER_PROBES: tuple[str, ...] = (
@@ -267,7 +272,8 @@ class DeserDetector:
                 )
                 if f:
                     return f
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None
@@ -306,7 +312,8 @@ class DeserDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -365,7 +372,8 @@ class DeserDetector:
                     verification_status=200,
                     metadata={"oob_url": oob_domain},
                 )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

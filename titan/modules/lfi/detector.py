@@ -17,15 +17,20 @@ Features:
      • Zero false positives on reflected query strings or catch-all routes.
 """
 
+
 from __future__ import annotations
 
 import copy
 import json
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, payload_encodings, score_signals
+
+logger = get_logger("detector")
+
 
 _INJECTABLE_HEADERS_LFI: tuple[str, ...] = (
     "User-Agent",
@@ -202,7 +207,8 @@ class LFIDetector:
                             metadata={"injection_location": "http_header"},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -296,7 +302,8 @@ class LFIDetector:
                             metadata={"injection_location": "json_ast", "json_path": path},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -340,7 +347,8 @@ class LFIDetector:
             baseline_resp = await self._request(context, method, url, all_params, target)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         baseline_lower = baseline_body.lower()
 
@@ -407,7 +415,8 @@ class LFIDetector:
                             verification_body=body[:2000],
                             verification_status=resp.status,
                         )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None

@@ -5,6 +5,7 @@ orchestration. The Crawler class holds crawl state and runs the
 breadth-first walk of the target site.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -15,6 +16,10 @@ from titan.core.helpers import (
     dedupe_apis,
     extract_urls_from_json,
 )
+from titan.core.logger import get_logger
+
+logger = get_logger("crawl")
+
 
 if TYPE_CHECKING:
     from titan.core.models import ScanResult
@@ -230,7 +235,8 @@ class Crawler:
                 if location and location not in e.visited:
                     e.visited.add(location)
                     new_items.append((location, depth + 1))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return {"new_queue_items": new_items, "resp_status": 200}
 
@@ -276,7 +282,8 @@ class Crawler:
         resp = await _goto_with_retry()
         try:
             await page.wait_for_load_state("networkidle", timeout=2000)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         page.remove_listener("request", capture_request)
 
@@ -389,7 +396,8 @@ class Crawler:
                         new_items.append((fu_base, depth + 1))
                     if fu_base not in all_apis:
                         all_apis.append(fu_base)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         discovered_apis = dedupe_apis(all_apis)
@@ -442,7 +450,8 @@ class Crawler:
             try:
                 # Synchronous cookie access via event loop if available
                 pass
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             _redirect = None
             if e.redirect_chain:
@@ -459,5 +468,6 @@ class Crawler:
                 print(f"    [!] ANOMALY: {a.kind} on {current} — {a.detail}")
                 if current not in e.visited and e._is_in_scope(current):
                     queue.insert(0, (current, depth))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass

@@ -6,9 +6,15 @@ initializes the ``_transport_*`` state attributes in ``__init__`` before any
 transport use; the mixin only supplies the behavior.
 """
 
+
 from __future__ import annotations
 
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("transport_mixin")
+
 
 
 class TransportMixin:
@@ -54,5 +60,6 @@ class TransportMixin:
             http = getattr(self, "_transport_http", None)
             if http is not None and hasattr(http, "close"):
                 await http.close()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass

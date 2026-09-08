@@ -6,6 +6,7 @@ Wraps the Titan Gov proposal pipeline for scan approval:
 Also provides SQLite-backed audit logging.
 """
 
+
 from __future__ import annotations
 
 import json
@@ -14,6 +15,11 @@ import sqlite3
 import sys
 from datetime import datetime
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("titan_gov")
+
 
 AUDIT_DB_PATH = os.path.expanduser("~/.kilo/dawn/scanner/audit.db")
 
@@ -44,7 +50,8 @@ def log_audit(target: str, action: str, result: str, details: str = ""):
         )
         conn.commit()
         conn.close()
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
 
 
@@ -61,7 +68,8 @@ def _log_audit_jsonl(target: str, action: str, result: str):
         }
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry) + "\n")
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
 
 
