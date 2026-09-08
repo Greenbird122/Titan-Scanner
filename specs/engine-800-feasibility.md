@@ -1,5 +1,13 @@
 # Engine <800 LOC — feasibility spec
 
+**Status: COMPLETE — engine.py is 636 LOC (was 1,979).** Phases D–G landed
+(`browser_interaction`, `campaign_phases`, `dispatch`, `engine_helpers`
+mixins); the Phase-H decision gate stopped at 636, well under the 800
+floor, leaving the most-tested `scan()` / `_run_scan_pipeline`
+orchestration intact rather than risking it for no remaining score.
+Every phase verified AST-identical against git, suite green (1,125
+passed), coverage 46% > 44% floor, detect-secrets clean.
+
 **Goal:** get `titan/core/engine.py` from 1,979 LOC to **under 800** without
 changing scan behavior, by turning `TitanEngine` into a thin facade that
 composes delegate modules.
