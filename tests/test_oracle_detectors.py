@@ -2,7 +2,8 @@
 Shared apps/fixtures/helpers live in tests/oracle_shared.py.
 """
 
-from oracle_shared import *  # noqa: F401,F403  (fixtures, apps, helpers)
+from oracle_shared import *  # noqa: F403  (fixtures, apps, helpers)
+
 
 class TestXSSOracle:
     @staticmethod
