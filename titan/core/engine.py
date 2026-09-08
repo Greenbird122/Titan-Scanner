@@ -150,8 +150,11 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                     result.errors.append("Scan not approved by governance")
                     result.finished_at = time.time()
                     return result
-            except Exception:
-                pass
+            except Exception as exc:
+                result.errors.append(f"Governance check failed: {exc}")
+                result.finished_at = time.time()
+                logger.warning(f"[!] Governance check failed, denying scan: {exc}")
+                return result
 
         try:
             result = await self._run_scan_pipeline(target, result)
@@ -159,8 +162,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             result.errors.append("Scan timed out after 240s")
             logger.warning("[!] Scan timed out")
         except Exception as exc:
-            import traceback
-            traceback.print_exc()
+            logger.exception("Scan pipeline failed")
             result.errors.append(str(exc))
 
         # Post-scan phases
