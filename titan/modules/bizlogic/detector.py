@@ -14,6 +14,7 @@ Key improvements over standalone modules:
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
@@ -25,6 +26,8 @@ from titan.modules.bizlogic.ecommerce import ECommerceTester
 from titan.modules.bizlogic.fuzzer import ParameterFuzzer
 from titan.modules.bizlogic.saas import SaaSTester
 from titan.modules.bizlogic.workflow import WorkflowTester
+
+_log = logging.getLogger(__name__)
 
 
 class BizLogicDetector:
@@ -137,7 +140,8 @@ class BizLogicDetector:
                 "headers": dict(resp.headers),
                 "url": str(resp.url),
             }
-        except Exception:
+        except Exception as exc:
+            _log.warning("baseline request failed: %s", exc)
             return None
 
     async def _test_parameter_tampering(
@@ -243,7 +247,8 @@ class BizLogicDetector:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -311,7 +316,8 @@ class BizLogicDetector:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -379,7 +385,8 @@ class BizLogicDetector:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -446,7 +453,8 @@ class BizLogicDetector:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -516,7 +524,8 @@ class BizLogicDetector:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    _log.debug("variant failed: %s", exc)
                     continue
 
         return findings
@@ -585,7 +594,8 @@ class BizLogicDetector:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    _log.debug("variant failed: %s", exc)
                     continue
 
         return findings
@@ -652,7 +662,8 @@ class BizLogicDetector:
                             )
                             findings.append(finding)
 
-                    except Exception:
+                    except Exception as exc:
+                        _log.debug("variant failed: %s", exc)
                         continue
 
         return findings
@@ -820,7 +831,8 @@ class BizLogicDetector:
                         )
                         findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -889,7 +901,8 @@ class BizLogicDetector:
                         )
                         findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -963,7 +976,8 @@ class BizLogicDetector:
                             )
                             findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    _log.debug("variant failed: %s", exc)
                     continue
 
         return findings
@@ -1013,7 +1027,8 @@ class BizLogicDetector:
                             notes=f"Content-Type confusion: Server accepted {ct['ct']}",
                         )
                         findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -1057,7 +1072,8 @@ class BizLogicDetector:
                         notes=f"Method override: Server accepted {override} via _method",
                     )
                     findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
             try:
@@ -1083,7 +1099,8 @@ class BizLogicDetector:
                         notes=f"Method override: Server accepted {override} via header",
                     )
                     findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
@@ -1137,7 +1154,8 @@ class BizLogicDetector:
                         notes=f"Header injection: {hn} changed response",
                     )
                     findings.append(finding)
-            except Exception:
+            except Exception as exc:
+                _log.debug("variant failed: %s", exc)
                 continue
 
         return findings
