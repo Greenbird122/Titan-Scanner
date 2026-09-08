@@ -117,6 +117,8 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "T201"]
+# F405: names come from `from oracle_shared import *` (shared fixtures/apps).
+"tests/test_oracle_detectors.py" = ["F405"]
 "titan/local_lab/*" = ["S101"]
 "titan/ai/*" = ["T201"]
 
