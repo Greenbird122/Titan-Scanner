@@ -19,6 +19,7 @@ finding is not dead until the full path family has been swept on the app
 origin AND responses have been differentiated from canned controls.
 """
 
+
 from __future__ import annotations
 
 import json
@@ -26,9 +27,13 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.modules.baas.firebase import FirebaseTester
 from titan.modules.baas.supabase import SupabaseTester
+
+logger = get_logger("detector")
+
 
 
 class BaasDetector:
@@ -200,7 +205,8 @@ class BaasDetector:
             findings.extend(await self._probe_firebase_rtdb_family(context, target, base))
             # Supabase storage family: /storage/v1/bucket + common buckets
             findings.extend(await self._probe_storage_family(context, target, base))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return findings
@@ -489,7 +495,8 @@ class BaasDetector:
                     # Table exists but RLS blocked
                     tables.append(table)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return tables
@@ -517,7 +524,8 @@ class BaasDetector:
                     # Function exists (even if unauthorized)
                     functions.append(function)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return functions
@@ -540,7 +548,8 @@ class BaasDetector:
                         if isinstance(bucket, dict) and "id" in bucket:
                             buckets.append(bucket["id"])
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Also try common bucket names
@@ -554,7 +563,8 @@ class BaasDetector:
                     )
                     if resp.status in (200, 403):
                         buckets.append(bucket)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return buckets
@@ -578,7 +588,8 @@ class BaasDetector:
                 if resp.status == 200 and "documents" in body:
                     collections.append(collection)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return collections
@@ -599,7 +610,8 @@ class BaasDetector:
                         if "name" in item:
                             buckets.append(item["name"].split("/")[0])
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return list(set(buckets))

@@ -23,11 +23,17 @@ and ``purple/batch.py run_batch`` (the arena's probe path, which its API can
 point at arbitrary hosts).
 """
 
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
 from urllib.parse import urlparse
+
+from titan.core.logger import get_logger
+
+logger = get_logger("authorization")
+
 
 # Project root (titan/core/authorization.py -> titan/ -> repo root). Manifest
 # paths in config are resolved against this so the gate works regardless of
@@ -121,7 +127,8 @@ def authorize_target(
                 key_path=Path(key_path) if key_path else DEFAULT_KEY_PATH,
             )
             return None
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     if host_is_practice(host, practice_hosts(practice_manifest)):
         return None

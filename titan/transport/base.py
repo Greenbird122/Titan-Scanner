@@ -5,12 +5,18 @@ Detectors never know which transport they're using — they just call
 transport.send(request) and get a response back.
 """
 
+
 from __future__ import annotations
 
 import enum
 import importlib
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+
+from titan.core.logger import get_logger
+
+logger = get_logger("base")
+
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -226,7 +232,8 @@ class TransportRegistry:
             tor = TorTransport()
             if TorTransport.is_available():
                 self.register("tor", tor, [TransportProtocol.ONION])
-        except ImportError:
+        except ImportError as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Try to register gRPC

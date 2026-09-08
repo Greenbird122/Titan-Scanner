@@ -21,13 +21,19 @@ Every scan is documented under findings/<site-slug>/ (report.md, findings.json,
 scan_meta.json, dashboard.html) plus the sites.json index.
 """
 
+
 import asyncio
 import sys
 from pathlib import Path
 
+from titan.core.logger import get_logger
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 from titan.core.engine import TitanEngine
+
+logger = get_logger("run")
+
 
 
 def load_config(path: str = "config.yaml") -> dict:
@@ -149,7 +155,8 @@ def cmd_dashboard(argv: list) -> int:
                 sites = index.get("sites") or []
                 if sites:
                     slug = sites[-1].get("slug")
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
     if not slug:
         print("[!] No site to render. Scan a target first or pass a slug: "

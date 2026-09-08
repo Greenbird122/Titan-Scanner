@@ -11,13 +11,18 @@ This module:
 5. Open relay testing
 """
 
+
 from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 
 @dataclass
@@ -95,7 +100,8 @@ class EmailSecurityTester:
                         notes="SPF uses soft fail (~all) — spoofed emails may be delivered",
                     )
                     findings.append(finding)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)
@@ -158,7 +164,8 @@ class EmailSecurityTester:
                         notes="DMARC policy is 'none' — spoofed emails will be delivered",
                     )
                     findings.append(finding)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)
@@ -221,7 +228,8 @@ class EmailSecurityTester:
                     notes=f"Domain {domain} has no DKIM record",
                 )
                 findings.append(finding)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)

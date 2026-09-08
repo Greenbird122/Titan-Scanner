@@ -26,14 +26,19 @@ Pure logic lives in classify_parser_differential so the tests pin exactly
 what the engine's detector uses.
 """
 
+
 from __future__ import annotations
 
 import re
 from typing import Any
 from urllib.parse import quote
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import extract_error_classes
+
+logger = get_logger("detector")
+
 
 # (label, builder) encoding dictionary. Each takes a plain payload and yields
 # a wire form a different parser might decode differently.
@@ -180,7 +185,8 @@ class ParserDiffDetector:
                 base_resp = await context.request.get(url, params=params, timeout=3000)
                 baseline_body = (await base_resp.text()) or ""
                 baseline_status = base_resp.status
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
             for class_name, payload in CLASS_PAYLOADS:
@@ -191,7 +197,8 @@ class ParserDiffDetector:
                     plain_resp = await context.request.get(url, params=plain_params, timeout=3000)
                     plain_body = (await plain_resp.text()) or ""
                     plain_status = plain_resp.status
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
                 for label, encoded in _encodings(payload)[:6]:
@@ -201,7 +208,8 @@ class ParserDiffDetector:
                         enc_resp = await context.request.get(url, params=enc_params, timeout=3000)
                         enc_body = (await enc_resp.text()) or ""
                         enc_status = enc_resp.status
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
                     diff_label, severity, confidence, verified = classify_parser_differential(

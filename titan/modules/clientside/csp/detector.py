@@ -12,12 +12,17 @@ A page with NO CSP at all is the strongest signal (MEDIUM). A weak CSP
 protections. A strong CSP produces no finding.
 """
 
+
 from __future__ import annotations
 
 import re
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 
 class CSPDetector:
@@ -33,7 +38,8 @@ class CSPDetector:
             try:
                 resp = await page.request.get(url, timeout=10000)
                 csp_header = (resp.headers or {}).get("content-security-policy", "") or ""
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             meta_csp = ""
@@ -44,7 +50,8 @@ class CSPDetector:
                         return el ? el.getAttribute('content') || '' : '';
                     }"""
                 ) or ""
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             policy = csp_header or meta_csp

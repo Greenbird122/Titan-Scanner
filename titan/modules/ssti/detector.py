@@ -17,6 +17,7 @@ Features:
      • Cross-module FP isolation (eval errors only, no filesystem errors)
 """
 
+
 from __future__ import annotations
 
 import copy
@@ -24,9 +25,13 @@ import json
 import re
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, score_signals
+
+logger = get_logger("detector")
+
 
 # ---------------------------------------------------------------------------
 # Multi-Engine Template Injection Probes
@@ -188,7 +193,8 @@ class SSTIDetector:
                             metadata={"injection_location": "http_header", "engine": engine},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -275,7 +281,8 @@ class SSTIDetector:
                             metadata={"injection_location": "json_ast", "json_path": path, "engine": engine},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -322,7 +329,8 @@ class SSTIDetector:
                 baseline_resp = await context.request.post(url, data=all_params, headers={"Referer": target}, timeout=3000)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         for payload in payloads:
@@ -400,7 +408,8 @@ class SSTIDetector:
                             verification_body=body[:2000],
                             verification_status=resp.status,
                         )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None

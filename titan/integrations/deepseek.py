@@ -1,10 +1,16 @@
 """DeepSeek integration for Titan Scanner."""
 
+
 from __future__ import annotations
 
 import os
 import sys
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("deepseek")
+
 
 
 class DeepSeekClient:
@@ -41,7 +47,8 @@ class DeepSeekClient:
                 return "".join(c.get("content", "") for c in chunks if c.get("type") == "text")
             elif hasattr(self._client, "generate"):
                 return await self._client.generate(prompt)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return ""
 

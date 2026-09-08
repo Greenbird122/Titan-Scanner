@@ -11,6 +11,7 @@ This module tests:
 8. Shipping manipulation (free shipping, address validation)
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -19,7 +20,11 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("ecommerce")
+
 
 
 @dataclass
@@ -438,7 +443,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -488,7 +494,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -538,7 +545,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -588,7 +596,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -638,7 +647,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -688,7 +698,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -961,7 +972,8 @@ class ECommerceTester:
                         )
                         findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -1038,7 +1050,8 @@ class ECommerceTester:
                     )
                     findings.append(finding)
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self._findings.extend(findings)

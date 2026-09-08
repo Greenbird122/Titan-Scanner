@@ -6,6 +6,7 @@ listener URL) and waits on the live queue for results. Data sessions get no
 listener; a busy port degrades to a queue-only REPL, never a crash.
 """
 
+
 import asyncio
 import base64
 import socket
@@ -13,9 +14,13 @@ from pathlib import Path
 
 from aiohttp import ClientSession
 
+from titan.core.logger import get_logger
 from titan.exploit.listener import ExploitListener, JobQueue
 from titan.exploit.session import SessionStore
 from titan_exploit_cli import _repl_listener, cmd_session_async
+
+logger = get_logger("test_repl_live")
+
 
 
 def _free_port() -> int:
@@ -121,7 +126,8 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
                     },
                 ) as r:
                     await r.read()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             await asyncio.sleep(0.05)
 
@@ -136,7 +142,8 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
             ) as r:
                 if r.status == 200:
                     break
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         await asyncio.sleep(0.05)
 
@@ -149,7 +156,8 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
         agent_task.cancel()
         try:
             await agent_task
-        except (asyncio.CancelledError, Exception):
+        except (asyncio.CancelledError, Exception) as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     out = capsys.readouterr().out

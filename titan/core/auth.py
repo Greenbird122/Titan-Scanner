@@ -1,9 +1,15 @@
 """Authentication engine for Titan Scanner."""
 
+
 from __future__ import annotations
 
 import json
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("auth")
+
 
 
 class AuthEngine:
@@ -37,7 +43,8 @@ class AuthEngine:
                 else:
                     self.session_cookies.update(json.loads(self.credentials["cookies"]))
                 return True
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         login_url = self.credentials.get("url") or self._guess_login_url(target)
@@ -59,14 +66,16 @@ class AuthEngine:
             user_el = await page.wait_for_selector(username_selector, timeout=5000)
             if user_el:
                 await user_el.fill(username)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
             pass_el = await page.wait_for_selector(password_selector, timeout=5000)
             if pass_el:
                 await pass_el.fill(password)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
@@ -107,14 +116,16 @@ class AuthEngine:
             user_el = await page.wait_for_selector('input[type="text"], input[name*="user"], input[name*="phone"]', timeout=5000)
             if user_el:
                 await user_el.fill(username)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
             pass_el = await page.wait_for_selector('input[type="password"]', timeout=5000)
             if pass_el:
                 await pass_el.fill(password)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
@@ -155,7 +166,8 @@ class AuthEngine:
             }''')
             if js_token:
                 return js_token
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
@@ -166,7 +178,8 @@ class AuthEngine:
             page.on("request", capture)
             await page.wait_for_timeout(2000)
             page.remove_listener("request", capture)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
@@ -174,7 +187,8 @@ class AuthEngine:
             for cookie in cookies:
                 if any(k in cookie.get("name", "").lower() for k in ["token", "jwt", "session", "auth"]):
                     self.session_cookies[cookie["name"]] = cookie.get("value", "")
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return None
@@ -230,7 +244,8 @@ class AuthEngine:
                 if new_access:
                     self.tokens["access"] = new_access
                     return True
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return False
 
@@ -242,7 +257,8 @@ class AuthEngine:
                 logout_url,
                 headers={**self.get_auth_headers(), "Content-Type": "application/json"},
             )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         self.tokens.clear()

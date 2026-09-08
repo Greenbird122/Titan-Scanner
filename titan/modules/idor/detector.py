@@ -18,15 +18,20 @@ Features:
   6. Baseline Sanity Gate: silent when baseline request fails.
 """
 
+
 from __future__ import annotations
 
 import re
 import uuid
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import json_differential, json_value_changes
+
+logger = get_logger("detector")
+
 
 SENSITIVE_INDICATORS = [
     "email", "phone", "address", "ssn", "password", "secret", "token",
@@ -130,7 +135,8 @@ def _generate_mutations(original_value: str) -> list[str]:
         try:
             n = int(original_value, 16)
             return [f'{n+1:x}', f'{n-1:x}']
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     return []
 
@@ -292,7 +298,8 @@ class IDORDetector:
                         verification_status=resp.status,
                         metadata={"type": "bola_cross_session"},
                     ))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return findings
@@ -330,7 +337,8 @@ class IDORDetector:
                     )
                 baseline_body = await baseline_resp.text()
                 baseline_status = baseline_resp.status
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             # A failed baseline leaves no reference point — silence is mandatory
@@ -462,7 +470,8 @@ class IDORDetector:
                     verification_status=resp.status,
                 )
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return None

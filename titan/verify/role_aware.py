@@ -203,6 +203,7 @@ def _downgrade(severity: Any) -> Any:
         idx = order.index(s)
         if idx > 0:
             return order[idx - 1]
-    except ValueError:
+    except ValueError as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     return severity

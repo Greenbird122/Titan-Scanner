@@ -1,12 +1,17 @@
 """GraphQL API scanner for Titan Scanner."""
 
+
 from __future__ import annotations
 
 import json
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
+
+logger = get_logger("graphql")
+
 
 
 class GraphQLScanner:
@@ -59,7 +64,8 @@ class GraphQLScanner:
                         diffs=["graphql:introspection_enabled"],
                     ))
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # ── Engine 2: Field suggestion / enum exhaustion ────────────────
@@ -97,7 +103,8 @@ class GraphQLScanner:
                         timeout=10000,
                     )
                     baseline_body = await baseline_resp.text()
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, probe)
@@ -120,7 +127,8 @@ class GraphQLScanner:
                         body=body[:2000],
                         diffs=diffs,
                     ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # ── Engine 3: Batching / aliasing abuse ─────────────────────────
@@ -159,7 +167,8 @@ class GraphQLScanner:
                         timeout=10000,
                     )
                     baseline_body = await baseline_resp.text()
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, batch)
@@ -180,7 +189,8 @@ class GraphQLScanner:
                         body=body[:2000],
                         diffs=diffs,
                     ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # ── Engine 4: AI-mutated payloads ───────────────────────────────
@@ -217,7 +227,8 @@ class GraphQLScanner:
                         timeout=10000,
                     )
                     baseline_body = await baseline_resp.text()
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
@@ -238,7 +249,8 @@ class GraphQLScanner:
                         body=body[:2000],
                         diffs=diffs,
                     ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings

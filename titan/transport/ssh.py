@@ -181,9 +181,11 @@ class SshTransport(Transport):
                 ):
                     logger.info(f"SSH brute force SUCCESS: {username}:{password}")
                     return {"username": username, "password": password}
-            except asyncssh.AuthenticationFailed:
+            except asyncssh.AuthenticationFailed as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         logger.info(f"SSH brute force: all {len(passwords)} passwords failed")

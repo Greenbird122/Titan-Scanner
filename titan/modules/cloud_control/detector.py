@@ -238,7 +238,8 @@ class CloudControlDetector:
                     "expiration": data.get("Expiration", ""),
                     "role_name": data.get("RoleName", "unknown"),
                 }
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

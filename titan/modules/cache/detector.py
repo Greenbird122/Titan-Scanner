@@ -17,6 +17,7 @@ Features:
        false positives on standard Cache-Control/ETag headers.
 """
 
+
 from __future__ import annotations
 
 import random
@@ -24,7 +25,11 @@ import string
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # High-risk unkeyed headers for cache poisoning
 _UNKEYED_HEADERS_MATRIX: tuple[tuple[str, str], ...] = (
@@ -170,7 +175,8 @@ class CacheDetector:
                         verification_status=resp.status,
                     ))
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -228,7 +234,8 @@ class CacheDetector:
                         verification_status=resp.status,
                     ))
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -292,7 +299,8 @@ class CacheDetector:
                         metadata={"type": "web_cache_deception", "extension": ext},
                     ))
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -319,7 +327,8 @@ class CacheDetector:
         try:
             if int(h.get("age", "0") or "0") > 0:
                 return True
-        except ValueError:
+        except ValueError as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         if "varnish" in h.get("server", ""):
             return True

@@ -16,6 +16,7 @@ Every engine:
   - Guards against JSON / plain-text echo non-HTML contexts.
 """
 
+
 from __future__ import annotations
 
 import copy
@@ -25,9 +26,13 @@ import re
 import string
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, score_signals
+
+logger = get_logger("detector")
+
 
 # ---------------------------------------------------------------------------
 # Payload sets — per injection context
@@ -404,7 +409,8 @@ class XSSDetector:
                             metadata={"injection_location": "http_header"},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -507,7 +513,8 @@ class XSSDetector:
                             metadata={"injection_location": "json_ast", "json_path": path},
                         ))
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -554,7 +561,8 @@ class XSSDetector:
                 baseline_resp = await context.request.post(url, data=all_params, headers={"Referer": target}, timeout=3000)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Unique per-param nonce to prevent marker collision across concurrent scans
@@ -664,7 +672,8 @@ class XSSDetector:
                         },
                     )
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None

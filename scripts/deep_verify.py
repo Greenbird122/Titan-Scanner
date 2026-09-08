@@ -10,10 +10,16 @@ Targets (both owned, both consented):
   - Firebase Web API key (exposed on both sites; value redacted — supply via
     the FIREBASE_API_KEY env var, never committed)
 """
+
 import asyncio
 import json
 import sys
 from pathlib import Path
+
+from titan.core.logger import get_logger
+
+logger = get_logger("deep_verify")
+
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
@@ -83,7 +89,8 @@ async def verify_git_vizor():
         await page.goto("https://git-vizor.vercel.app", wait_until="domcontentloaded", timeout=30000)
         try:
             await page.wait_for_load_state("networkidle", timeout=8000)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         await page.wait_for_timeout(2500)
         marked = await page.evaluate("window.__titan_marked__")
@@ -100,18 +107,21 @@ async def verify_git_vizor():
         try:
             dom = await page.evaluate("document.getElementById('github-container') ? document.getElementById('github-container').innerHTML.substring(0,600) : ''")
             results["dom_snippet"] = dom
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     except Exception as e:
         results["error"] = str(e)
     finally:
         try:
             await browser.close()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         try:
             await asyncio.wait_for(p.stop(), timeout=5)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     return results
 
@@ -154,7 +164,8 @@ window.__titan_marked__ = false;
             try:
                 await page.evaluate(f"window.location.hash = '{route[1:]}'")
                 await page.wait_for_timeout(800)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
         await page.wait_for_timeout(1500)
         sink_hits = await page.evaluate("window.__titan_sink_hits__ || []")
@@ -174,11 +185,13 @@ window.__titan_marked__ = false;
     finally:
         try:
             await browser.close()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         try:
             await asyncio.wait_for(p.stop(), timeout=5)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
     return results
 

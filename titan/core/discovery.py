@@ -5,6 +5,7 @@ is independent and runs concurrently via asyncio.gather; a failing
 probe degrades to its empty default.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -13,6 +14,10 @@ import re
 from typing import Any
 
 from titan.core.crawl import _noop_api_probe, _noop_methods_probe, _noop_params_probe
+from titan.core.logger import get_logger
+
+logger = get_logger("discovery")
+
 
 
 class DiscoveryEngine:
@@ -75,7 +80,8 @@ class DiscoveryEngine:
         try:
             if (isinstance(links, list) and any("#" in l for l in links)) or (isinstance(spa_routes, list) and spa_routes):
                 e._spa_detected = True
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return tuple(out)
@@ -166,7 +172,8 @@ class DiscoveryEngine:
                     u for u in _parse_api_patterns(text, base_url)
                     if e._is_in_scope(u)
                 )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return apis
 
@@ -221,7 +228,8 @@ class DiscoveryEngine:
                     location = resp.headers.get("location", "")
                     if location:
                         found.append(location)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             return found
 
@@ -248,7 +256,8 @@ class DiscoveryEngine:
                 )
                 if resp.status not in (404, 405, 501):
                     return base_url.rstrip("/") + path
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             return None
 
@@ -287,7 +296,8 @@ class DiscoveryEngine:
             for route in js_routes:
                 if e._is_in_scope(route):
                     discovered.append(route)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         if e._deep:
@@ -302,7 +312,8 @@ class DiscoveryEngine:
                 for route in hash_routes:
                     if e._is_in_scope(route):
                         discovered.append(route)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return sorted(set(discovered))
@@ -327,7 +338,8 @@ class DiscoveryEngine:
                 text = await resp.text()
                 try:
                     spec = json.loads(text)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
                 paths = spec.get("paths", {})
@@ -352,7 +364,8 @@ class DiscoveryEngine:
                             "summary": details.get("summary", ""),
                             "operation_id": details.get("operationId", ""),
                         })
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return endpoints
 
@@ -398,7 +411,8 @@ class DiscoveryEngine:
                             "params": params,
                             "summary": item.get("name", ""),
                         })
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return endpoints
 
@@ -418,7 +432,8 @@ class DiscoveryEngine:
                 text = await resp.text()
                 if resp.status == 200 and "__schema" in text:
                     endpoints.append(base_url.rstrip("/") + path)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return endpoints
 
@@ -471,7 +486,8 @@ class DiscoveryEngine:
                         baseline_body = await baseline_resp.text()
                         if len(body) != len(baseline_body) or (param.lower() in body.lower() and param.lower() not in baseline_body.lower()):
                             return param
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
                 return None
 
@@ -509,7 +525,8 @@ class DiscoveryEngine:
                             "params": [],
                             "summary": f"Method {method} accepted (status {resp.status})",
                         }
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
                 return None
 
@@ -583,7 +600,8 @@ def extract_urls_from_json(json_text: str, is_in_scope: Any) -> list[str]:
     try:
         data = json.loads(json_text)
         urls.extend(_scan_json(data, is_in_scope))
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     return urls
 

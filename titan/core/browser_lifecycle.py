@@ -7,12 +7,17 @@ engine owns the state these touch (``config``, ``proxy_rotator``,
 ``stealth``, ``redirect_chain``); the mixin only supplies behavior.
 """
 
+
 from __future__ import annotations
 
 import asyncio
 from typing import Any
 
 from titan.core.constants import DRIVER_DEATH_MARKERS
+from titan.core.logger import get_logger
+
+logger = get_logger("browser_lifecycle")
+
 
 
 class BrowserLifecycleMixin:
@@ -91,7 +96,8 @@ class BrowserLifecycleMixin:
         try:
             handle = browser or context
             await asyncio.wait_for(handle.close(), timeout=10)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def _harden_page(self, page: Any) -> None:
@@ -100,25 +106,29 @@ class BrowserLifecycleMixin:
             page.on("dialog", lambda d: asyncio.create_task(self._dismiss_dialog(d)))
             page.on("download", lambda dl: asyncio.create_task(self._suppress_download(dl)))
             page.on("response", self._record_redirect)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _close_popup(self, popup: Any) -> None:
         try:
             await asyncio.wait_for(popup.close(), timeout=3)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _dismiss_dialog(self, dialog: Any) -> None:
         try:
             await asyncio.wait_for(dialog.dismiss(), timeout=3)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _suppress_download(self, download: Any) -> None:
         try:
             await asyncio.wait_for(download.cancel(), timeout=3)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def _record_redirect(self, response: Any) -> None:
@@ -133,5 +143,6 @@ class BrowserLifecycleMixin:
                 })
                 if len(self.redirect_chain) > 200:
                     self.redirect_chain.pop(0)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass

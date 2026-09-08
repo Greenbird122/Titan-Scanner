@@ -21,13 +21,18 @@ Features:
      • Exclusion of generic login failure or soft-404 responses.
 """
 
+
 from __future__ import annotations
 
 from typing import Any
 from urllib.parse import urlparse, urlunparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
+
+logger = get_logger("detector")
+
 
 # ── Active Auth Bypass Parameter Payloads ─────────────────────────────────────
 _SQLI_AUTH_PAYLOADS: tuple[str, ...] = (
@@ -211,7 +216,8 @@ class AuthDetector:
                     if f:
                         findings.append(f)
                         break
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         return findings
@@ -249,7 +255,8 @@ class AuthDetector:
                 if f:
                     findings.append(f)
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # URL Rewrite headers (X-Original-URL / X-Rewrite-URL)
@@ -267,7 +274,8 @@ class AuthDetector:
                 if f:
                     findings.append(f)
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -308,7 +316,8 @@ class AuthDetector:
                 if f:
                     findings.append(f)
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -355,7 +364,8 @@ class AuthDetector:
                 if f:
                     findings.append(f)
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings

@@ -13,6 +13,7 @@ Known-vulnerable services database covers 30+ hosting / SaaS platforms
 with specific fingerprint strings that indicate an unclaimed deployment.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -21,12 +22,17 @@ import socket
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
+
 try:
     import aiohttp
 except ImportError:
     aiohttp = None  # graceful degrade — module can still do DNS-only checks
 
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # ─── Known-vulnerable CNAME targets ─────────────────────────────────
 # Each entry maps a CNAME suffix (or exact match) to the service name
@@ -531,7 +537,8 @@ class SubdomainTakeoverDetector:
                     # CNAME exists and points to a known service, but it's claimed
                     print(f"      [subdomain-takeover] {subdomain} → {cname_target} (claimed)")
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         if not findings:
@@ -580,7 +587,8 @@ class SubdomainTakeoverDetector:
                                     sub = sub[1:]
                                 if sub and sub.endswith(root_domain) and sub != root_domain:
                                     subdomains.add(sub)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return subdomains
 
@@ -609,9 +617,11 @@ class SubdomainTakeoverDetector:
                     ip = await loop.run_in_executor(None, socket.gethostbyname, candidate)
                     if ip:
                         subdomains.add(candidate)
-                except (socket.gaierror, OSError):
+                except (socket.gaierror, OSError) as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return subdomains
 
@@ -629,10 +639,12 @@ class SubdomainTakeoverDetector:
             )
             for rdata in answers:
                 return str(rdata.target).rstrip(".")
-        except ImportError:
+        except ImportError as exc:
+            logger.debug(f"suppressed exception: {exc}")
             # Fallback: use socket + nslookup pattern
             pass
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Fallback: check if it's a known CNAME pattern via HTTP
@@ -697,7 +709,8 @@ class SubdomainTakeoverDetector:
                         if any(ind in body_lower for ind in service_404_indicators):
                             return True
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             # If the subdomain is completely unreachable (connection refused,
             # timeout, SSL error) but has a CNAME to a known service, it's
             # still potentially claimable — the CNAME is dangling even if
@@ -717,7 +730,8 @@ class SubdomainTakeoverDetector:
             except socket.gaierror:
                 # NXDOMAIN — the service was deleted
                 return True
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return False

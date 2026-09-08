@@ -10,6 +10,7 @@ token is accepted (JWT), or the attacker-chosen session survives login
 (fixation). Never on mere body diffs.
 """
 
+
 import asyncio
 import json
 import secrets
@@ -18,6 +19,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
+
+from titan.core.logger import get_logger
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -28,6 +31,9 @@ from flask import Flask, Response, jsonify, make_response, request
 from titan.core.models import AttackType, Finding, Severity
 from titan.core.sessions import Identity, SessionPool
 from titan.verify.flows import apply_flows, infer_flows
+
+logger = get_logger("test_identity")
+
 
 # ─── Two-role mini vulnerable lab (deterministic, offline) ───────────────────
 
@@ -249,7 +255,8 @@ class FakeRequest:
             # previous request's jar state can't leak into this one.
             try:
                 self._client._cookies.clear()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             for pair in cookie_hdr.split(";"):
                 if "=" in pair:

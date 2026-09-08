@@ -10,6 +10,7 @@ Usage:
     results = await auditor.audit("https://target.com")
 """
 
+
 from __future__ import annotations
 
 import logging
@@ -20,6 +21,11 @@ from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
+
+from titan.core.logger import get_logger
+
+logger = get_logger("prober")
+
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +221,8 @@ class DeepAuditor:
                     if resp.status == 200:
                         js = await resp.text()
                         configs.extend(self._parse_js_for_config(js, url))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # Parse inline scripts from HTML
@@ -378,7 +385,8 @@ class DeepAuditor:
                             category="information_disclosure",
                             verified=True,
                         ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -457,7 +465,8 @@ class DeepAuditor:
                             category="information_disclosure",
                             verified=True,
                         ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # 2. Firebase Auth probes
@@ -485,7 +494,8 @@ class DeepAuditor:
                         category="positive_control",
                         verified=True,
                     ))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # Anonymous auth check
@@ -558,7 +568,8 @@ class DeepAuditor:
                                         category="auth_bypass",
                                         verified=True,
                                     ))
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"suppressed exception: {exc}")
                             pass
                 else:
                     err = data.get("error", {}).get("message", "")
@@ -574,7 +585,8 @@ class DeepAuditor:
                             category="positive_control",
                             verified=True,
                         ))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # 3. Firebase Storage probe
@@ -604,7 +616,8 @@ class DeepAuditor:
                         category="pii_exposure",
                         verified=True,
                     ))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return findings
@@ -660,7 +673,8 @@ class DeepAuditor:
                                 category="pii_exposure",
                                 verified=True,
                             ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -708,7 +722,8 @@ class DeepAuditor:
                         category="misconfiguration",
                         verified=True,
                     ))
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return findings

@@ -1,5 +1,6 @@
 """Verification subsystem for Titan Scanner."""
 
+
 from __future__ import annotations
 
 import hashlib
@@ -8,6 +9,11 @@ import re
 import statistics
 import time
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("__init__")
+
 
 
 class ConfirmationOracle:
@@ -279,7 +285,8 @@ class OOBDetector:
                 if resp.status == 200:
                     data = await resp.json()
                     return data.get("data", {}).get("interactions", [])
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return []
 

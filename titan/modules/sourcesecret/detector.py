@@ -19,6 +19,7 @@ Features:
      • Secrets extracted directly from client-accessible source code are 100% verified findings.
 """
 
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,11 @@ import re
 from typing import Any
 from urllib.parse import urljoin
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 MAX_SCRIPTS = 5
 MAX_FINDINGS = 10
@@ -108,9 +113,11 @@ class SourceSecretDetector:
                             for sc in sources_content:
                                 if isinstance(sc, str):
                                     corpus.append(sc)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
                         pass
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         joined = "\n".join(corpus)

@@ -71,11 +71,13 @@ class BrowserInteractionMixin:
                 finally:
                     try:
                         await asyncio.wait_for(i_page.close(), timeout=5)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
                         pass
             try:
                 await asyncio.wait_for(_interact(), timeout=budget)
-            except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+            except (asyncio.TimeoutError, asyncio.CancelledError, Exception) as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         await asyncio.gather(
@@ -106,7 +108,8 @@ class BrowserInteractionMixin:
                 u = ws.url
                 if u and self._is_in_scope(u):
                     ws_urls.append(u)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         page.on("request", capture_request)
@@ -118,9 +121,11 @@ class BrowserInteractionMixin:
                 try:
                     await self._fill_and_submit_form(page, form, base_url)
                     await page.wait_for_timeout(1000)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
@@ -160,17 +165,21 @@ class BrowserInteractionMixin:
                             try:
                                 await self._fill_and_submit_form(page, form, base_url)
                                 await page.wait_for_timeout(500)
-                            except Exception:
+                            except Exception as exc:
+                                logger.debug(f"variant failed, continuing: {exc}")
                                 continue
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         try:
             await page.evaluate('''() => window.scrollTo(0, document.body.scrollHeight)''')
             await page.wait_for_timeout(1000)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         page.remove_listener("request", capture_request)
@@ -196,7 +205,8 @@ class BrowserInteractionMixin:
                         el.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 }''', name)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         try:
             submit_btn = await page.query_selector('button[type="submit"], input[type="submit"]')
@@ -204,7 +214,8 @@ class BrowserInteractionMixin:
                 await submit_btn.click(force=True)
             else:
                 await page.keyboard.press("Enter")
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _run_spa_harness(self, context, target, fingerprint, result):
@@ -243,13 +254,16 @@ class BrowserInteractionMixin:
                         await spa_page.goto(probe_url, wait_until="domcontentloaded", timeout=15000)
                         try:
                             await spa_page.wait_for_load_state("networkidle", timeout=wait_idle)
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"suppressed exception: {exc}")
                             pass
                         captured = await self._interact_and_capture(context, spa_page, route)
                     await asyncio.wait_for(_walk_one(), timeout=per_route_budget)
-                except asyncio.TimeoutError:
+                except asyncio.TimeoutError as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
                 for api_url in captured:
                     if api_url not in self.visited and self._is_in_scope(api_url):
@@ -264,13 +278,15 @@ class BrowserInteractionMixin:
                         result.findings.extend(api_findings)
                 captured_total += len(captured)
             logger.info(f"[+] SPA harness: {captured_total} runtime API endpoint(s) captured")
-        except (asyncio.TimeoutError, Exception):
+        except (asyncio.TimeoutError, Exception) as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         finally:
             if spa_page is not None:
                 try:
                     await asyncio.wait_for(spa_page.close(), timeout=5)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
     async def _hydrate_spa_routes(self, context, page, base_url, budget=10.0):

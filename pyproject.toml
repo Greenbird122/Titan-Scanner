@@ -89,8 +89,6 @@ ignore = [
     # --- Tracked debt: fold back in as each family is hardened (the check
     # only gates what the tree genuinely satisfies; same pattern as the mypy
     # exclude list). Delete the entries as the fixes land. ---
-    "S110",   # try-except-pass — silent exception swallowing: hardening campaign
-    "S112",   # try-except-continue — silent exception swallowing: hardening campaign
     "S311",   # non-crypto random — payload/UA jitter is intentional in a fuzzer
     "S310",   # urllib — recon/download code uses urllib by design
     "S108",   # hardcoded temp file — fixture/scratch paths in scripts

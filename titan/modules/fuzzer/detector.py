@@ -15,13 +15,18 @@ Features:
      • Status / length differential -> LOW, informational.
 """
 
+
 from __future__ import annotations
 
 import urllib.parse as up
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import extract_error_classes
+
+logger = get_logger("detector")
+
 
 
 def _mutate(value: str) -> list[tuple[str, str]]:
@@ -139,7 +144,8 @@ class FuzzerDetector:
                     baseline_resp = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
                 baseline_body = (await baseline_resp.text()) or ""
                 baseline_status = getattr(baseline_resp, "status", 200)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
             mutations = _mutate(str(base_value or ""))[: self.max_mutations]
@@ -155,7 +161,8 @@ class FuzzerDetector:
                         resp = await context.request.get(url, params=mutated_params, headers={"Referer": target}, timeout=3000)
                     body = (await resp.text()) or ""
                     status = getattr(resp, "status", 200)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
                 diff_label, severity, confidence = classify_differential(

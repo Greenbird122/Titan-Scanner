@@ -8,6 +8,7 @@ The final piece: a unified pipeline that:
 5. Generates reports with proof
 """
 
+
 from __future__ import annotations
 
 import time
@@ -15,6 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import Finding
 from titan.modules.coverage.comparison import ScanComparator
 from titan.modules.coverage.gapidentifier import GapIdentifier
@@ -25,6 +27,9 @@ from titan.modules.coverage.retest import AutoRetester
 from titan.modules.coverage.scorer import CoverageScorer
 from titan.modules.coverage.surfacemapper import AttackSurfaceMapper
 from titan.modules.coverage.tracker import CoverageTracker
+
+logger = get_logger("pipeline")
+
 
 
 @dataclass
@@ -83,7 +88,8 @@ class CoveragePipeline:
                         result = await self.test_executor(endpoint.url, attack_type)
                         if result:
                             tests_executed += 1
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
                         pass
 
         # Step 3: Create snapshot

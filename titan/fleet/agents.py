@@ -12,6 +12,7 @@ receives a target and a context (findings so far, transport, consent) and
 returns new findings.
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -21,6 +22,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+from titan.core.logger import get_logger
+
+logger = get_logger("agents")
+
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +161,8 @@ async def run_recon_agent(
                         "headers": dict(resp.headers),
                         "body_length": len(resp.body),
                     }
-            except (asyncio.TimeoutError, Exception):
+            except (asyncio.TimeoutError, Exception) as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
     except Exception as e:
@@ -206,7 +213,8 @@ async def run_identity_agent(
                             "path": path,
                             "status": resp.status,
                         })
-                except (asyncio.TimeoutError, Exception):
+                except (asyncio.TimeoutError, Exception) as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
     except Exception as e:

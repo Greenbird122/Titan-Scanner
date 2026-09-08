@@ -11,6 +11,7 @@ This module:
 5. Maps the full attack surface for business logic testing
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +21,11 @@ from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
+
+from titan.core.logger import get_logger
+
+logger = get_logger("discovery")
+
 
 
 @dataclass
@@ -205,7 +211,8 @@ class EndpointDiscovery:
                                 confidence=0.7,
                             ))
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _extract_from_js(self, target_url: str):
@@ -254,10 +261,12 @@ class EndpointDiscovery:
                                             confidence=0.75,
                                         ))
 
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _probe_common_paths(self, target_url: str):
@@ -282,7 +291,8 @@ class EndpointDiscovery:
                         if not isinstance(result, Exception) and result:
                             self._discovered.append(result)
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _probe_endpoint(self, session, url: str) -> DiscoveredEndpoint | None:
@@ -302,7 +312,8 @@ class EndpointDiscovery:
                         biz_type=self._classify_endpoint(url),
                         confidence=0.65,
                     )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -336,7 +347,8 @@ class EndpointDiscovery:
                                 confidence=0.85,
                             ))
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     async def _discover_parameters(self):
@@ -368,9 +380,11 @@ class EndpointDiscovery:
                             async with session.post(url, json=test_data, timeout=aiohttp.ClientTimeout(total=3)) as resp:
                                 if resp.status not in (400, 404, 405, 500):
                                     found_params[param] = "test_value"
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return found_params
 

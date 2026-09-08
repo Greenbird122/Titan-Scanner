@@ -19,14 +19,19 @@ Features:
      - OOB Interactsh confirmation
 """
 
+
 from __future__ import annotations
 
 import asyncio
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify import BaselineAnalyzer
 from titan.verify.oracles import extract_error_classes, payload_encodings, score_signals
+
+logger = get_logger("detector")
+
 
 # ── In-band payloads ──────────────────────────────────────────────────────────
 # These read files whose content should appear in the response body.
@@ -114,7 +119,8 @@ class XXEDetector:
                     f'<!ENTITY xxe SYSTEM "{oob_url}">]><foo>&xxe;</foo>'
                 )
                 all_payloads.append(oob_payload)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         # ── Engine 1: All params, standard XML submission ──────────────
@@ -173,7 +179,8 @@ class XXEDetector:
                 )
             baseline_body = await r0.text()
             baseline_status = r0.status
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         for payload in payloads:
@@ -193,7 +200,8 @@ class XXEDetector:
                                    payload)
                 if f:
                     return f
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None
@@ -242,7 +250,8 @@ class XXEDetector:
                 if f:
                     findings.append(f)
                     break
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return findings
@@ -275,7 +284,8 @@ class XXEDetector:
                     timeout=3000,
                 )
                 baseline_body = await rb.text()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             body = await r0.text()
@@ -284,7 +294,8 @@ class XXEDetector:
                                "svg_upload", _SVG_PAYLOAD)
             if f:
                 findings.append(f)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         return findings
@@ -342,7 +353,8 @@ class XXEDetector:
                     verification_status=200,
                     metadata={"oob_url": oob_url},
                 )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

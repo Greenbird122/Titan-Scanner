@@ -8,6 +8,7 @@ Ad origins are metadata + risk — never fake vulnerabilities (the weather.co.ke
 adsbygoogle-skimmer FP lesson).
 """
 
+
 from __future__ import annotations
 
 import hashlib
@@ -15,6 +16,7 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
+from titan.core.logger import get_logger
 from titan.hostile.detectors import (
     clickbait_index,
     detect_clickbait_mechanics,
@@ -23,6 +25,9 @@ from titan.hostile.detectors import (
     detect_push_notif,
 )
 from titan.hostile.intel import IntelDB, ObservedIntel, origin_of
+
+logger = get_logger("profiler")
+
 
 # Tags whose URL attribute represents a LOADED third-party resource.
 _LOAD_TAGS = {
@@ -73,7 +78,8 @@ def extract_third_party(html: str, base_url: str) -> dict[str, list[dict[str, st
     try:
         parser.feed(html or "")
         parser.close()
-    except Exception:
+    except Exception as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     loads, navs = [], []
     for l in parser.loads:

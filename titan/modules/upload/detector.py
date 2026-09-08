@@ -19,6 +19,7 @@ Features:
      • Verifies benign execution token (TITAN_UPLOAD_OK_<nonce>) on reachable paths.
 """
 
+
 from __future__ import annotations
 
 import json
@@ -28,7 +29,11 @@ import string
 from typing import Any
 from urllib.parse import urljoin
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 _COMMON_UPLOAD_DIRS: tuple[str, ...] = (
     "/uploads/", "/upload/", "/images/", "/files/",
@@ -276,7 +281,8 @@ class UploadDetector:
                                     verification_status=probe_resp.status,
                                     metadata={"uploaded_path": file_url_hint},
                                 )
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"suppressed exception: {exc}")
                             pass
 
                     # Generic success indicator with executable filename confirmation
@@ -302,7 +308,8 @@ class UploadDetector:
                                 verification_body=body[:2000],
                                 verification_status=status,
                             )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         return None
@@ -324,7 +331,8 @@ class UploadDetector:
                     val = doc.get(key)
                     if isinstance(val, str) and (val.startswith("http") or val.startswith("/")):
                         return urljoin(current_url, val)
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
         # 2. Quoted upload path regex

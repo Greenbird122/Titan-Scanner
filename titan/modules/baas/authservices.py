@@ -9,13 +9,18 @@ This module tests:
 6. MFA bypass: Downgrade, recovery code abuse
 """
 
+
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("authservices")
+
 
 
 @dataclass
@@ -477,7 +482,8 @@ class AuthServicesTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -519,7 +525,8 @@ class AuthServicesTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -567,7 +574,8 @@ class AuthServicesTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -609,7 +617,8 @@ class AuthServicesTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -660,7 +669,8 @@ class AuthServicesTester:
                     data = json.loads(body)
                     if isinstance(data, (dict, list)) and len(str(data)) > 50:
                         return True
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
         elif status == 401:

@@ -11,13 +11,18 @@ This module tests:
 8. Data inconsistency (conflict between steps)
 """
 
+
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("workflow")
+
 
 
 @dataclass
@@ -328,7 +333,8 @@ class WorkflowTester:
                         )
                         findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -370,7 +376,8 @@ class WorkflowTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -462,7 +469,8 @@ class WorkflowTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -573,7 +581,8 @@ class WorkflowTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -629,7 +638,8 @@ class WorkflowTester:
                             )
                             findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -671,7 +681,8 @@ class WorkflowTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)

@@ -14,13 +14,18 @@ Features:
      • Ignores static pages that always carry the property.
 """
 
+
 from __future__ import annotations
 
 import secrets
 from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 POLLUTION_READ_JS = """
 (marker) => {
@@ -75,14 +80,16 @@ class PrototypePollutionDetector:
                     await page.goto(probe_url, wait_until="domcontentloaded", timeout=12000)
                     try:
                         await page.wait_for_load_state("networkidle", timeout=2000)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
                         pass
 
                     hit = await page.evaluate(POLLUTION_READ_JS, marker)
                     if hit is not None:
                         findings.append(self._finding(target, str(page.url or url), key, marker, probe_value, "query"))
                         return findings
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
             # ── Engine 2: JSON body __proto__ injection ────────────────
@@ -103,7 +110,8 @@ class PrototypePollutionDetector:
                     hit = await page.evaluate(POLLUTION_READ_JS, marker)
                     if hit is not None:
                         findings.append(self._finding(target, str(page.url or url), "__proto__", marker, probe_value, "json"))
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
             # ── Engine 3: Deep nested parameter pollution ──────────────
@@ -113,12 +121,14 @@ class PrototypePollutionDetector:
                 await page.goto(nested_url, wait_until="domcontentloaded", timeout=12000)
                 try:
                     await page.wait_for_load_state("networkidle", timeout=2000)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
                 hit = await page.evaluate(POLLUTION_READ_JS, marker)
                 if hit is not None:
                     findings.append(self._finding(target, str(page.url or url), "nested.__proto__", marker, probe_value, "deep_nested"))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         except Exception:
@@ -140,7 +150,8 @@ class PrototypePollutionDetector:
             for u in urls or []:
                 if u.startswith("http"):
                     return u
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return ""
 

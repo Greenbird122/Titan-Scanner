@@ -13,11 +13,13 @@ This module tests:
 10. Database function enumeration (call RPC functions)
 """
 
+
 from __future__ import annotations
 
 import json
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding
 from titan.modules.baas.supabase_jwt import expired_jwt, jwt_with_role
 from titan.modules.baas.supabase_payloads import (
@@ -31,6 +33,9 @@ from titan.modules.baas.supabase_payloads import (
     STORAGE_ABUSE_PAYLOADS,
     SupabasePayload,
 )
+
+logger = get_logger("supabase")
+
 
 
 class SupabaseTester:
@@ -101,7 +106,8 @@ class SupabaseTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -142,7 +148,8 @@ class SupabaseTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -194,7 +201,8 @@ class SupabaseTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -238,7 +246,8 @@ class SupabaseTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -279,7 +288,8 @@ class SupabaseTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -335,7 +345,8 @@ class SupabaseTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -379,7 +390,8 @@ class SupabaseTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -434,7 +446,8 @@ class SupabaseTester:
                     data = json.loads(body)
                     if (isinstance(data, list) and len(data) > 0) or (isinstance(data, dict) and len(data) > 0):
                         return True
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
         return False

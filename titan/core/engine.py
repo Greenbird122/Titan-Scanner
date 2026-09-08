@@ -203,7 +203,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                 await context.add_init_script(
                     "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
                 )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             self._crawl_context = context
             page = await context.new_page()
@@ -215,7 +216,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             _goto_elapsed = time.monotonic() - _goto_start
             try:
                 self.stealth.observe_latency(_goto_elapsed)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             headers = dict(response.headers) if response else {}
@@ -283,12 +285,14 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                 crawl_task.cancel()
                 try:
                     await asyncio.wait({crawl_task}, timeout=5)
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
             else:
                 try:
                     crawl_task.result()
-                except asyncio.CancelledError:
+                except asyncio.CancelledError as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
                 except Exception as exc:
                     result.errors.append(f"Crawl failed: {exc}")
@@ -305,7 +309,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                     if has_hash_routes or bool(detected_techs & spa_frameworks):
                         try:
                             await self._run_spa_harness(context, target, fingerprint, result)
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"suppressed exception: {exc}")
                             pass
                     else:
                         logger.info("[+] SPA harness: skipped (no hash routes or SPA framework detected)")
@@ -326,7 +331,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                             timeout=20,
                         )
                         result.findings.extend(identity_findings)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"variant failed, continuing: {exc}")
                         continue
 
             # Browser modules
@@ -340,7 +346,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         finally:
             try:
                 await asyncio.wait_for(p.stop(), timeout=5)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         return result
@@ -552,7 +559,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             result.finished_at = time.time()
             try:
                 await p.stop()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             return result
 
@@ -571,7 +579,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                         await _api_context.add_cookies([  # type: ignore[attr-defined]
                             {"name": str(name), "value": str(value), "url": target}
                         ])
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
         fingerprint: dict[str, Any] = {}
@@ -598,7 +607,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             result.finished_at = time.time()
             try:
                 await p.stop()
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             return result
 
@@ -623,11 +633,13 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
 
         try:
             await _api_context.dispose()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         try:
             await p.stop()
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return result
 

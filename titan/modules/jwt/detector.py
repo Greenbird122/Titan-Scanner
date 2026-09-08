@@ -20,6 +20,7 @@ Evidence: a protected endpoint that 401/403s without a token but 200s with
 the forged token proves the forgery was accepted.
 """
 
+
 from __future__ import annotations
 
 import base64
@@ -29,7 +30,11 @@ import json
 import re
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # ── Expanded weak-secret wordlist ──────────────────────────────────────────────
 WEAK_SECRETS: list[str] = [
@@ -160,7 +165,8 @@ class JWTDetector:
                         [f"jwt:alg_none_accepted:{alg_value}"],
                     ))
                     return findings
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # ── Attack 2: Weak secret cracking ────────────────────────────
@@ -190,7 +196,8 @@ class JWTDetector:
                             [f"jwt:weak_secret_cracked:{cracked}"],
                         ))
                         return findings
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
             # ── Attack 3: Kid path traversal ──────────────────────────
@@ -219,7 +226,8 @@ class JWTDetector:
                             [f"jwt:kid_injection:{kid_val}"],
                         ))
                         return findings
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
             # ── Attack 4: RS256→HS256 algorithm confusion ─────────────
@@ -244,7 +252,8 @@ class JWTDetector:
                                     [f"jwt:algo_confusion_rs256_{algo.lower()}"],
                                 ))
                                 return findings
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"suppressed exception: {exc}")
                             pass
 
             # ── Attack 5: Claim tampering (role elevation) ─────────────
@@ -265,7 +274,8 @@ class JWTDetector:
                             Severity.HIGH, 0.75, resp5, body,
                             ["jwt:claim_tampering"],
                         ))
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
         return findings
@@ -323,7 +333,8 @@ class JWTDetector:
                 candidate = hmac.new(secret.encode(), signing_input, hashlib.sha256).digest()
                 if hmac.compare_digest(candidate, sig):
                     return secret
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return None
 
@@ -410,7 +421,8 @@ class JWTDetector:
                 if resp.status == 200 and "keys" in body:
                     # Try to extract n/e for RSA from JWKS
                     return body  # caller can use raw for HMAC confusion
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
         return None
 

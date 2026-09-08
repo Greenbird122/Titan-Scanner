@@ -13,6 +13,7 @@ stance). Bounded: max_pages / max_depth / per-request timeout / asset cap, so
 a huge site archives in minutes, not hours.
 """
 
+
 from __future__ import annotations
 
 import html
@@ -26,8 +27,13 @@ from urllib.parse import urljoin, urlparse
 
 from aiohttp import ClientSession, ClientTimeout
 
+from titan.core.logger import get_logger
+
 from ..exploit.consent import require_consent
 from ..reporting import site_slug
+
+logger = get_logger("archiver")
+
 
 DEFAULT_MAX_PAGES = 40
 DEFAULT_MAX_DEPTH = 2
@@ -262,7 +268,8 @@ class SiteArchiver:
                                     "file": f"assets/{afile.name}",
                                 }
                             )
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"variant failed, continuing: {exc}")
                             continue
                 else:
                     # Non-HTML URL discovered during the crawl (an API/JSON
@@ -289,7 +296,8 @@ class SiteArchiver:
                 rewritten = self._rewrite_links(raw, p["url"], base_host, url_to_file)
                 if rewritten != raw:
                     pf.write_text(rewritten, encoding="utf-8")
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         # De-dupe the endpoint map by URL (keep the first, most complete entry).

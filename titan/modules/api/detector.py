@@ -17,13 +17,18 @@ Features:
      • Tests HTTP verb escalation (DELETE when only GET is expected).
 """
 
+
 from __future__ import annotations
 
 import json
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 _SWAGGER_PATHS = (
     "/swagger.json", "/openapi.json", "/api-docs", "/v2/api-docs",
@@ -122,7 +127,8 @@ class APIDetector:
             spec = None
             try:
                 spec = json.loads(body)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             if spec and isinstance(spec, dict):
@@ -150,7 +156,8 @@ class APIDetector:
                         verification_status=getattr(resp, "status", 200),
                         metadata={"spec_url": spec_url, "endpoint_count": paths_count},
                     )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -211,10 +218,12 @@ class APIDetector:
                         verification_status=getattr(resp, "status", 200),
                         metadata={"graphql_url": gql_url, "type_count": len(types), "batch_supported": batch_supported},
                     )
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 
@@ -231,7 +240,8 @@ class APIDetector:
             if body:
                 data = json.loads(body)
                 return isinstance(data, list) and len(data) > 0
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return False
 
@@ -257,7 +267,8 @@ class APIDetector:
             try:
                 json.loads(body)
                 is_json = True
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
 
             content_type = resp_headers.get("Content-Type", resp_headers.get("content-type", ""))
@@ -287,7 +298,8 @@ class APIDetector:
                 verification_status=status,
                 metadata={"hidden_path": path, "is_json": is_json},
             )
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
         return None
 

@@ -14,13 +14,18 @@ content) and a marker that never reaches a sink (reflected but inert) both
 produce no finding.
 """
 
+
 from __future__ import annotations
 
 import secrets
 from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("detector")
+
 
 # Installed via page.add_init_script BEFORE any page JS runs. Wraps the
 # sinks, records every write into window.__titan_sinks__ as {sink, value}.
@@ -93,7 +98,8 @@ class DomXSSDetector:
             await page.goto(probe_url, wait_until="domcontentloaded", timeout=15000)
             try:
                 await page.wait_for_load_state("networkidle", timeout=2500)
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"suppressed exception: {exc}")
                 pass
             await page.wait_for_timeout(500)
 

@@ -12,12 +12,18 @@ Categories: ``ad_network``, ``popunder``, ``push_notif``, ``tracker``,
 ``miner``, ``risky_ad``.
 """
 
+
 from __future__ import annotations
 
 import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+
+from titan.core.logger import get_logger
+
+logger = get_logger("intel")
+
 
 CATEGORIES = ("ad_network", "popunder", "push_notif", "tracker", "miner", "risky_ad")
 
@@ -57,7 +63,8 @@ class IntelDB:
             for host, category in origins.items():
                 if category in CATEGORIES:
                     self._map[host.lower()] = category
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def _load_user(self) -> None:
@@ -70,7 +77,8 @@ class IntelDB:
                 category = entry.get("category") if isinstance(entry, dict) else entry
                 if category in CATEGORIES:
                     self._map[host.lower()] = category
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"suppressed exception: {exc}")
             pass
 
     def classify(self, host: str) -> str | None:

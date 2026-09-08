@@ -13,6 +13,7 @@ attacker-influenced, and the scanner must never become a fetch oracle for the
 operator's own network (metadata endpoints, internal hosts).
 """
 
+
 from __future__ import annotations
 
 import asyncio
@@ -21,9 +22,13 @@ import socket
 from typing import Any
 from urllib.parse import urlparse
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 from titan.hostile.detectors import classify_terminal
 from titan.hostile.profiler import body_fingerprint
+
+logger = get_logger("offense")
+
 
 MAX_HOPS = 3
 MAX_CHAINS = 6
@@ -60,7 +65,8 @@ def _hop_allowed(url: str) -> bool:
         return False
     try:
         ipaddress.ip_address(host)
-    except ValueError:
+    except ValueError as exc:
+        logger.debug(f"suppressed exception: {exc}")
         pass
     else:
         return not _ip_blocked(host)
@@ -254,7 +260,8 @@ async def map_redirect_chains(session, profile: dict[str, Any], target: str,
                         metadata={"chain": hops, "terminal": terminal, "host": row["host"]},
                         evidence="confirmed",
                     ))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
     return findings
 
@@ -290,7 +297,8 @@ async def probe_referrer_gate(session, profile: dict[str, Any], target: str,
                         fps.append(body_fingerprint(text[:4000]))
                     # Stable under this referer -> its fingerprint; else None.
                     samples[ref or "none"] = fps[0] if len(set(fps)) == 1 else None
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
             baseline = samples.get("none")
             if not baseline:

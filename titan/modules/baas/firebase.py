@@ -11,13 +11,18 @@ This module tests:
 8. Token manipulation (decode, modify claims, test refresh)
 """
 
+
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from typing import Any
 
+from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
+
+logger = get_logger("firebase")
+
 
 
 @dataclass
@@ -407,7 +412,8 @@ class FirebaseTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -448,7 +454,8 @@ class FirebaseTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -492,7 +499,8 @@ class FirebaseTester:
                         )
                         findings.append(finding)
 
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
         self._findings.extend(findings)
@@ -534,7 +542,8 @@ class FirebaseTester:
                     )
                     findings.append(finding)
 
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
         self._findings.extend(findings)
@@ -585,7 +594,8 @@ class FirebaseTester:
                     data = json.loads(body)
                     if isinstance(data, dict) and len(data) > 0:
                         return True
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as exc:
+                    logger.debug(f"suppressed exception: {exc}")
                     pass
 
         return False
