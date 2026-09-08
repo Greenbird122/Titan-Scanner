@@ -518,5 +518,5 @@ show_missing = true
 omit = ["local_lab/*", "tests/*", "*/titan/transport/test_onion_scan.py"]
 # Measured floor is ~45% (full suite, 2026-09-07). Gated at 44 to absorb
 # run-to-run variance across CI Python versions; raise this over time.
-fail_under = 44
+fail_under = 45
 
