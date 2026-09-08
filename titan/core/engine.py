@@ -162,7 +162,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             result.errors.append("Scan timed out after 240s")
             logger.warning("[!] Scan timed out")
         except Exception as exc:
-            logger.exception("Scan pipeline failed")
+            logger.error(f"Scan pipeline failed: {exc}")
             result.errors.append(str(exc))
 
         # Post-scan phases
