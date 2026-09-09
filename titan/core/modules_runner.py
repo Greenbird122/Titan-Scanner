@@ -595,7 +595,11 @@ class ModuleRunner:
         findings: list[Finding] = []
         if e._driver_dead:
             return findings
-        if "graphql" in api_url.lower():
+        # GraphQL dispatch fires on URL path OR fingerprinted tech, so
+        # GraphQL at nonstandard paths (/gql, /query) still gets scanned.
+        fp_techs = {str(t).lower() for t in (fingerprint or {}).get("technologies", [])}
+        is_graphql = "graphql" in api_url.lower() or any("graphql" in t for t in fp_techs)
+        if is_graphql:
             findings.extend(await self._run_graphql(context, target, api_url, fingerprint))
         else:
             findings.extend(await e._test_rest_api(context, target, api_url, fingerprint))
