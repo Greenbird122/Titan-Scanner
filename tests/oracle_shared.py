@@ -27,6 +27,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Public AWS documentation example key — see tests/fixtures/oracle_constants.py
+# for the full provenance note (auditable single source for this literal).
+from fixtures.oracle_constants import AWS_DOCS_EXAMPLE_ACCESS_KEY_ID
 from flask import Flask, Response, request
 
 from titan.ai.payloadforge import PayloadForge
@@ -391,14 +394,14 @@ def crypto_clean():
 @mini.route("/crypto_aws")
 def crypto_aws():
     # AWS access key in the canonical credential-assignment form.
-    return json.dumps({"accessKeyId": "AKIAIOSFODNN7EXAMPLE", "ok": 1})
+    return json.dumps({"accessKeyId": AWS_DOCS_EXAMPLE_ACCESS_KEY_ID, "ok": 1})
 
 
 @mini.route("/crypto_aws_bare")
 def crypto_aws_bare():
     # A bare AKIA mention in prose/docs — no credential assignment context.
     return (
-        "<p>See the AWS docs example key AKIAIOSFODNN7EXAMPLE in our "
+        "<p>See the AWS docs example key " + AWS_DOCS_EXAMPLE_ACCESS_KEY_ID + " in our "
         "getting-started guide.</p>"
     )
 
@@ -406,7 +409,7 @@ def crypto_aws_bare():
 @mini.route("/crypto_aws_env")
 def crypto_aws_env():
     # Unquoted env-style leak (.env / docker-env format).
-    return "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE"
+    return "AWS_ACCESS_KEY_ID=" + AWS_DOCS_EXAMPLE_ACCESS_KEY_ID
 
 
 @mini.route("/deser_java")
