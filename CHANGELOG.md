@@ -19,6 +19,9 @@ All notable changes to Titan Scanner are documented here. The format follows
 - Silent exception swallows eliminated repo-wide; ruff `S110`/`S112` now enforced instead of ignored
 - Technology signature tables extracted to `titan/core/fingerprint_signatures.py`
 - Coverage gate raised from 44% to 45%
+- Reporting subsystem split into focused modules (`remediation.py`, `estate.py`, `markdown_report.py`) — no file over 500 LOC
+- Coverage gate raised from 45% to 55% with new unit tests for `CoverageTracker`, `CoverageProof`, `CoverageReportGenerator`, `WAFFingerprinter`, `SpecIngestor`, and `APIDetector`
+- Dead `titan/modules/bizlogic/` package removed (unwired fossil code duplicating the live `logic` module)
 
 ### Fixed
 - GraphQL batch engine no longer flags servers that reject batched queries
