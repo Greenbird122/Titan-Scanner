@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB)
 ![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)
-![Status](https://img.shields.io/badge/status-v0.1.0%20alpha-green)
+![Status](https://img.shields.io/badge/status-v1.0.0-green)
 
 **Titan** is an evidence-first vulnerability scanner for modern web applications. Instead of reporting every suspicious pattern, it runs negative controls and evidence grading to produce findings with actual proof.
 
@@ -52,10 +52,10 @@ The suite is pytest-based and runs from the repo root. Install dependencies firs
 (`pip install -r requirements.txt`), then:
 
 ```bash
-python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=44
+python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=45
 ```
 
-The coverage gate (44%) fails the run if the suite drops below the floor. The
+The coverage gate (45%) fails the run if the suite drops below the floor. The
 same command is what CI runs on every push (lint, typecheck, and the test
 matrix are in `.github/workflows/tests.yml`).
 
