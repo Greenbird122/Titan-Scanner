@@ -195,6 +195,10 @@ exclude = [
     "titan/modules/upload/detector.py",
     "titan/modules/websocket/detector.py",
     "titan/reporting/__init__.py",
+    "titan/reporting/dashboard.py",
+    "titan/reporting/estate.py",
+    "titan/reporting/markdown_report.py",
+    "titan/reporting/remediation.py",
     "titan/stealth/advanced.py",
     "titan/transport/grpc.py",
     "titan/transport/tor.py",
@@ -428,6 +432,18 @@ follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.reporting"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.reporting.estate"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.reporting.markdown_report"
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+module = "titan.reporting.remediation"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
