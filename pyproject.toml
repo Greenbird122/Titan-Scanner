@@ -171,14 +171,6 @@ exclude = [
     "titan/modules/baas/fingerprint.py",
     "titan/modules/baas/firebase.py",
     "titan/modules/baas/supabase.py",
-    "titan/modules/bizlogic/confusion.py",
-    "titan/modules/bizlogic/crossuser.py",
-    "titan/modules/bizlogic/detector.py",
-    "titan/modules/bizlogic/discovery.py",
-    "titan/modules/bizlogic/ecommerce.py",
-    "titan/modules/bizlogic/fuzzer.py",
-    "titan/modules/bizlogic/saas.py",
-    "titan/modules/bizlogic/workflow.py",
     "titan/modules/clientside/prototype/detector.py",
     "titan/modules/cloud/storage.py",
     "titan/modules/cloud_control/imds.py",
@@ -334,37 +326,13 @@ follow_imports = "skip"
 module = "titan.modules.baas.supabase"
 follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.confusion"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.crossuser"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.detector"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.discovery"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.ecommerce"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.fuzzer"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.saas"
-follow_imports = "skip"
 
-[[tool.mypy.overrides]]
-module = "titan.modules.bizlogic.workflow"
-follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.modules.clientside.prototype.detector"
