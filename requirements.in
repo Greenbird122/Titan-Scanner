@@ -8,6 +8,7 @@ requests
 flask
 PyJWT
 cryptography
+python-json-logger>=4.0
 pytest
 pytest-asyncio
 backports-asyncio-runner==1.2.0 ; python_version < "3.11"
