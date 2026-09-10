@@ -1,14 +1,16 @@
 """Tests for titan.modules.api.graphql.GraphQLScanner engines.
 
-Covers introspection (Engine 1) and depth abuse (Engine 5), including the
-rule that a 400 "depth limit exceeded" reply is a working defense — NOT a
-finding.
+Covers introspection (Engine 1), depth abuse (Engine 5), and mutation
+abuse (Engine 6), including the rules that a 400 "depth limit exceeded"
+reply is a working defense — NOT a finding — and that an accepted
+mutation proves acceptance, not real-world effect.
 """
 
 from __future__ import annotations
 
 import json
 
+from titan.core.models import Severity
 from titan.modules.api.graphql import GraphQLScanner
 
 
@@ -98,3 +100,25 @@ async def test_depth_crash_flags_5xx():
     findings = await scanner.scan(ctx, "http://t", "http://t/gql")
     depth = [f for f in findings if "depth" in (f.diffs or [""])[0]]
     assert any(f.status >= 500 for f in depth), "server crash under depth must be flagged"
+
+
+def _mutation_responder(query: str):
+    if query.startswith("mutation"):
+        # Unauthenticated GraphQL gateway that blindly accepts mutations
+        if "updateUser" in query:
+            return 200, json.dumps({"data": {"updateUser": {"id": "1", "role": "admin"}}})
+        if "createUser" in query:
+            return 200, json.dumps({"data": {"createUser": {"id": "42"}}})
+        return 200, json.dumps({"data": {"ok": True}})
+    return 404, json.dumps({"errors": [{"message": "not found"}]})
+
+
+async def test_accepted_mutation_yields_finding():
+    ctx = _FakeContext(_mutation_responder)
+    scanner = GraphQLScanner(payload_smith=None, fingerprint={})
+    findings = await scanner.scan(ctx, "http://t", "http://t/gql")
+    names = {d for f in findings for d in (f.diffs or [])}
+    assert "graphql:role_escalation" in names, "accepted role-escalation mutation must be flagged"
+    assert "graphql:user_creation" in names, "accepted user-creation mutation must be flagged"
+    muts = [f for f in findings if f.diffs and f.diffs[0].startswith("graphql:")]
+    assert all(f.severity == Severity.CRITICAL for f in muts)
