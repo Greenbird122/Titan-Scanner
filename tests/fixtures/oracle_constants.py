@@ -10,4 +10,4 @@ secret. Every use-site imports it from here so an auditor can verify its
 origin in one place.
 """
 
-AWS_DOCS_EXAMPLE_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"
+AWS_DOCS_EXAMPLE_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret — AWS-published docs example, see module docstring
