@@ -194,60 +194,110 @@ class GraphQLScanner:
                 continue
 
         # ── Engine 4: AI-mutated payloads ───────────────────────────────
-        context_data = {
-            "fingerprint": self.fingerprint,
-            "attack_type": "graphql",
-            "param_type": "json",
-            "location": "body",
-        }
-        base_payloads = [
-            '{"query": "{ __schema { types { name } } }"}',
-            '{"query": "{ user { id email password } }"}',
-            '{"query": "mutation { createUser(input: {name: \\"test\\"}) { user { id } } }"}',
-        ]
-        payloads = await self.payload_smith.mutate(base_payloads, context_data)
+        # payload_smith is optional — without it the scanner still runs
+        # engines 1-3 and 5.
+        if self.payload_smith is not None:
+            context_data = {
+                "fingerprint": self.fingerprint,
+                "attack_type": "graphql",
+                "param_type": "json",
+                "location": "body",
+            }
+            base_payloads = [
+                '{"query": "{ __schema { types { name } } }"}',
+                '{"query": "{ user { id email password } }"}',
+                '{"query": "mutation { createUser(input: {name: \\"test\\"}) { user { id } } }"}',
+            ]
+            payloads = await self.payload_smith.mutate(base_payloads, context_data)
 
-        for payload in payloads:
+            for payload in payloads:
+                try:
+                    test_data = json.loads(payload)
+                    resp = await context.request.post(
+                        api_url,
+                        data=json.dumps(test_data),
+                        headers={"Content-Type": "application/json", "Referer": target},
+                        timeout=10000,
+                    )
+                    body = await resp.text()
+
+                    baseline_body = ""
+                    try:
+                        baseline_resp = await context.request.post(
+                            api_url,
+                            data=json.dumps({"query": "{ __schema { types { name } } }"}),
+                            headers={"Content-Type": "application/json", "Referer": target},
+                            timeout=10000,
+                        )
+                        baseline_body = await baseline_resp.text()
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
+                        pass
+
+                    diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
+                    if diffs or resp.status >= 500:
+                        findings.append(Finding(
+                            target=target,
+                            url=api_url,
+                            method="POST",
+                            param="query",
+                            location="body",
+                            payload=payload[:200],
+                            attack_type=AttackType.INFO_LEAK,
+                            severity=Severity.MEDIUM if resp.status >= 500 else Severity.LOW,
+                            verified=bool(diffs),
+                            confidence=0.6 if diffs else 0.4,
+                            status=resp.status,
+                            headers=dict(resp.headers),
+                            body=body[:2000],
+                            diffs=diffs,
+                        ))
+                except Exception as exc:
+                    logger.debug(f"variant failed, continuing: {exc}")
+                    continue
+
+        # ── Engine 5: Query depth abuse ───────────────────────────────
+        # (name, query, severity, confidence). A 400 "depth limit exceeded"
+        # reply means the server HAS a depth guard — not a finding.
+        depth_payloads = [
+            ("depth_10",
+             "{user{friends{friends{friends{friends{friends{friends{friends{friends{friends{name}}}}}}}}}}}",
+             Severity.HIGH, 0.5),
+            ("depth_20",
+             "{user{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{friends{name}}}}}}}}}}}}}}}}}}}",
+             Severity.CRITICAL, 0.6),
+            ("circular_query",
+             "{user{__typename ...on User{friends{__typename ...on User{name}}}}}",
+             Severity.HIGH, 0.5),
+        ]
+        for name, query, sev, conf in depth_payloads:
             try:
-                test_data = json.loads(payload)
                 resp = await context.request.post(
                     api_url,
-                    data=json.dumps(test_data),
+                    data=json.dumps({"query": query}),
                     headers={"Content-Type": "application/json", "Referer": target},
                     timeout=10000,
                 )
                 body = await resp.text()
-
-                baseline_body = ""
-                try:
-                    baseline_resp = await context.request.post(
-                        api_url,
-                        data=json.dumps({"query": "{ __schema { types { name } } }"}),
-                        headers={"Content-Type": "application/json", "Referer": target},
-                        timeout=10000,
-                    )
-                    baseline_body = await baseline_resp.text()
-                except Exception as exc:
-                    logger.debug(f"suppressed exception: {exc}")
-                    pass
-
-                diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-                if diffs or resp.status >= 500:
+                depth_hit = resp.status == 200 and '"data"' in body
+                crash = resp.status >= 500
+                if depth_hit or crash:
                     findings.append(Finding(
                         target=target,
                         url=api_url,
                         method="POST",
                         param="query",
                         location="body",
-                        payload=payload[:200],
-                        attack_type=AttackType.INFO_LEAK,
-                        severity=Severity.MEDIUM if resp.status >= 500 else Severity.LOW,
-                        verified=bool(diffs),
-                        confidence=0.6 if diffs else 0.4,
+                        payload=f"GraphQL depth attack: {name}",
+                        attack_type=AttackType.BUSINESS_LOGIC,
+                        severity=Severity.HIGH if crash else sev,
+                        verified=False,
+                        confidence=0.8 if crash else conf,
                         status=resp.status,
                         headers=dict(resp.headers),
                         body=body[:2000],
-                        diffs=diffs,
+                        diffs=[f"graphql:{name}"],
+                        notes="deep query processed" if depth_hit else "server crashed under depth — confirm manually",
                     ))
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
