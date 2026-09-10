@@ -83,3 +83,4 @@ tools/protoscan/
 tools/sspp-gadgets/
 venv/
 venv_linux/
+coverage.json
