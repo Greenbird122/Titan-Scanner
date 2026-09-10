@@ -52,7 +52,7 @@ The suite is pytest-based and runs from the repo root. Install dependencies firs
 (`pip install -r requirements.txt`), then:
 
 ```bash
-python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=45
+python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=55
 ```
 
 The coverage gate (45%) fails the run if the suite drops below the floor. The

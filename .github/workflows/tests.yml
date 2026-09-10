@@ -110,7 +110,7 @@ jobs:
         # here and reported by name. -p no:cacheprovider keeps the run hermetic.
         # --cov=titan + fail_under in pyproject makes the coverage floor a gate:
         # the job fails if coverage drops below the committed threshold.
-        run: python -m pytest -q --timeout=120 -p no:cacheprovider --junitxml=test-results.xml --cov=titan --cov-report=term --cov-fail-under=45
+        run: python -m pytest -q --timeout=120 -p no:cacheprovider --junitxml=test-results.xml --cov=titan --cov-report=term --cov-fail-under=55
 
       - name: Summarize results
         if: always()
