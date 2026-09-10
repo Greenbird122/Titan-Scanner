@@ -315,7 +315,7 @@ class GraphQLScanner:
              'mutation{resetPassword(email:"admin@evil.com"){token}}',
              Severity.CRITICAL, 0.6),
             ("user_creation",
-             'mutation{createUser(email:"titan_scan_test@invalid.local",password:"Tt5n$9xQz",role:"admin"){id}}',
+             'mutation{createUser(email:"titan_scan_test@invalid.local",password:"Tt5n$9xQz",role:"admin"){id}}',  # pragma: allowlist secret — decoy payload for an attack probe, not a credential
              Severity.CRITICAL, 0.7),
             ("data_deletion",
              "mutation{deleteUser(id:999999){success}}",
