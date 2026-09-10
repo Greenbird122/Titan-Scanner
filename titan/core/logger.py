@@ -15,10 +15,16 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
+
+try:
+    from pythonjsonlogger.json import JsonFormatter
+except ImportError:  # pragma: no cover — python-json-logger < 4.0
+    from pythonjsonlogger.jsonlogger import JsonFormatter
 
 
 def _utc_now() -> str:
@@ -293,23 +299,60 @@ def get_logger(name: str) -> _ModuleLogger:
     return _ModuleLogger(name, _SINK)
 
 
+class _CurrentStderr:
+    """Write-through proxy to the live ``sys.stderr``.
+
+    StreamHandler binds its stream at construction (module import time),
+    which detaches it from anything that swaps ``sys.stderr`` afterwards —
+    pytest's capture, CLI redirection, embedding. Delegating at write time
+    keeps the JSON stream attached to the real stderr wherever it points.
+    """
+
+    def write(self, s: str) -> int:
+        return sys.stderr.write(s)
+
+    def flush(self) -> None:
+        sys.stderr.flush()
+
+
+def _json_log_formatter() -> JsonFormatter:
+    """Build the shared JSON formatter for stdlib logging handlers.
+
+    Emits one JSON object per record with timestamp/level/module/message;
+    any ``extra={...}`` fields are merged in automatically by
+    python-json-logger.
+    """
+    return JsonFormatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s",
+        rename_fields={"asctime": "timestamp", "levelname": "level", "name": "module"},
+        timestamp=True,
+    )
+
+
 def _configure_standard_logging() -> None:
     """Configure the stdlib logging framework alongside the TitanLogger sink.
 
     Modules that use ``logging.getLogger`` directly (brain/, darkweb_map)
-    previously fell through to the bare lastResort handler. Give them a
-    consistent format and a file handler in the same titan_logs directory.
+    previously fell through to the bare lastResort handler. Give them
+    structured JSON output: one stream (stderr, for log collectors and CI)
+    plus a file handler in the same titan_logs directory. Human-facing
+    console updates stay on stdout through the TitanLogger facade.
     """
     log_dir = os.environ.get("TITAN_LOG_DIR", "titan_logs")
     os.makedirs(log_dir, exist_ok=True)
-    handler = logging.FileHandler(
+    formatter = _json_log_formatter()
+
+    stream_handler = logging.StreamHandler(_CurrentStderr())
+    stream_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler(
         os.path.join(log_dir, "titan.log"), encoding="utf-8"
     )
-    handler.setFormatter(
-        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
-    )
+    file_handler.setFormatter(formatter)
+
     root = logging.getLogger()
-    root.addHandler(handler)
+    root.addHandler(stream_handler)
+    root.addHandler(file_handler)
     root.setLevel(
         getattr(logging, os.environ.get("TITAN_LOG_LEVEL", "INFO").upper(), logging.INFO)
     )
