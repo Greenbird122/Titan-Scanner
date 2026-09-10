@@ -24,6 +24,9 @@ All notable changes to Titan Scanner are documented here. The format follows
 - GraphQL batch engine no longer flags servers that reject batched queries
 - Business-logic detector baselines log failures instead of silently continuing
 
+### Removed
+- Dead `titan/modules/bizlogic/` package (4,400 LOC): never wired into the module matrix, incompatible with the current `Finding` model, and duplicated by the live `logic`, `idor`, `auth`, and `ratelimit` modules. SaaS-specific ideas (credit manipulation, trial abuse, feature gating) are backlog items for the live `logic` module with proper baseline-diff oracles.
+
 ## [1.0.0] - 2026-08-27
 
 ### Added
