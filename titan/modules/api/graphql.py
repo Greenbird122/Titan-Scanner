@@ -158,21 +158,19 @@ class GraphQLScanner:
                 )
                 body = await resp.text()
 
-                baseline_body = ""
-                try:
-                    baseline_resp = await context.request.post(
-                        api_url,
-                        data=json.dumps({"query": "{ __schema { types { name } } }"}),
-                        headers={"Content-Type": "application/json", "Referer": target},
-                        timeout=10000,
-                    )
-                    baseline_body = await baseline_resp.text()
-                except Exception as exc:
-                    logger.debug(f"suppressed exception: {exc}")
-                    pass
+                # Ground truth: only a 200 whose body parses as a JSON ARRAY
+                # proves the server actually executed the batch. Anything
+                # else (400 rejection, plain-object 200) is a defended or
+                # non-batching endpoint — not a finding.
+                batch_executed = False
+                if resp.status == 200:
+                    try:
+                        batch_executed = isinstance(json.loads(body), list)
+                    except Exception as exc:
+                        logger.debug(f"suppressed exception: {exc}")
+                        pass
 
-                diffs = BaselineAnalyzer.diff_responses(baseline_body, body, batch)
-                if diffs or resp.status >= 500:
+                if batch_executed or resp.status >= 500:
                     findings.append(Finding(
                         target=target,
                         url=api_url,
@@ -182,12 +180,12 @@ class GraphQLScanner:
                         payload=f"GraphQL batch/alias probe ({len(json.loads(batch))} ops)",
                         attack_type=AttackType.INFO_LEAK,
                         severity=Severity.MEDIUM if resp.status >= 500 else Severity.LOW,
-                        verified=bool(diffs),
-                        confidence=0.6 if diffs else 0.4,
+                        verified=batch_executed,
+                        confidence=0.6 if batch_executed else 0.4,
                         status=resp.status,
                         headers=dict(resp.headers),
                         body=body[:2000],
-                        diffs=diffs,
+                        diffs=["graphql:batch_accepted"] if batch_executed else [],
                     ))
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")

@@ -33,6 +33,11 @@ class _FakeRequest:
 
     async def post(self, url, data=None, headers=None, timeout=None):
         payload = json.loads(data)
+        if isinstance(payload, list):
+            # Batch probe: route the raw body so responders can accept/reject it
+            self.queries.append("<batch>")
+            status, body = self._responder(data)
+            return _FakeResponse(status, body)
         query = payload.get("query", "")
         self.queries.append(query)
         status, body = self._responder(query)
@@ -100,6 +105,37 @@ async def test_depth_crash_flags_5xx():
     findings = await scanner.scan(ctx, "http://t", "http://t/gql")
     depth = [f for f in findings if "depth" in (f.diffs or [""])[0]]
     assert any(f.status >= 500 for f in depth), "server crash under depth must be flagged"
+
+
+def _batch_responder(data: str):
+    payload = json.loads(data)
+    if isinstance(payload, list):
+        # Unprotected batch gateway: answers with a JSON array of results
+        return 200, json.dumps([{"data": {"user": {"id": "1"}}} for _ in payload])
+    return 200, json.dumps({"data": {"ok": True}})
+
+
+async def test_executed_batch_yields_finding():
+    ctx = _FakeContext(_batch_responder)
+    scanner = GraphQLScanner(payload_smith=None, fingerprint={})
+    findings = await scanner.scan(ctx, "http://t", "http://t/gql")
+    assert any(
+        f.diffs == ["graphql:batch_accepted"] for f in findings
+    ), "a server that EXECUTES a JSON-array batch must be flagged"
+
+
+async def test_batch_rejection_is_not_a_finding():
+    def rejecting_responder(data: str):
+        if data.lstrip().startswith("["):
+            return 400, json.dumps({"errors": [{"message": "batching not allowed"}]})
+        return 200, json.dumps({"data": {"ok": True}})
+
+    ctx = _FakeContext(rejecting_responder)
+    scanner = GraphQLScanner(payload_smith=None, fingerprint={})
+    findings = await scanner.scan(ctx, "http://t", "http://t/gql")
+    assert not any(
+        f.diffs == ["graphql:batch_accepted"] for f in findings
+    ), "a 400 batch rejection means the server defended itself — no finding"
 
 
 def _mutation_responder(query: str):
