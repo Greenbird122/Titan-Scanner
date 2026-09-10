@@ -7,7 +7,8 @@ matrix, and deriving summary/risk/dependency analytics. No I/O, no network.
 from unittest.mock import MagicMock
 
 from titan.core.models import Finding, Severity
-from titan.modules.coverage.tracker import CoverageMatrix, CoverageTracker, TestRecord
+from titan.modules.coverage.tracker import CoverageMatrix, CoverageTracker
+from titan.modules.coverage.tracker import TestRecord as TrackerTestRecord
 
 
 def _finding(tags=(), notes="", url="https://t.example/api", attack_type_value="headers",
@@ -39,7 +40,7 @@ class TestRecordTest:
         t.record_test("/a", "sqli", "p", "executed", 200, "body", 12.5)
         assert len(t.get_records()) == 1
         rec = t.get_records()[0]
-        assert isinstance(rec, TestRecord)
+        assert isinstance(rec, TrackerTestRecord)
         assert rec.endpoint == "/a"
         assert rec.attack_type == "sqli"
         assert rec.status == "executed"

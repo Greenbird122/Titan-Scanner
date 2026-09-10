@@ -6,11 +6,8 @@ proof extraction, bundle verification, and script generation. No I/O.
 
 import json
 
-from titan.modules.coverage.proof import (
-    CoverageProof,
-    CoverageProofBundle,
-    TestProof,
-)
+from titan.modules.coverage.proof import CoverageProof, CoverageProofBundle
+from titan.modules.coverage.proof import TestProof as ProofRecord
 from titan.modules.coverage.tracker import CoverageTracker
 
 
@@ -101,7 +98,7 @@ class TestGenerateBundle:
         assert isinstance(bundle, CoverageProofBundle)
         assert bundle.total_tests == 4
         assert len(bundle.test_proofs) == 4
-        assert all(isinstance(tp, TestProof) for tp in bundle.test_proofs)
+        assert all(isinstance(tp, ProofRecord) for tp in bundle.test_proofs)
         assert bundle.root_hash == p._get_root_hash(bundle.merkle_tree)
         assert bundle.verification_script.startswith("#!/bin/bash")
 
@@ -165,7 +162,7 @@ class TestVerifyProof:
         p = CoverageProof(t)
         bundle = p.generate()
         # forge a proof whose response_hash doesn't match any hashed leaf
-        forged = TestProof(
+        forged = ProofRecord(
             test_id=bundle.test_proofs[0].test_id,
             endpoint="/evil",
             attack_type="rce",
