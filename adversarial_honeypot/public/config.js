@@ -10,7 +10,9 @@ window.APP_CONFIG = {
     anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6OTk5OTk5OTk5OX0.demo-anon-key-titan-honeypot", // pragma: allowlist secret
   },
   firebase: {
-    apiKey: "AIzaSyDEMO_ACME_TITAN_HONEYPOT_KEY_12345678",
+    // Honeypot bait: deliberately fake placeholder, no real Firebase project
+    // behind it. Detection keys on the authDomain/databaseURL strings below.
+    apiKey: "REPLACE_ME_NOT_A_REAL_KEY", // pragma: allowlist secret
     authDomain: "acme-prod-titan-honeypot.firebaseapp.com",
     databaseURL: "https://acme-prod-titan-honeypot.firebaseio.com",
     projectId: "acme-prod-titan-honeypot",
