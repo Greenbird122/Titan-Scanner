@@ -75,6 +75,34 @@ jobs:
       - name: Run smoke setup
         run: bash scripts/smoke_setup.sh
 
+  windows-smoke:
+    # Windows leg: proves the committed pins resolve to prebuilt wheels on
+    # Windows at the newest supported Python. Build-from-source failures
+    # (e.g. greenlet without cp3x-win wheels) are invisible to the Linux
+    # jobs but break every fresh Windows install. Python 3.14 is the canary:
+    # it is where wheel coverage gaps surface first.
+    name: windows smoke (deps + import)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies from the committed lockfile
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Import smoke
+        run: python -c "import titan; print('titan imports OK on Windows')"
+
   test:
     name: pytest (${{ matrix.python-version }})
     runs-on: ubuntu-latest
