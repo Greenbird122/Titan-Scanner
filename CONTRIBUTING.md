@@ -23,7 +23,7 @@ local configuration. Never commit either file.
 ## Running the tests
 
 ```bash
-python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=45
+python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=55
 ```
 
 The suite must pass with coverage at or above the 45% floor. Tests that need
