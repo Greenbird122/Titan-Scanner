@@ -12,6 +12,32 @@ isn't written anywhere else.
    with reality in the code, stop and ask.
 3. `config.example.yaml` — the shape of the data you're validating.
 
+## Step zero: make your own venv (before any `pip install`)
+
+`pip install -r requirements.txt` only does the right thing inside a venv
+created in this clone. Run it against a bare/global Python — or with another
+project's venv still active on your PATH — and you get a broken hybrid:
+packages silently resolve against a foreign site-packages and every later
+command dies with `ModuleNotFoundError`. This exact failure happened on the
+first external clone of this repo (a stale dependency pin also made the
+install abort halfway on Windows Python 3.13/3.14; the pin is fixed, but the
+venv rule stands on its own).
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
+```
+
+Sanity check before anything else — if this fails, the venv is not active or
+the install did not finish; stop and fix that first:
+
+```powershell
+python -c "import titan; print('ok')"
+```
+
 ## The rules that actually get enforced here
 
 **One change, one commit, tests in the same commit.** The spec's §7 has your
