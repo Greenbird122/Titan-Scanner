@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-COVERAGE_FLOOR="${COVERAGE_FLOOR:-45}"
+COVERAGE_FLOOR="${COVERAGE_FLOOR:-55}"
 
 python -m venv .venv-smoke
 # shellcheck disable=SC1091

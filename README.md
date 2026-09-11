@@ -55,7 +55,7 @@ The suite is pytest-based and runs from the repo root. Install dependencies firs
 python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=55
 ```
 
-The coverage gate (45%) fails the run if the suite drops below the floor. The
+The coverage gate (55%) fails the run if the suite drops below the floor. The
 same command is what CI runs on every push (lint, typecheck, and the test
 matrix are in `.github/workflows/tests.yml`).
 
