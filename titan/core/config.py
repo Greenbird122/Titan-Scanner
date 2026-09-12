@@ -65,13 +65,15 @@ class ConfigManager:
                 json.dump(data, f, indent=2)
 
     def _load_yaml(self, content: str) -> TitanConfig:
-        """Load config from YAML string."""
-        try:
-            import yaml
-            data = yaml.safe_load(content)
-        except ImportError:
-            # Fallback: parse simple YAML manually
-            data = self._parse_simple_yaml(content)
+        """Load config from YAML string.
+
+        PyYAML is a declared runtime dependency, so a missing install must fail
+        loudly here. A previous hand-rolled fallback silently returned zero
+        targets and string-typed values, which reads as "no work to do"
+        instead of "your environment is broken".
+        """
+        import yaml
+        data = yaml.safe_load(content)
         return self._dict_to_config(data)
 
     def _load_json(self, content: str) -> TitanConfig:
@@ -129,50 +131,13 @@ class ConfigManager:
         }
 
     def _dict_to_yaml(self, data: dict[str, Any]) -> str:
-        """Convert dict to YAML string."""
-        try:
-            import yaml
-            yaml_text: str = yaml.dump(data, default_flow_style=False)
-            return yaml_text
-        except ImportError:
-            return self._simple_yaml_dump(data)
+        """Convert dict to YAML string.
 
-    def _parse_simple_yaml(self, content: str) -> dict[str, Any]:
-        """Parse simple YAML without PyYAML."""
-        result: dict[str, Any] = {}
-        for line in content.split("\n"):
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            if ":" in stripped:
-                key, _, value = stripped.partition(":")
-                key = key.strip()
-                value = value.strip()
-                if value:
-                    result[key] = value
-                else:
-                    result[key] = {}
-        return result
-
-    def _simple_yaml_dump(self, data: dict[str, Any], indent: int = 0) -> str:
-        """Simple YAML dump without PyYAML."""
-        lines = []
-        prefix = "  " * indent
-        for key, value in data.items():
-            if isinstance(value, dict):
-                lines.append(f"{prefix}{key}:")
-                lines.append(self._simple_yaml_dump(value, indent + 1))
-            elif isinstance(value, list):
-                lines.append(f"{prefix}{key}:")
-                for item in value:
-                    if isinstance(item, dict):
-                        for k, v in item.items():
-                            lines.append(f"{prefix}  - {k}: {v}")
-                    else:
-                        lines.append(f"{prefix}  - {item}")
-            else:
-                lines.append(f"{prefix}{key}: {value}")
-        return "\n".join(lines)
+        PyYAML is a declared runtime dependency; see `_load_yaml`.
+        """
+        import yaml
+        yaml_text: str = yaml.dump(data, default_flow_style=False)
+        return yaml_text
 
     def create_example_config(self) -> str:
         """Create example configuration."""
