@@ -361,3 +361,39 @@ def _configure_standard_logging() -> None:
 
 
 _configure_standard_logging()
+
+
+# ---------------------------------------------------------------------------
+# Uncaught-exception hook — log before the process dies
+# ---------------------------------------------------------------------------
+
+def _crash_hook(
+    exc_type: type[BaseException],
+    exc_value: BaseException,
+    exc_tb: Any,
+) -> None:
+    """sys.excepthook replacement.
+
+    Logs the full traceback to the structured sink (file + stderr JSON)
+    before the default handler prints to stderr and exits.  The default
+    exit behaviour is preserved — we don't suppress or swallow.
+    """
+    import traceback
+
+    tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    _SINK.log_error(
+        f"Uncaught {exc_type.__name__}: {exc_value}",
+        {"category": "crash", "traceback": tb_text},
+    )
+    _SINK.save("crash.jsonl")
+    # Let the default handler do its job (print + exit)
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+
+def install_crash_hook() -> None:
+    """Wire the uncaught-exception hook.  Call once at process start.
+
+    Idempotent — safe to call from multiple entry points.
+    """
+    if sys.excepthook is not _crash_hook:
+        sys.excepthook = _crash_hook

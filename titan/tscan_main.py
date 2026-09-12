@@ -41,6 +41,8 @@ assert os.path.normcase(os.path.abspath(os.path.dirname(titan.__file__))) == os.
 )
 
 from titan.cli import main
+from titan.core.logger import install_crash_hook
 
 if __name__ == "__main__":
+    install_crash_hook()
     main()
