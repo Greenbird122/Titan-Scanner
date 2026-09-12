@@ -136,6 +136,28 @@ class TestLoadYaml:
         assert ConfigManager().load(str(path)).targets[0].url == "https://yml.test"
 
 
+class TestYamlIsRequired:
+    def test_missing_pyyaml_raises_instead_of_returning_empty(self, tmp_path, monkeypatch):
+        """PyYAML is a declared runtime dependency, so its absence must fail
+        loudly. A hand-rolled fallback here once returned zero targets and
+        string-typed numbers, which reads as "nothing to scan"."""
+        import sys
+
+        path = tmp_path / "targets.yaml"
+        path.write_text("targets:\n  - url: https://yaml.test\n")
+        monkeypatch.setitem(sys.modules, "yaml", None)
+        with pytest.raises(ImportError):
+            ConfigManager().load(str(path))
+
+    def test_missing_pyyaml_raises_on_save_too(self, tmp_path, monkeypatch):
+        import sys
+
+        path = tmp_path / "out.yaml"
+        monkeypatch.setitem(sys.modules, "yaml", None)
+        with pytest.raises(ImportError):
+            ConfigManager().save(_full_config(), str(path))
+
+
 class TestSave:
     def test_json_round_trip(self, tmp_path):
         path = tmp_path / "out.json"
