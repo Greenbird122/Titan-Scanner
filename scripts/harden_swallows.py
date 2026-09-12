@@ -38,7 +38,9 @@ def transform(path: str, dry_run: bool = False) -> int:
     lines = src.split("\n")
 
     # locate silent-swallow blocks
-    targets: list[tuple[int, int, str | None, str, str | None]] = []  # (except_idx, body_idx, except_new, kind, bound_name)
+    targets: list[
+        tuple[int, int, str | None, str, str | None]
+    ] = []  # (except_idx, body_idx, except_new, kind, bound_name)
     i = 0
     while i < len(lines):
         m = EXCEPT_RE.match(lines[i])
@@ -53,7 +55,7 @@ def transform(path: str, dry_run: bool = False) -> int:
                 if body_kind in PASS_OR_CONTINUE and body[: len(body) - len(body.lstrip())] == indent + "    ":
                     kind = body_kind
                     clause = m.group(2)  # 'except' or 'except <types>'
-                    types = clause[len("except"):].strip()
+                    types = clause[len("except") :].strip()
                     if " as " in types:
                         # already bound (e.g. `except X as e:`); keep the
                         # handler, log via the existing bound name
@@ -81,8 +83,8 @@ def transform(path: str, dry_run: bool = False) -> int:
         tree = ast.parse(src)
         imps = [n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom))]
         assert imps, f"{path}: no top-level imports to anchor the logger"
-        first_imp = min(n.lineno for n in imps) - 1      # 0-based index
-        last_imp_end = max(n.end_lineno for n in imps)    # 1-based line; 0-based index == value
+        first_imp = min(n.lineno for n in imps) - 1  # 0-based index
+        last_imp_end = max(n.end_lineno for n in imps)  # 1-based line; 0-based index == value
 
         name = module_name(path)
         lines.insert(last_imp_end, "")
@@ -125,9 +127,11 @@ def audit(path: str) -> int:
         if isinstance(node, ast.Try):
             for h in node.handlers:
                 stmts = [
-                    s for s in h.body
-                    if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant)
-                            and isinstance(s.value.value, str))
+                    s
+                    for s in h.body
+                    if not (
+                        isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant) and isinstance(s.value.value, str)
+                    )
                 ]
                 if len(stmts) == 1 and isinstance(stmts[0], (ast.Pass, ast.Continue)):
                     count += 1
@@ -146,9 +150,9 @@ def main() -> None:
     if args == ["--all"]:
         skip = {".git", "build", "node_modules", "__pycache__", "findings", "consent", "titan_logs"}
         paths = sorted(
-            str(p) for p in pathlib.Path(".").rglob("*.py")
-            if not any(part in skip or part.lstrip(".").startswith("venv") for part in p.parts)
-            and audit(str(p)) > 0
+            str(p)
+            for p in pathlib.Path(".").rglob("*.py")
+            if not any(part in skip or part.lstrip(".").startswith("venv") for part in p.parts) and audit(str(p)) > 0
         )
     else:
         paths = args

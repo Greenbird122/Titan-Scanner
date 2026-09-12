@@ -22,6 +22,7 @@ from titan.modules.coverage.tracker import CoverageTracker
 @dataclass
 class GateResult:
     """Result of a coverage gate check."""
+
     passed: bool
     current_score: float
     required_score: float
@@ -35,12 +36,12 @@ class CoverageGate:
 
     # Default thresholds
     DEFAULT_THRESHOLDS = {
-        "overall_score": 70.0,       # Minimum overall score
-        "endpoint_coverage": 60.0,   # Minimum endpoint coverage
-        "attack_type_coverage": 50.0, # Minimum attack type coverage
-        "combination_coverage": 30.0, # Minimum combination coverage
-        "quality_score": 50.0,       # Minimum quality (no false positives)
-        "risk_score": 40.0,          # Minimum risk-weighted coverage
+        "overall_score": 70.0,  # Minimum overall score
+        "endpoint_coverage": 60.0,  # Minimum endpoint coverage
+        "attack_type_coverage": 50.0,  # Minimum attack type coverage
+        "combination_coverage": 30.0,  # Minimum combination coverage
+        "quality_score": 50.0,  # Minimum quality (no false positives)
+        "risk_score": 40.0,  # Minimum risk-weighted coverage
     }
 
     # Critical attack types that MUST be tested
@@ -126,24 +127,28 @@ class CoverageGate:
         for attack_type in self.CRITICAL_TYPES:
             if attack_type not in tested:
                 for endpoint in endpoints[:3]:  # Top 3 endpoints
-                    plan.append({
-                        "endpoint": endpoint,
-                        "attack_type": attack_type,
-                        "priority": "critical",
-                        "reason": f"Critical type {attack_type} not tested",
-                    })
+                    plan.append(
+                        {
+                            "endpoint": endpoint,
+                            "attack_type": attack_type,
+                            "priority": "critical",
+                            "reason": f"Critical type {attack_type} not tested",
+                        }
+                    )
 
         # Missing high-priority types
         high_types = ["rce", "csrf", "privilege_escalation", "business_logic"]
         for attack_type in high_types:
             if attack_type not in tested:
                 for endpoint in endpoints[:2]:
-                    plan.append({
-                        "endpoint": endpoint,
-                        "attack_type": attack_type,
-                        "priority": "high",
-                        "reason": f"High-priority type {attack_type} not tested",
-                    })
+                    plan.append(
+                        {
+                            "endpoint": endpoint,
+                            "attack_type": attack_type,
+                            "priority": "high",
+                            "reason": f"High-priority type {attack_type} not tested",
+                        }
+                    )
 
         return plan
 

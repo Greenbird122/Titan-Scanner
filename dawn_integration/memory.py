@@ -5,7 +5,6 @@ Dual persistence:
 - SQLite findings table (structured queries)
 """
 
-
 from __future__ import annotations
 
 import json
@@ -136,7 +135,9 @@ class DawnMemory:
             pass
         return lines
 
-    def query_findings(self, target: str | None = None, days: int = 7, severity: str | None = None) -> list[dict[str, Any]]:
+    def query_findings(
+        self, target: str | None = None, days: int = 7, severity: str | None = None
+    ) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         if not self.enabled:
             return results

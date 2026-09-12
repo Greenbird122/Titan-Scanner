@@ -59,9 +59,9 @@ def score_challenge(
     expected_atk = (challenge.get("attack_type") or "").lower()
     expected_ep = (challenge.get("endpoint") or "").rstrip("/")
     ep_findings = [
-        f for f in result.findings
-        if (f.url or "").rstrip("/") == expected_ep
-        or (expected_ep and expected_ep in (f.url or ""))
+        f
+        for f in result.findings
+        if (f.url or "").rstrip("/") == expected_ep or (expected_ep and expected_ep in (f.url or ""))
     ]
     if not ep_findings:
         row["evidence"] = "endpoint not reached"
@@ -159,9 +159,7 @@ async def run_benchmark(
             sep = "&" if "?" in ep else "?"
             ep = f"{ep}{sep}{p}=1"
         seed.append(ep)
-    engine.config.setdefault("crawl", {})["seed_urls"] = (
-        engine.config.get("crawl", {}).get("seed_urls", []) + seed
-    )
+    engine.config.setdefault("crawl", {})["seed_urls"] = engine.config.get("crawl", {}).get("seed_urls", []) + seed
     try:
         if engine.config.get("crawl", {}).get("browserless", True):
             result = await engine.scan_browserless(target)

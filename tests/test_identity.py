@@ -10,7 +10,6 @@ token is accepted (JWT), or the attacker-chosen session survives login
 (fixation). Never on mere body diffs.
 """
 
-
 import asyncio
 import json
 import secrets
@@ -133,11 +132,13 @@ def user_update_noisy():
     # value-not-in-baseline guard rejects this; the JSON-reflection gate
     # alone (role: "admin" in test) would otherwise self-verify.
     data = request.get_json(silent=True) or dict(request.form)
-    return jsonify({
-        "name": data.get("name", "u"),
-        "role": data.get("role", "user"),
-        "admin_count": 3,
-    })
+    return jsonify(
+        {
+            "name": data.get("name", "u"),
+            "role": data.get("role", "user"),
+            "admin_count": 3,
+        }
+    )
 
 
 @mini.route("/api/user_update_html", methods=["POST"])
@@ -148,8 +149,7 @@ def user_update_html():
     data = request.get_json(silent=True) or dict(request.form)
     role = data.get("role", "")
     return Response(
-        f"<form><input name='name' value='{data.get('name', 'u')}'>"
-        f"<input name='role' value='{role}'></form>",
+        f"<form><input name='name' value='{data.get('name', 'u')}'><input name='role' value='{role}'></form>",
         mimetype="text/html",
     )
 
@@ -163,6 +163,7 @@ def jwt_verify():
     token = auth[7:]
     try:
         import base64
+
         header = json.loads(base64.urlsafe_b64decode(token.split(".")[0] + "=="))
     except Exception:
         return jsonify({"error": "bad token"}), 401
@@ -302,9 +303,14 @@ def _bob():
 class TestBOLA:
     async def test_cross_identity_read_is_verified(self, context):
         from titan.modules.bola.detector import BOLADetector
+
         findings = await BOLADetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/bola_vuln", {"id": "1"}, [_alice(), _bob()],
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/bola_vuln",
+            {"id": "1"},
+            [_alice(), _bob()],
         )
         assert findings, "bob reading alice's record must be found"
         f = findings[0]
@@ -315,9 +321,14 @@ class TestBOLA:
 
     async def test_owner_only_endpoint_is_not_bola(self, context):
         from titan.modules.bola.detector import BOLADetector
+
         findings = await BOLADetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/bola_secure", {"id": "1"}, [_alice(), _bob()],
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/bola_secure",
+            {"id": "1"},
+            [_alice(), _bob()],
         )
         assert findings == [], f"403 on cross-identity request must not be BOLA, got {findings}"
 
@@ -325,9 +336,14 @@ class TestBOLA:
         """Same content for every identity is not BOLA — there is no
         cross-identity differential to prove."""
         from titan.modules.bola.detector import BOLADetector
+
         findings = await BOLADetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/bola_public", {"id": "1"}, [_alice(), _bob()],
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/bola_public",
+            {"id": "1"},
+            [_alice(), _bob()],
         )
         assert findings == [], f"public endpoint must not be BOLA, got {findings}"
 
@@ -337,9 +353,14 @@ class TestBOLA:
         so no cross-tenant access occurred. The cross!=own guard must
         reject it even though the owner body carries unique markers."""
         from titan.modules.bola.detector import BOLADetector
+
         findings = await BOLADetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/bola_my", {"id": "1"}, [_alice(), _bob()],
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/bola_my",
+            {"id": "1"},
+            [_alice(), _bob()],
         )
         assert findings == [], f"own-record-for-any-id must not be BOLA, got {findings}"
 
@@ -349,17 +370,27 @@ class TestBOLA:
         exclusive owner marker proves cross-tenant access. The
         markers-presence gate must reject it."""
         from titan.modules.bola.detector import BOLADetector
+
         findings = await BOLADetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/bola_same_foreign", {"id": "1"}, [_alice(), _bob()],
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/bola_same_foreign",
+            {"id": "1"},
+            [_alice(), _bob()],
         )
         assert findings == [], f"shared record must not be BOLA, got {findings}"
 
     async def test_single_identity_cannot_bola(self, context):
         from titan.modules.bola.detector import BOLADetector
+
         findings = await BOLADetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/bola_vuln", {"id": "1"}, [_alice()],
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/bola_vuln",
+            {"id": "1"},
+            [_alice()],
         )
         assert findings == [], f"one identity cannot prove cross-tenant access, got {findings}"
 
@@ -370,9 +401,13 @@ class TestBOLA:
 class TestMassAssignment:
     async def test_injected_role_is_verified(self, context):
         from titan.modules.massassignment.detector import MassAssignmentDetector
+
         findings = await MassAssignmentDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/user_update", {"name": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/user_update",
+            {"name": "alice"},
         )
         assert findings, "role=admin accepted must be found"
         f = findings[0]
@@ -382,9 +417,13 @@ class TestMassAssignment:
 
     async def test_ignored_privilege_field_is_not_found(self, context):
         from titan.modules.massassignment.detector import MassAssignmentDetector
+
         findings = await MassAssignmentDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/user_update_secure", {"name": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/user_update_secure",
+            {"name": "alice"},
         )
         assert findings == [], f"server ignoring privilege field must not fire, got {findings}"
 
@@ -393,9 +432,13 @@ class TestMassAssignment:
         cannot prove the injected field was honored — the value is in the
         baseline too. The value-not-in-baseline guard must reject it."""
         from titan.modules.massassignment.detector import MassAssignmentDetector
+
         findings = await MassAssignmentDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/user_update_noisy", {"name": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/user_update_noisy",
+            {"name": "alice"},
         )
         assert findings == [], f"'admin' in baseline must not prove mass assignment, got {findings}"
 
@@ -404,17 +447,25 @@ class TestMassAssignment:
         field:value pairing is not evidence the server honored it — the
         JSON-reflection gate must reject it."""
         from titan.modules.massassignment.detector import MassAssignmentDetector
+
         findings = await MassAssignmentDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/user_update_html", {"name": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/user_update_html",
+            {"name": "alice"},
         )
         assert findings == [], f"HTML echo must not be mass assignment, got {findings}"
 
     async def test_get_is_not_mass_assignment(self, context):
         from titan.modules.massassignment.detector import MassAssignmentDetector
+
         findings = await MassAssignmentDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/user_update", {"name": "alice"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/user_update",
+            {"name": "alice"},
         )
         assert findings == [], f"GET cannot be mass assignment, got {findings}"
 
@@ -425,9 +476,13 @@ class TestMassAssignment:
 class TestJWT:
     async def test_alg_none_accepted_is_verified(self, context):
         from titan.modules.jwt.detector import JWTDetector
+
         findings = await JWTDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/jwt_verify", {},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/jwt_verify",
+            {},
         )
         assert findings, "alg:none token accepted must be found"
         f = findings[0]
@@ -437,9 +492,13 @@ class TestJWT:
 
     async def test_signature_required_is_not_found(self, context):
         from titan.modules.jwt.detector import JWTDetector
+
         findings = await JWTDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/jwt_secure", {},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/jwt_secure",
+            {},
         )
         assert findings == [], f"endpoint rejecting alg:none must not fire, got {findings}"
 
@@ -448,9 +507,13 @@ class TestJWT:
         not be JWT-tested — the anon-gate guards against forging tokens at
         endpoints that don't enforce auth at all."""
         from titan.modules.jwt.detector import JWTDetector
+
         findings = await JWTDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/open", {},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/open",
+            {},
         )
         assert findings == [], f"endpoint without a 401 gate must not be JWT-tested, got {findings}"
 
@@ -461,9 +524,13 @@ class TestJWT:
 class TestSessionFixation:
     async def test_attacker_session_survives_login(self, context):
         from titan.modules.sessionfix.detector import SessionFixationDetector
+
         findings = await SessionFixationDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/login_fix", {"user": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/login_fix",
+            {"user": "alice"},
         )
         assert findings, "attacker-chosen session surviving login must be found"
         f = findings[0]
@@ -472,17 +539,25 @@ class TestSessionFixation:
 
     async def test_fresh_session_is_not_fixation(self, context):
         from titan.modules.sessionfix.detector import SessionFixationDetector
+
         findings = await SessionFixationDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/login_secure", {"user": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/login_secure",
+            {"user": "alice"},
         )
         assert findings == [], f"server issuing fresh session must not fire, got {findings}"
 
     async def test_non_login_path_is_not_tested(self, context):
         from titan.modules.sessionfix.detector import SessionFixationDetector
+
         findings = await SessionFixationDetector(_stub(), {}).scan(
-            context, "http://localhost:5000", "POST",
-            "http://localhost:5000/api/user_update", {"name": "alice"},
+            context,
+            "http://localhost:5000",
+            "POST",
+            "http://localhost:5000/api/user_update",
+            {"name": "alice"},
         )
         assert findings == [], f"non-login endpoint must not be fixation-tested, got {findings}"
 
@@ -512,44 +587,79 @@ class TestSessionPool:
 class TestFlows:
     def test_ssrf_metadata_upgrades_to_creds(self):
         f = Finding(
-            target="t", url="u", method="GET", param="url", location="query",
+            target="t",
+            url="u",
+            method="GET",
+            param="url",
+            location="query",
             payload="http://169.254.169.254/latest/meta-data/",
-            attack_type=AttackType.SSRF, verified=True,
+            attack_type=AttackType.SSRF,
+            verified=True,
         )
         assert infer_flows(f) == ["url_fetch", "creds"]
 
     def test_ssrf_plain_is_url_fetch(self):
         f = Finding(
-            target="t", url="u", method="GET", param="url", location="query",
-            payload="http://internal/x", attack_type=AttackType.SSRF, verified=True,
+            target="t",
+            url="u",
+            method="GET",
+            param="url",
+            location="query",
+            payload="http://internal/x",
+            attack_type=AttackType.SSRF,
+            verified=True,
         )
         assert infer_flows(f) == ["url_fetch"]
 
     def test_unverified_finding_has_no_flow(self):
         f = Finding(
-            target="t", url="u", method="GET", param="id", location="query",
-            payload="x", attack_type=AttackType.SQLI, verified=False,
+            target="t",
+            url="u",
+            method="GET",
+            param="id",
+            location="query",
+            payload="x",
+            attack_type=AttackType.SQLI,
+            verified=False,
         )
         assert infer_flows(f) == []
 
     def test_lfi_provides_file_read(self):
         f = Finding(
-            target="t", url="u", method="GET", param="file", location="query",
-            payload="../../etc/passwd", attack_type=AttackType.LFI, verified=True,
+            target="t",
+            url="u",
+            method="GET",
+            param="file",
+            location="query",
+            payload="../../etc/passwd",
+            attack_type=AttackType.LFI,
+            verified=True,
         )
         assert infer_flows(f) == ["file_read"]
 
     def test_bola_provides_data_leak_and_auth_bypass(self):
         f = Finding(
-            target="t", url="u", method="GET", param="id", location="query",
-            payload="BOLA", attack_type=AttackType.BOLA, verified=True,
+            target="t",
+            url="u",
+            method="GET",
+            param="id",
+            location="query",
+            payload="BOLA",
+            attack_type=AttackType.BOLA,
+            verified=True,
         )
         assert set(infer_flows(f)) == {"data_leak", "auth_bypass"}
 
     def test_apply_flows_populates_field_and_serializes(self):
         f = Finding(
-            target="t", url="u", method="GET", param="key", location="body",
-            payload="AKIA...", attack_type=AttackType.CRYPTO_WEAKNESS, verified=True,
+            target="t",
+            url="u",
+            method="GET",
+            param="key",
+            location="body",
+            payload="AKIA...",
+            attack_type=AttackType.CRYPTO_WEAKNESS,
+            verified=True,
         )
         apply_flows([f])
         assert f.flows == ["creds"]
@@ -557,8 +667,14 @@ class TestFlows:
 
     def test_no_flow_for_unknown_attack(self):
         f = Finding(
-            target="t", url="u", method="GET", param="p", location="query",
-            payload="x", attack_type=AttackType.NO_ISSUE, verified=True,
+            target="t",
+            url="u",
+            method="GET",
+            param="p",
+            location="query",
+            payload="x",
+            attack_type=AttackType.NO_ISSUE,
+            verified=True,
         )
         assert infer_flows(f) == []
 
@@ -569,26 +685,32 @@ class TestFlows:
 class TestIdentityEngineWiring:
     async def test_identity_modules_run_through_engine(self, context):
         from titan.core.engine import TitanEngine
+
         cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}}
         engine = TitanEngine(cfg)
         engine.session_pool.add(_alice())
         engine.session_pool.add(_bob())
 
         findings = await engine._run_identity_modules(
-            context, "http://localhost:5000",
-            "http://localhost:5000/api/bola_vuln?id=1", {},
+            context,
+            "http://localhost:5000",
+            "http://localhost:5000/api/bola_vuln?id=1",
+            {},
         )
         bola = [f for f in findings if f.attack_type == AttackType.BOLA]
         assert bola, f"BOLA must fire through the engine identity seam, got {findings}"
 
     async def test_identity_seam_requires_two_identities(self, context):
         from titan.core.engine import TitanEngine
+
         cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}}
         engine = TitanEngine(cfg)
         engine.session_pool.add(_alice())
         findings = await engine._run_identity_modules(
-            context, "http://localhost:5000",
-            "http://localhost:5000/api/bola_vuln?id=1", {},
+            context,
+            "http://localhost:5000",
+            "http://localhost:5000/api/bola_vuln?id=1",
+            {},
         )
         assert findings == [], f"one identity must not run the identity matrix, got {findings}"
 

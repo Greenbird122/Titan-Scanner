@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NetworkPacket:
     """A captured network packet."""
+
     timestamp: float
     src_ip: str
     dst_ip: str
@@ -30,6 +31,7 @@ class NetworkPacket:
 @dataclass
 class TrafficCapture:
     """A capture of network traffic."""
+
     packets: list[NetworkPacket] = field(default_factory=list)
     duration: float = 0.0
     interface: str = ""
@@ -39,6 +41,7 @@ class TrafficCapture:
 @dataclass
 class SSRFEvidence:
     """Evidence of SSRF from captured traffic."""
+
     target_ip: str
     target_port: int
     request_url: str
@@ -49,6 +52,7 @@ class SSRFEvidence:
 @dataclass
 class ExfiltrationEvidence:
     """Evidence of data exfiltration."""
+
     destination: str
     data_size: int
     protocol: str
@@ -75,7 +79,7 @@ class NetworkObserver:
     CLOUD_METADATA_IPS = {
         "169.254.169.254",  # AWS/GCP/Azure IMDS
         "169.254.169.250",  # GCP metadata
-        "fd00::2",          # AWS IPv6 IMDS
+        "fd00::2",  # AWS IPv6 IMDS
     }
 
     async def capture(
@@ -143,13 +147,15 @@ class NetworkObserver:
             is_metadata = pkt.dst_ip in self.CLOUD_METADATA_IPS
 
             if is_internal or is_metadata:
-                evidence.append(SSRFEvidence(
-                    target_ip=pkt.dst_ip,
-                    target_port=pkt.dst_port,
-                    request_url=f"{pkt.protocol}://{pkt.dst_ip}:{pkt.dst_port}",
-                    response_seen=True,
-                    internal=True,
-                ))
+                evidence.append(
+                    SSRFEvidence(
+                        target_ip=pkt.dst_ip,
+                        target_port=pkt.dst_port,
+                        request_url=f"{pkt.protocol}://{pkt.dst_ip}:{pkt.dst_port}",
+                        response_seen=True,
+                        internal=True,
+                    )
+                )
 
         return evidence
 
@@ -171,12 +177,14 @@ class NetworkObserver:
         # Flag destinations with unusual outbound volume
         for dest, stats in dest_stats.items():
             if stats["total_bytes"] > 100000 and stats["packets"] > 50:  # >100KB, >50 packets
-                evidence.append(ExfiltrationEvidence(
-                    destination=dest,
-                    data_size=stats["total_bytes"],
-                    protocol=list(stats["protocols"])[0] if stats["protocols"] else "unknown",
-                    suspicious=True,
-                ))
+                evidence.append(
+                    ExfiltrationEvidence(
+                        destination=dest,
+                        data_size=stats["total_bytes"],
+                        protocol=list(stats["protocols"])[0] if stats["protocols"] else "unknown",
+                        suspicious=True,
+                    )
+                )
 
         return evidence
 
@@ -184,6 +192,7 @@ class NetworkObserver:
         """Check if an IP is in a private range."""
         try:
             import ipaddress
+
             addr = ipaddress.ip_address(ip)
             return addr.is_private or addr.is_loopback or addr.is_link_local
         except ValueError:

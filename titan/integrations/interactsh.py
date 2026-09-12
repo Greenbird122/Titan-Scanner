@@ -1,6 +1,5 @@
 """Interactsh OOB integration for Titan Scanner."""
 
-
 from __future__ import annotations
 
 import random
@@ -12,7 +11,6 @@ from titan.core.logger import get_logger
 logger = get_logger("interactsh")
 
 
-
 class InteractshClient:
     def __init__(self, server: str = "https://interactsh.com"):
         self.server = server.rstrip("/")
@@ -22,6 +20,7 @@ class InteractshClient:
     async def register(self) -> bool:
         try:
             import aiohttp
+
             url = f"{self.server}/register"
             payload = {"correlation-id": self.correlation_id, "format": "json"}
             async with aiohttp.ClientSession() as session:
@@ -40,6 +39,7 @@ class InteractshClient:
         results: list[dict[str, Any]] = []
         try:
             import aiohttp
+
             url = f"{self.server}/poll?id={self.correlation_id}&format=json"
             async with aiohttp.ClientSession() as session, session.get(url, timeout=timeout) as resp:
                 if resp.status == 200:
@@ -56,6 +56,7 @@ class InteractshClient:
     async def deregister(self) -> bool:
         try:
             import aiohttp
+
             url = f"{self.server}/deregister"
             payload = {"correlation-id": self.correlation_id}
             async with aiohttp.ClientSession() as session:

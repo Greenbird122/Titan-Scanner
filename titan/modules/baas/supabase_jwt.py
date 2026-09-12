@@ -27,32 +27,41 @@ def _sign(secret: str, claims: dict[str, Any]) -> str:
 
 def jwt_with_role(secret: str, role: str) -> str:
     """Generate a JWT with a specified role claim."""
-    return _sign(secret, {
-        "role": role,
-        "aud": "authenticated",
-        "exp": 9999999999,
-        "sub": "fake-user-id",
-        "email": "fake@evil.com",
-        "app_metadata": {"provider": "email", "providers": ["email"]},
-        "user_metadata": {"role": role},
-    })
+    return _sign(
+        secret,
+        {
+            "role": role,
+            "aud": "authenticated",
+            "exp": 9999999999,
+            "sub": "fake-user-id",
+            "email": "fake@evil.com",
+            "app_metadata": {"provider": "email", "providers": ["email"]},
+            "user_metadata": {"role": role},
+        },
+    )
 
 
 def expired_jwt(secret: str) -> str:
     """Generate a long-expired JWT."""
-    return _sign(secret, {
-        "role": "authenticated",
-        "aud": "authenticated",
-        "exp": 1000000000,  # Long expired
-        "sub": "fake-user-id",
-    })
+    return _sign(
+        secret,
+        {
+            "role": "authenticated",
+            "aud": "authenticated",
+            "exp": 1000000000,  # Long expired
+            "sub": "fake-user-id",
+        },
+    )
 
 
 def jwt_with_claims(secret: str, claims: dict[str, Any]) -> str:
     """Generate a JWT with arbitrary claims merged into the payload."""
-    return _sign(secret, {
-        "role": "authenticated",
-        "aud": "authenticated",
-        "exp": 9999999999,
-        **claims,
-    })
+    return _sign(
+        secret,
+        {
+            "role": "authenticated",
+            "aud": "authenticated",
+            "exp": 9999999999,
+            **claims,
+        },
+    )

@@ -89,9 +89,7 @@ class TestProfiler:
 
     def test_analyze_tls_ok_on_http_page(self):
         # A cleartext script on an http:// page is NOT a downgrade signal.
-        prof = profiler.analyze(
-            '<script src="http://adsterra.com/a.js"></script>', "http://example.com/"
-        )
+        prof = profiler.analyze('<script src="http://adsterra.com/a.js"></script>', "http://example.com/")
         origins = {r["host"]: r for r in prof["origins"]}
         assert origins["adsterra.com"]["cleartext"] is False
 
@@ -202,14 +200,18 @@ class TestOffenseLive:
             port = site._server.sockets[0].getsockname()[1]
             prof = {
                 "page_url": f"http://127.0.0.1:{port}/",
-                "origins": [{
-                    "host": "127.0.0.1", "category": "ad_network",
-                    "urls": [f"http://127.0.0.1:{port}/ad.js"],
-                }],
+                "origins": [
+                    {
+                        "host": "127.0.0.1",
+                        "category": "ad_network",
+                        "urls": [f"http://127.0.0.1:{port}/ad.js"],
+                    }
+                ],
             }
             async with aiohttp.ClientSession() as session:
                 finds = await offense.map_redirect_chains(
-                    session, prof, f"http://127.0.0.1:{port}", block_private=False)
+                    session, prof, f"http://127.0.0.1:{port}", block_private=False
+                )
             assert finds
             assert finds[0].attack_type == AttackType.AD_PHISHING_CHAIN
             assert finds[0].verified
@@ -231,10 +233,13 @@ class TestOffenseLive:
             port = site._server.sockets[0].getsockname()[1]
             prof = {
                 "page_url": f"http://127.0.0.1:{port}/",
-                "origins": [{
-                    "host": "127.0.0.1", "category": "ad_network",
-                    "urls": [f"http://127.0.0.1:{port}/a.js"],
-                }],
+                "origins": [
+                    {
+                        "host": "127.0.0.1",
+                        "category": "ad_network",
+                        "urls": [f"http://127.0.0.1:{port}/a.js"],
+                    }
+                ],
             }
             async with aiohttp.ClientSession() as session:
                 finds = await offense.map_redirect_chains(session, prof, f"http://127.0.0.1:{port}")
@@ -257,14 +262,18 @@ class TestOffenseLive:
             port = site._server.sockets[0].getsockname()[1]
             prof = {
                 "page_url": f"http://127.0.0.1:{port}/",
-                "origins": [{
-                    "host": "127.0.0.1", "category": "risky_ad",
-                    "urls": [f"http://127.0.0.1:{port}/ads.js"],
-                }],
+                "origins": [
+                    {
+                        "host": "127.0.0.1",
+                        "category": "risky_ad",
+                        "urls": [f"http://127.0.0.1:{port}/ads.js"],
+                    }
+                ],
             }
             async with aiohttp.ClientSession() as session:
                 finds = await offense.probe_referrer_gate(
-                    session, prof, f"http://127.0.0.1:{port}", block_private=False)
+                    session, prof, f"http://127.0.0.1:{port}", block_private=False
+                )
             assert finds
             assert finds[0].attack_type == AttackType.AD_REFERRER_GATE
 
@@ -312,12 +321,22 @@ class TestRunPass:
             page_url = f"http://127.0.0.1:{port}/"
             html = f'<script src="http://localhost:{port}/a.js"></script>'
             async with aiohttp.ClientSession() as session:
-                off = await run_pass([{"url": page_url, "html": html}], page_url,
-                                     target=page_url, session=session, consented=False,
-                                     block_private=False)
-                on = await run_pass([{"url": page_url, "html": html}], page_url,
-                                    target=page_url, session=session, consented=True,
-                                    block_private=False)
+                off = await run_pass(
+                    [{"url": page_url, "html": html}],
+                    page_url,
+                    target=page_url,
+                    session=session,
+                    consented=False,
+                    block_private=False,
+                )
+                on = await run_pass(
+                    [{"url": page_url, "html": html}],
+                    page_url,
+                    target=page_url,
+                    session=session,
+                    consented=True,
+                    block_private=False,
+                )
             off_kinds = {f["attack_type"] for f in off["findings"]}
             on_kinds = {f["attack_type"] for f in on["findings"]}
             # Without consent the redirect chain was NOT followed.
@@ -333,14 +352,24 @@ class TestReporting:
         result.hostile = {
             "profile": {
                 "monetization_score": 42,
-                "origins": [{
-                    "host": "popads.net", "category": "popunder", "kinds": ["img"],
-                    "count": 1, "cleartext": False, "sri_missing": False,
-                    "urls": ["https://popads.net/pixel.png"], "risk_score": 20,
-                }],
+                "origins": [
+                    {
+                        "host": "popads.net",
+                        "category": "popunder",
+                        "kinds": ["img"],
+                        "count": 1,
+                        "cleartext": False,
+                        "sri_missing": False,
+                        "urls": ["https://popads.net/pixel.png"],
+                        "risk_score": 20,
+                    }
+                ],
                 "counts": {"popunder": 1},
                 "clickbait": {"score": 30, "signals": ["click here"], "mechanics": [], "grade": "medium"},
-                "cloaks": [], "miners": [], "push": [], "mechanics": [],
+                "cloaks": [],
+                "miners": [],
+                "push": [],
+                "mechanics": [],
             },
             "observed": {"popads.net": {"host": "popads.net", "kinds": ["img"], "count": 1}},
             "findings": [],
@@ -348,6 +377,7 @@ class TestReporting:
             "active_probes": False,
         }
         from titan.reporting import SiteReportWriter
+
         site_dir = SiteReportWriter(str(tmp_path)).write(result)
         assert (site_dir / "hostile.json").exists()
         assert (site_dir / "intel.json").exists()
@@ -377,8 +407,12 @@ class TestSupplyChainB4:
 
         cfg = {
             "crawl": {"profile": "fast"},
-            "modules": {}, "ai": {}, "stealth": {}, "auth": {},
-            "proxy": {}, "exploit": {},
+            "modules": {},
+            "ai": {},
+            "stealth": {},
+            "auth": {},
+            "proxy": {},
+            "exploit": {},
         }
         eng = TitanEngine(cfg)
         sc = eng.config.get("crawl", {}).get("supplychain", {})
@@ -409,10 +443,12 @@ class TestSupplyChainB4:
         """run_pass with no aiohttp session and no consent must not fire
         active probes — the default-scan pass stays read-only."""
         page_url = "https://clean.example.com/"
-        payload = asyncio.run(run_pass(
-            [{"url": page_url, "html": self._page_with_supply_chain_issues()}],
-            page_url,
-        ))
+        payload = asyncio.run(
+            run_pass(
+                [{"url": page_url, "html": self._page_with_supply_chain_issues()}],
+                page_url,
+            )
+        )
         assert payload["active_probes"] is False
         assert payload["consented"] is False
         # read-only supply-chain findings still produced
@@ -421,8 +457,15 @@ class TestSupplyChainB4:
 
 class TestModel:
     def test_new_attack_types_exist(self):
-        for name in ("HOSTILE_CLOAK", "CLICKBAIT", "MINER_SCRIPT",
-                     "PUSH_NOTIFICATION_ABUSE", "AD_MITM_CLEARTEXT",
-                     "AD_PHISHING_CHAIN", "AD_REFERRER_GATE", "SRI_ABSENT",
-                     "AD_DOMAIN_FLUX"):
+        for name in (
+            "HOSTILE_CLOAK",
+            "CLICKBAIT",
+            "MINER_SCRIPT",
+            "PUSH_NOTIFICATION_ABUSE",
+            "AD_MITM_CLEARTEXT",
+            "AD_PHISHING_CHAIN",
+            "AD_REFERRER_GATE",
+            "SRI_ABSENT",
+            "AD_DOMAIN_FLUX",
+        ):
             assert hasattr(AttackType, name), name

@@ -48,7 +48,6 @@ Evidence oracles:
   • Timing Oracle: response times indicate lock contention
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -405,7 +404,8 @@ class RaceDetector:
                 await barrier.wait()
                 try:
                     r = await context.request.post(
-                        url, data=all_params,
+                        url,
+                        data=all_params,
                         headers={"Referer": target, "Content-Type": "application/json"},
                         timeout=5000,
                     )
@@ -431,10 +431,7 @@ class RaceDetector:
             # rejected here, mirroring Engine 1's oracle.
             if success_count > 1:
                 unique_bodies = set(bodies)
-                if (
-                    len(unique_bodies) > 1
-                    and self._is_counter_divergence(list(unique_bodies))
-                ):
+                if len(unique_bodies) > 1 and self._is_counter_divergence(list(unique_bodies)):
                     return Finding(
                         target=target,
                         url=str(url),
@@ -535,14 +532,18 @@ class RaceDetector:
                         baseline_status=baseline_resp.status,
                         verification_body=str(values)[:2000],
                         verification_status=200,
-                        metadata={"counter": counter_name, "values": values, "baseline": baseline_counters[counter_name]},
+                        metadata={
+                            "counter": counter_name,
+                            "values": values,
+                            "baseline": baseline_counters[counter_name],
+                        },
                     )
 
                 # Non-monotonic (up then down) = double-claim
                 if len(set(values)) > 1:
                     # Check for non-monotonic pattern
                     for i in range(1, len(values)):
-                        if values[i] > values[i-1] and values[i] > baseline_counters[counter_name]:
+                        if values[i] > values[i - 1] and values[i] > baseline_counters[counter_name]:
                             return Finding(
                                 target=target,
                                 url=str(url),

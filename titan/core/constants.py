@@ -12,13 +12,13 @@ from __future__ import annotations
 # confuse naive status-based filters.
 # ---------------------------------------------------------------------------
 STRONG_CHECKPOINT_INDICATORS: list[str] = [
-    "just a moment",           # Cloudflare interstitial
-    "checking your browser",   # Cloudflare interstitial
-    "ray id:",                 # Cloudflare error/challenge pages
-    "cf-ray",                  # Cloudflare body marker
-    "cf-mitigated",            # Cloudflare managed challenge
-    "cf-chl",                  # Cloudflare challenge cookie
-    "challenge-platform",      # Cloudflare challenge JS bundle
+    "just a moment",  # Cloudflare interstitial
+    "checking your browser",  # Cloudflare interstitial
+    "ray id:",  # Cloudflare error/challenge pages
+    "cf-ray",  # Cloudflare body marker
+    "cf-mitigated",  # Cloudflare managed challenge
+    "cf-chl",  # Cloudflare challenge cookie
+    "challenge-platform",  # Cloudflare challenge JS bundle
     "vercel security checkpoint",
 ]
 
@@ -80,7 +80,19 @@ DRIVER_DEATH_MARKERS: tuple[str, ...] = (
 # DIFFERENT endpoints are one root cause — a catch-all route that echoes
 # the query string reproduces the same bug on every fuzzed path.
 # ---------------------------------------------------------------------------
-ROOT_CAUSE_ATTACK_TYPES: frozenset[str] = frozenset({
-    "LFI", "SQLi", "NoSQLi", "SSRF", "XSS", "RCE", "SSTI", "XXE",
-    "Request Smuggling", "Open Redirect", "OOB", "Deserialization",
-})
+ROOT_CAUSE_ATTACK_TYPES: frozenset[str] = frozenset(
+    {
+        "LFI",
+        "SQLi",
+        "NoSQLi",
+        "SSRF",
+        "XSS",
+        "RCE",
+        "SSTI",
+        "XXE",
+        "Request Smuggling",
+        "Open Redirect",
+        "OOB",
+        "Deserialization",
+    }
+)

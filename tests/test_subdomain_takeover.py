@@ -120,13 +120,13 @@ class TestServiceMatching:
         """Every entry in VULNERABLE_SERVICES must have the required fields."""
         required = {"service", "cnames", "http_fingerprint", "severity", "takeover_impact"}
         for svc in VULNERABLE_SERVICES:
-            assert required.issubset(svc.keys()), f"Missing fields in {svc.get('service', '?')}: {required - svc.keys()}"
+            assert required.issubset(svc.keys()), (
+                f"Missing fields in {svc.get('service', '?')}: {required - svc.keys()}"
+            )
             assert svc["severity"] in ("critical", "high", "medium", "low"), (
                 f"Invalid severity in {svc['service']}: {svc['severity']}"
             )
-            assert isinstance(svc["cnames"], list) and len(svc["cnames"]) > 0, (
-                f"Empty cnames in {svc['service']}"
-            )
+            assert isinstance(svc["cnames"], list) and len(svc["cnames"]) > 0, f"Empty cnames in {svc['service']}"
 
 
 class TestClaimabilityVerification:
@@ -186,6 +186,7 @@ class TestCNAMEResolution:
 
         with patch.dict("sys.modules", {"dns": MagicMock(), "dns.resolver": MagicMock()}):
             import dns.resolver
+
             dns.resolver.resolve = MagicMock(return_value=mock_answers)
 
             result = await self.detector._resolve_cname("old-app.example.com")
@@ -196,6 +197,7 @@ class TestCNAMEResolution:
         """When no CNAME exists, return None."""
         with patch.dict("sys.modules", {"dns": MagicMock(), "dns.resolver": MagicMock()}):
             import dns.resolver
+
             dns.resolver.resolve = MagicMock(side_effect=Exception("NoAnswer"))
 
             result = await self.detector._resolve_cname("direct.example.com")
@@ -236,7 +238,11 @@ class TestModuleIntegration:
 
                     assert len(findings) == 1
                     f = findings[0]
-                    assert f.subdomain == "old-app.example.com" if hasattr(f, "subdomain") else f.metadata["subdomain"] == "old-app.example.com"
+                    assert (
+                        f.subdomain == "old-app.example.com"
+                        if hasattr(f, "subdomain")
+                        else f.metadata["subdomain"] == "old-app.example.com"
+                    )
                     assert f.metadata["service"] == "Vercel"
                     assert f.severity.value == "critical"
 

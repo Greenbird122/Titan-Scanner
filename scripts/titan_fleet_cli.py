@@ -16,6 +16,7 @@ Usage:
     python titan_fleet_cli.py watch               # one-shot: push -> red round
     python titan_fleet_cli.py daemon [--interval 300]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -96,10 +97,7 @@ def cmd_consent(args) -> int:
     if not site:
         print(f"[!] {args.repo} not linked - link it first")
         return 1
-    print(
-        f"python titan_exploit_cli.py consent add {site.url} "
-        "--write --shells --persistence"
-    )
+    print(f"python titan_exploit_cli.py consent add {site.url} --write --shells --persistence")
     return 0
 
 

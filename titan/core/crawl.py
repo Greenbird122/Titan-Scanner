@@ -5,7 +5,6 @@ orchestration. The Crawler class holds crawl state and runs the
 breadth-first walk of the target site.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
 # No-op probes for fast profile (deep-only probes replaced with empty stubs)
 # ---------------------------------------------------------------------------
 
+
 async def _noop_api_probe() -> list[str]:
     return []
 
@@ -44,6 +44,7 @@ async def _noop_methods_probe() -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Crawler
 # ---------------------------------------------------------------------------
+
 
 class Crawler:
     """Breadth-first web crawler with concurrent module scheduling.
@@ -114,8 +115,14 @@ class Crawler:
 
             try:
                 result_data = await self._process_page(
-                    context, page, current, base_url, depth,
-                    captured_apis, fingerprint, result,
+                    context,
+                    page,
+                    current,
+                    base_url,
+                    depth,
+                    captured_apis,
+                    fingerprint,
+                    result,
                 )
                 if result_data is not None:
                     queue.extend(result_data.get("new_queue_items", []))
@@ -130,24 +137,35 @@ class Crawler:
                 # engine did; HTML pages through the full matrix.
                 if result_data is not None and not e._driver_dead:
                     if e._looks_like_api(current):
-                        _module_tasks.append(asyncio.ensure_future(
-                            e._run_api_modules(
-                                context, base_url, current, fingerprint,
+                        _module_tasks.append(
+                            asyncio.ensure_future(
+                                e._run_api_modules(
+                                    context,
+                                    base_url,
+                                    current,
+                                    fingerprint,
+                                )
                             )
-                        ))
+                        )
                     else:
                         page_forms = result_data.get("forms") or []
                         page_links = result_data.get("links") or []
                         page_apis = result_data.get("apis") or []
                         if page_forms or page_links or page_apis:
-                            _module_tasks.append(asyncio.ensure_future(
-                                e._run_modules(
-                                    context, base_url,
-                                    page_forms, page_links, page_apis,
-                                    fingerprint, result,
-                                    route_score=result_data.get("route_score", 5),
+                            _module_tasks.append(
+                                asyncio.ensure_future(
+                                    e._run_modules(
+                                        context,
+                                        base_url,
+                                        page_forms,
+                                        page_links,
+                                        page_apis,
+                                        fingerprint,
+                                        result,
+                                        route_score=result_data.get("route_score", 5),
+                                    )
                                 )
-                            ))
+                            )
 
                 # Anomaly interrupt + route re-sort
                 if result_data and result_data.get("resp_status", 0) < 400:
@@ -156,6 +174,7 @@ class Crawler:
                 if queue:
                     techs = fingerprint.get("technologies", []) if fingerprint else []
                     from titan.core.route_scorer import sort_queue
+
                     queue = sort_queue(queue, technologies=techs)
 
             except Exception as exc:
@@ -201,12 +220,22 @@ class Crawler:
 
         if is_api_url:
             return await self._process_api_url(
-                context, current, base_url, depth, captured_apis,
+                context,
+                current,
+                base_url,
+                depth,
+                captured_apis,
             )
         else:
             return await self._process_html_page(
-                context, page, current, base_url, depth,
-                captured_apis, fingerprint, result,
+                context,
+                page,
+                current,
+                base_url,
+                depth,
+                captured_apis,
+                fingerprint,
+                result,
             )
 
     async def _process_api_url(
@@ -272,8 +301,7 @@ class Crawler:
                     return await page.goto(current, wait_until="domcontentloaded", timeout=8000)
                 except Exception as exc:
                     msg = f"{type(exc).__name__}: {exc}".lower()
-                    transient = ("net::err" in msg or "timeout" in msg
-                                 or "connection" in msg or "interrupted" in msg)
+                    transient = "net::err" in msg or "timeout" in msg or "connection" in msg or "interrupted" in msg
                     if attempt == 0 and transient:
                         await asyncio.sleep(1.5)
                         continue
@@ -297,9 +325,7 @@ class Crawler:
             if status_code in (401, 403) and e._auth_scope == "unauthenticated":
                 e._gated_routes.add(current)
             if status_code in (403, 429):
-                waf_info = e._waf_tracker.detect(
-                    current, status_code, "", dict(resp.headers) if resp else {}
-                )
+                waf_info = e._waf_tracker.detect(current, status_code, "", dict(resp.headers) if resp else {})
                 if waf_info:
                     print(f"    [!] WAF detected: {waf_info.waf_name} (confidence {waf_info.confidence:.0%})")
             return {"new_queue_items": [], "resp_status": status_code}
@@ -320,11 +346,19 @@ class Crawler:
 
         # Discovery
         from titan.core.discovery import DiscoveryEngine
+
         disc = DiscoveryEngine(e)
         (
-            forms, links, static_apis, js_apis, spa_routes,
-            swagger_endpoints, postman_endpoints, graphql_eps,
-            common_param_discoveries, http_methods,
+            forms,
+            links,
+            static_apis,
+            js_apis,
+            spa_routes,
+            swagger_endpoints,
+            postman_endpoints,
+            graphql_eps,
+            common_param_discoveries,
+            http_methods,
         ) = await disc.discover_all(context, page, base_url, current)
 
         all_apis = sorted(set(static_apis + js_apis + list(captured_apis)))
@@ -377,6 +411,7 @@ class Crawler:
         # Path fuzzing
         try:
             from titan.core.pathfuzz import PathFuzzer
+
             fuzz_cfg = e.config.get("crawl", {}).get("fuzz", {})
             fuzzer = PathFuzzer(
                 fuzz_cfg,
@@ -404,11 +439,12 @@ class Crawler:
         if len(discovered_apis) > e.max_apis:
             e._coverage["capped_apis"] = True
         e._coverage["apis_discovered"] += len(discovered_apis)
-        apis = discovered_apis[:e.max_apis]
+        apis = discovered_apis[: e.max_apis]
         e._coverage["apis_scanned"] += len(apis)
 
         # Schedule module matrix
         from titan.core.route_scorer import score_url
+
         techs = fingerprint.get("technologies", []) if fingerprint else []
         _route_score = score_url(current, forms=forms, technologies=techs, depth=depth)
 

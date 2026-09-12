@@ -17,7 +17,6 @@
    • Flags unsolicited off-origin navigations.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -172,13 +171,9 @@ class RedirectDetector:
         # Baseline request
         try:
             if method.upper() == "GET":
-                baseline_resp = await context.request.get(
-                    url, params=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
             else:
-                baseline_resp = await context.request.post(
-                    url, data=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
         except Exception:
@@ -187,11 +182,13 @@ class RedirectDetector:
         # Derive host-specific probes (e.g. https://target.com.evil.com, https://target.com@evil.com)
         custom_probes = list(_OPEN_REDIRECT_PROBES)
         if target_host:
-            custom_probes.extend([
-                f"https://{target_host}.evil.com",
-                f"https://{target_host}@evil.com",
-                f"https://evil.com?{target_host}",
-            ])
+            custom_probes.extend(
+                [
+                    f"https://{target_host}.evil.com",
+                    f"https://{target_host}@evil.com",
+                    f"https://evil.com?{target_host}",
+                ]
+            )
 
         # Test all parameters
         for param_name in list(params.keys()):
@@ -210,10 +207,17 @@ class RedirectDetector:
                     body = await resp.text()
 
                     f = self._evaluate_http_redirect(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, method, param_name,
+                        baseline_body,
+                        baseline_status,
+                        body,
+                        resp,
+                        target,
+                        url,
+                        method,
+                        param_name,
                         "query" if method.upper() == "GET" else "body",
-                        payload, target_host
+                        payload,
+                        target_host,
                     )
                     if f:
                         findings.append(f)
@@ -342,13 +346,15 @@ class RedirectDetector:
         request_host = urlparse(url).hostname or ""
         final_host = urlparse(final_url).hostname or ""
         if final_url and request_host and final_host and final_host != request_host:
-            redirects.append({
-                "dest": final_url,
-                "mechanism": "server-redirect",
-                "trigger": "on-load",
-                "source": "",
-                "timing": int((time.monotonic() - started) * 1000),
-            })
+            redirects.append(
+                {
+                    "dest": final_url,
+                    "mechanism": "server-redirect",
+                    "trigger": "on-load",
+                    "source": "",
+                    "timing": int((time.monotonic() - started) * 1000),
+                }
+            )
 
         seen: set = set()
         for r in redirects:
@@ -362,10 +368,15 @@ class RedirectDetector:
             if key in seen:
                 continue
             seen.add(key)
-            findings.append(self._finding_browser(
-                target, str(getattr(page, "url", None) or url), r,
-                dest_host, origin,
-            ))
+            findings.append(
+                self._finding_browser(
+                    target,
+                    str(getattr(page, "url", None) or url),
+                    r,
+                    dest_host,
+                    origin,
+                )
+            )
         return findings
 
     def _finding_browser(self, target: str, page_url: str, r: dict, dest_host: str, origin: str) -> Finding:

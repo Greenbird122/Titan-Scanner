@@ -7,7 +7,6 @@ Usage:
     tscan list
 """
 
-
 from __future__ import annotations
 
 import os
@@ -29,9 +28,7 @@ if os.path.normcase(_site_pkgs) not in [os.path.normcase(p) for p in sys.path[:1
 # If titan is already loaded from the WRONG location, purge it so it
 # reimports from the correct site-packages.
 if "titan" in sys.modules:
-    _loaded = os.path.normcase(
-        os.path.abspath(getattr(sys.modules["titan"], "__file__", "") or "")
-    )
+    _loaded = os.path.normcase(os.path.abspath(getattr(sys.modules["titan"], "__file__", "") or ""))
     if _site_pkgs.lower() not in _loaded.lower():
         _to_rm = [k for k in sys.modules if k == "titan" or k.startswith("titan.")]
         for _k in _to_rm:
@@ -47,15 +44,13 @@ from pathlib import Path
 logger = get_logger("cli")
 
 
-
 def _http_url(value: str) -> str:
     """Argparse type check: require an http(s) URL with a hostname."""
     from urllib.parse import urlparse
+
     parsed = urlparse(value)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        raise argparse.ArgumentTypeError(
-            f"target must be an http(s) URL, got {value!r}"
-        )
+        raise argparse.ArgumentTypeError(f"target must be an http(s) URL, got {value!r}")
     return value
 
 
@@ -83,8 +78,9 @@ def create_parser() -> argparse.ArgumentParser:
     # Report command
     report_parser = subparsers.add_parser("report", help="Generate report from scan")
     report_parser.add_argument("--scan-id", "-s", required=True, help="Scan ID")
-    report_parser.add_argument("--format", "-f", choices=["json", "html", "markdown", "csv"],
-                              default="json", help="Report format")
+    report_parser.add_argument(
+        "--format", "-f", choices=["json", "html", "markdown", "csv"], default="json", help="Report format"
+    )
     report_parser.add_argument("--output", "-o", help="Output file")
 
     # List command
@@ -118,18 +114,30 @@ def _build_config(args: argparse.Namespace) -> dict:
             "timeout": 600,
             "module_concurrency": 8,
             "interaction_timeout": 90,
-            "spa": {"enabled": True, "hydrate_budget": 10, "max_routes": 6, "per_route_budget": 30, "network_idle": 2500},
+            "spa": {
+                "enabled": True,
+                "hydrate_budget": 10,
+                "max_routes": 6,
+                "per_route_budget": 30,
+                "network_idle": 2500,
+            },
             "supplychain": {"enabled": False},
             "fuzz": {"enabled": False, "budget": 50},
         },
         "stealth": {"adaptive": True, "jitter": 0.3, "min_delay": 0.15, "max_delay": 0.6},
-        "brain": {"enabled": True, "budget": 60, "variants_per_finding": 3, "evolution": {"enabled": True, "persist": True}},
+        "brain": {
+            "enabled": True,
+            "budget": 60,
+            "variants_per_finding": 3,
+            "evolution": {"enabled": True, "persist": True},
+        },
         "deep_audit": {"enabled": False},
     }
 
     config_path = getattr(args, "config", None)
     if config_path and os.path.exists(config_path):
         import yaml
+
         with open(config_path, encoding="utf-8") as f:
             file_config = yaml.safe_load(f) or {}
         config.update(file_config)
@@ -179,6 +187,7 @@ async def run_scan(args: argparse.Namespace) -> None:
     except Exception as e:
         print(f"[-] Scan crashed: {e}")
         import traceback
+
         traceback.print_exc()
         return
     duration = time.time() - t0
@@ -258,13 +267,13 @@ async def run_scan(args: argparse.Namespace) -> None:
     if args.html:
         try:
             from titan.reporting.dashboard import build_dashboard
+
             site_dir = output_dir / f"tscan-{scan_id}"
             site_dir.mkdir(parents=True, exist_ok=True)
-            (site_dir / "findings.json").write_text(
-                json.dumps(findings_data, indent=2, default=str), encoding="utf-8"
-            )
+            (site_dir / "findings.json").write_text(json.dumps(findings_data, indent=2, default=str), encoding="utf-8")
             path = build_dashboard(site_dir)
             import shutil
+
             shutil.copy2(str(path), args.html)
             print(f"[+] HTML report saved to {args.html}")
         except Exception as e:
@@ -314,12 +323,14 @@ def run_report(args: argparse.Namespace) -> None:
     if args.format == "html":
         try:
             from titan.reporting.dashboard import build_dashboard
+
             site_dir = output_dir / args.scan_id
             site_dir.mkdir(parents=True, exist_ok=True)
             (site_dir / "findings.json").write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
             path = build_dashboard(site_dir)
             if args.output:
                 import shutil
+
                 shutil.copy2(str(path), args.output)
                 print(f"[+] HTML report saved to {args.output}")
             else:

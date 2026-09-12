@@ -103,8 +103,10 @@ def context(client):
 
 def _fast_blind(detector):
     """Disable real timing waits for fast, deterministic tests."""
+
     async def _no_blind(*args, **kwargs):
         return False, 0.0
+
     detector.blind_detector.detect_time_based = _no_blind
     return detector
 
@@ -113,8 +115,11 @@ class TestLabSQLi:
     async def test_finds_boolean_sqli(self, context):
         detector = _fast_blind(SQLiDetector(StubSmith(), {}))
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/sqli", {"id": "1"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/sqli",
+            {"id": "1"},
         )
         assert findings, "SQLi detector should find the lab's /sqli endpoint"
         f = findings[0]
@@ -127,8 +132,11 @@ class TestLabIDOR:
     async def test_finds_structural_idor(self, context):
         detector = IDORDetector(StubSmith(), {})
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/api/user", {"id": "1"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/user",
+            {"id": "1"},
         )
         assert findings, "IDOR detector should find /api/user?id=1 -> id=2"
         f = findings[0]
@@ -144,8 +152,11 @@ class TestLabLFI:
         # advertised baseline ``file=app.py`` works from any cwd); passing
         # ``local_lab/app.py`` would double the prefix and error.
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/lfi", {"file": "app.py"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/lfi",
+            {"file": "app.py"},
         )
         assert findings, "LFI detector should find the lab's /lfi endpoint"
         f = findings[0]
@@ -174,12 +185,17 @@ class TestLabRCE:
         # NOT invent an RCE finding from an unchanged {"status": "pong"} body.
         detector = _fast_blind(RCEDetector(StubSmith(), {}))
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/cmd", {"host": "localhost"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/cmd",
+            {"host": "localhost"},
         )
         assert findings == [], f"blind non-reflective endpoint must not false-positive, got {findings}"
 
-    @pytest.mark.skipif(sys.platform != "win32", reason="real timing path pins the Windows lab delay (ping -n); CI runs Linux")
+    @pytest.mark.skipif(
+        sys.platform != "win32", reason="real timing path pins the Windows lab delay (ping -n); CI runs Linux"
+    )
     async def test_blind_timing_confirms_cmd(self, context):
         """Regression: /cmd delays ~2.4s on `| ping -n 3` but the historical
         `cookies=` TypeError made detect_time_based swallow the exception and
@@ -190,8 +206,11 @@ class TestLabRCE:
         (and CI) would burn the module's full timing budget."""
         detector = RCEDetector(StubSmith(), {})  # real BlindDetector, real timing
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/cmd", {"host": "localhost"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/cmd",
+            {"host": "localhost"},
         )
         assert findings, "timing oracle should confirm blind RCE on /cmd"
         f = findings[0]
@@ -207,10 +226,14 @@ class TestLabRCE:
 class TestLabXSS:
     async def test_finds_reflected_xss(self, context):
         from titan.modules.xss.detector import XSSDetector
+
         detector = XSSDetector(StubSmith(), {})
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/xss", {"name": "test"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/xss",
+            {"name": "test"},
         )
         assert findings, "XSS detector should find the lab's /xss endpoint"
         f = findings[0]
@@ -225,8 +248,11 @@ class TestIDORNoEchoFalsePositive:
     async def test_does_not_flag_input_echo(self, context):
         detector = IDORDetector(StubSmith(), {})
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/sqli", {"id": "1"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/sqli",
+            {"id": "1"},
         )
         assert findings == [], f"echo-only change must not be IDOR, got {findings}"
 
@@ -254,7 +280,10 @@ class TestIDORBaselineFailure:
     async def test_silent_when_baseline_fails(self):
         detector = IDORDetector(StubSmith(), {})
         findings = await detector.scan(
-            self.BrokenBaselineContext(), "http://localhost:5000", "GET",
-            "http://localhost:5000/api/user", {"id": "1"},
+            self.BrokenBaselineContext(),
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/api/user",
+            {"id": "1"},
         )
         assert findings == [], "must not flag IDOR when the baseline is missing"

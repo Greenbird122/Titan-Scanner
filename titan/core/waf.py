@@ -69,6 +69,7 @@ WAF_SIGNATURES: dict[str, list[str]] = {
 @dataclass
 class WAFInfo:
     """Detected WAF information for a route."""
+
     waf_name: str
     confidence: float  # 0.0 - 1.0
     blocked_status: int  # the HTTP status that triggered detection
@@ -77,6 +78,7 @@ class WAFInfo:
 @dataclass
 class WAFTracker:
     """Tracks WAF presence per route and provides payload re-encoding."""
+
     # Route → WAF info
     _waf_cache: dict[str, WAFInfo] = field(default_factory=dict)
     # Routes where WAF is confirmed
@@ -227,6 +229,7 @@ def get_bypass_variants(payload: str) -> list[str]:
 
 # ── Encoding helpers ───────────────────────────────────────────────────
 
+
 def _url_encode(payload: str) -> str:
     """URL-encode special characters but keep alphanumeric and basic chars."""
     # Encode <, >, ', ", (, ), spaces, and other injection chars
@@ -254,7 +257,7 @@ def _unicode_encode(payload: str) -> str:
     """
     # Use case-insensitive replacements
     replacements = [
-        (r"(?i)SELECT", "SEL\u200bECT"),   # zero-width space
+        (r"(?i)SELECT", "SEL\u200bECT"),  # zero-width space
         (r"(?i)UNION", "UNI\u200bON"),
         (r"(?i)INSERT", "INS\u200bERT"),
         (r"(?i)UPDATE", "UPD\u200bATE"),
@@ -274,6 +277,7 @@ def _unicode_encode(payload: str) -> str:
 def _case_variation(payload: str) -> str:
     """Alternate case for SQL/JS keywords."""
     import random
+
     result = []
     for ch in payload:
         if ch.isalpha():

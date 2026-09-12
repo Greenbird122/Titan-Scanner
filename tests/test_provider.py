@@ -18,6 +18,7 @@ async def test_provider_raises_when_no_backend():
 async def test_provider_calls_ollama():
     with patch.dict(os.environ, {"OLLAMA_HOST": "http://localhost:11434", "OLLAMA_MODEL": "test-model"}, clear=True):
         import requests
+
         with patch.object(requests, "post") as mock_post:
             mock_post.return_value.status_code = 200
             mock_post.return_value.json.return_value = {"message": {"content": "No Issue"}}

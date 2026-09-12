@@ -11,7 +11,6 @@ This module:
 5. DNSSEC validation
 """
 
-
 from __future__ import annotations
 
 import re
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class DNSPayload:
     """A DNS security test payload."""
+
     name: str
     category: str
     subdomain: str
@@ -40,14 +39,55 @@ class DNSSecurityTester:
     """Deep DNS security testing."""
 
     COMMON_SUBDOMAINS = [
-        "www", "mail", "ftp", "admin", "api", "dev", "staging", "test",
-        "blog", "shop", "store", "app", "portal", "dashboard", "cms",
-        "vpn", "remote", "gateway", "proxy", "cdn", "static", "media",
-        "images", "assets", "files", "docs", "help", "support",
-        "status", "monitor", "grafana", "kibana", "jenkins", "gitlab",
-        "github", "bitbucket", "jira", "confluence", "slack",
-        "db", "database", "mysql", "postgres", "redis", "mongo",
-        "elastic", "kafka", "rabbitmq", "memcache",
+        "www",
+        "mail",
+        "ftp",
+        "admin",
+        "api",
+        "dev",
+        "staging",
+        "test",
+        "blog",
+        "shop",
+        "store",
+        "app",
+        "portal",
+        "dashboard",
+        "cms",
+        "vpn",
+        "remote",
+        "gateway",
+        "proxy",
+        "cdn",
+        "static",
+        "media",
+        "images",
+        "assets",
+        "files",
+        "docs",
+        "help",
+        "support",
+        "status",
+        "monitor",
+        "grafana",
+        "kibana",
+        "jenkins",
+        "gitlab",
+        "github",
+        "bitbucket",
+        "jira",
+        "confluence",
+        "slack",
+        "db",
+        "database",
+        "mysql",
+        "postgres",
+        "redis",
+        "mongo",
+        "elastic",
+        "kafka",
+        "rabbitmq",
+        "memcache",
     ]
 
     TAKEOVER_INDICATORS = [
@@ -92,6 +132,7 @@ class DNSSecurityTester:
                 full_domain = f"{subdomain}.{domain}"
                 try:
                     import socket
+
                     socket.gethostbyname(full_domain)
                     return full_domain
                 except Exception:
@@ -121,11 +162,14 @@ class DNSSecurityTester:
 
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 for subdomain in subdomains:
                     try:
                         url = f"https://{subdomain}"
-                        async with session.get(url, timeout=aiohttp.ClientTimeout(total=5), allow_redirects=False) as resp:
+                        async with session.get(
+                            url, timeout=aiohttp.ClientTimeout(total=5), allow_redirects=False
+                        ) as resp:
                             body = await resp.text()
                             status = resp.status
 
@@ -170,10 +214,8 @@ class DNSSecurityTester:
         try:
             # Get nameservers
             import subprocess
-            result = subprocess.run(
-                ["nslookup", "-type=ns", domain],
-                capture_output=True, text=True, timeout=10
-            )
+
+            result = subprocess.run(["nslookup", "-type=ns", domain], capture_output=True, text=True, timeout=10)
 
             nameservers = re.findall(r"nameserver = (.+)", result.stdout)
 
@@ -181,8 +223,7 @@ class DNSSecurityTester:
                 try:
                     # Attempt zone transfer
                     result = subprocess.run(
-                        ["dig", f"@{ns.strip()}", domain, "AXFR"],
-                        capture_output=True, text=True, timeout=10
+                        ["dig", f"@{ns.strip()}", domain, "AXFR"], capture_output=True, text=True, timeout=10
                     )
 
                     if "XFR size" in result.stdout or len(result.stdout) > 1000:

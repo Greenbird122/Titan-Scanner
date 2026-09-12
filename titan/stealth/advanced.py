@@ -24,7 +24,6 @@ Usage:
     decoys = af.generate_decoys(target_url, count=5)
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -47,16 +46,18 @@ logger = logging.getLogger(__name__)
 # Traffic shaping — normalize timing patterns
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TimingProfile:
     """A timing profile that mimics real browser behavior."""
+
     name: str
-    base_delay: float        # Base delay between requests (seconds)
-    jitter: float            # Jitter fraction (0-1)
-    burst_prob: float        # Probability of burst (rapid requests)
-    burst_size: int          # Number of requests in a burst
-    burst_delay: float       # Delay within burst
-    idle_prob: float         # Probability of idle period
+    base_delay: float  # Base delay between requests (seconds)
+    jitter: float  # Jitter fraction (0-1)
+    burst_prob: float  # Probability of burst (rapid requests)
+    burst_size: int  # Number of requests in a burst
+    burst_delay: float  # Delay within burst
+    idle_prob: float  # Probability of idle period
     idle_duration: tuple[float, float] = (2.0, 10.0)  # Min/max idle
 
 
@@ -180,6 +181,7 @@ class TrafficShaper:
 # Polymorphic payloads — unique variants each time
 # ---------------------------------------------------------------------------
 
+
 class PolymorphicEngine:
     """Generate unique payload variants to avoid signature detection.
 
@@ -277,18 +279,13 @@ class PolymorphicEngine:
             return "".join(f"\\u{ord(c):04x}" for c in payload)
         elif encoding == "base64":
             import base64
+
             return base64.b64encode(payload.encode()).decode()
         elif encoding == "mixed_case":
-            return "".join(
-                c.upper() if random.random() > 0.5 else c.lower()
-                for c in payload
-            )
+            return "".join(c.upper() if random.random() > 0.5 else c.lower() for c in payload)
         elif encoding == "whitespace_injection":
             words = payload.split(" ")
-            return " ".join(
-                w + (" " * random.randint(1, 3))
-                for w in words
-            ).strip()
+            return " ".join(w + (" " * random.randint(1, 3)) for w in words).strip()
         elif encoding == "comment_injection":
             if variant == "sqli":
                 # SQL comment injection
@@ -338,6 +335,7 @@ class PolymorphicEngine:
 # Decoy traffic — inject noise to confuse IDS
 # ---------------------------------------------------------------------------
 
+
 class DecoyGenerator:
     """Generate decoy HTTP requests to inject noise.
 
@@ -348,12 +346,30 @@ class DecoyGenerator:
 
     # Common paths that look like normal browsing
     DECOY_PATHS = [
-        "/", "/index.html", "/favicon.ico", "/robots.txt",
-        "/sitemap.xml", "/manifest.json", "/.well-known/",
-        "/assets/", "/static/", "/images/", "/css/", "/js/",
-        "/api/health", "/api/status", "/api/version",
-        "/login", "/register", "/about", "/contact", "/help",
-        "/privacy", "/terms", "/sitemap", "/feed",
+        "/",
+        "/index.html",
+        "/favicon.ico",
+        "/robots.txt",
+        "/sitemap.xml",
+        "/manifest.json",
+        "/.well-known/",
+        "/assets/",
+        "/static/",
+        "/images/",
+        "/css/",
+        "/js/",
+        "/api/health",
+        "/api/status",
+        "/api/version",
+        "/login",
+        "/register",
+        "/about",
+        "/contact",
+        "/help",
+        "/privacy",
+        "/terms",
+        "/sitemap",
+        "/feed",
     ]
 
     # Realistic User-Agents
@@ -384,19 +400,21 @@ class DecoyGenerator:
         for path in paths:
             url = base + path
             ua = random.choice(self.USER_AGENTS)
-            decoys.append({
-                "url": url,
-                "method": "GET",
-                "headers": {
-                    "User-Agent": ua,
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Accept-Encoding": "gzip, deflate, br",
-                    "Connection": "keep-alive",
-                    "Cache-Control": "no-cache",
-                },
-                "description": f"Decoy: {path}",
-            })
+            decoys.append(
+                {
+                    "url": url,
+                    "method": "GET",
+                    "headers": {
+                        "User-Agent": ua,
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Connection": "keep-alive",
+                        "Cache-Control": "no-cache",
+                    },
+                    "description": f"Decoy: {path}",
+                }
+            )
 
         return decoys
 
@@ -421,12 +439,14 @@ class DecoyGenerator:
                 delay = random.uniform(*delay_range)
                 await asyncio.sleep(delay)
 
-                await transport.send(AttackRequest(
-                    url=decoy["url"],
-                    method=RequestMethod.GET,
-                    headers=decoy["headers"],
-                    timeout=10.0,
-                ))
+                await transport.send(
+                    AttackRequest(
+                        url=decoy["url"],
+                        method=RequestMethod.GET,
+                        headers=decoy["headers"],
+                        timeout=10.0,
+                    )
+                )
                 sent += 1
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
@@ -438,6 +458,7 @@ class DecoyGenerator:
 # ---------------------------------------------------------------------------
 # Header fingerprint randomization
 # ---------------------------------------------------------------------------
+
 
 class FingerprintRandomizer:
     """Randomize TLS and HTTP fingerprints to avoid detection."""
@@ -504,6 +525,7 @@ class FingerprintRandomizer:
 # Main anti-forensics coordinator
 # ---------------------------------------------------------------------------
 
+
 class AntiForensics:
     """Unified anti-forensics interface.
 
@@ -540,7 +562,9 @@ class AntiForensics:
         """
         # Generate polymorphic payloads
         payloads = self.polymorphic.generate(
-            payload, variant=variant, count=self.polymorphic_count,
+            payload,
+            variant=variant,
+            count=self.polymorphic_count,
         )
 
         # Generate decoys

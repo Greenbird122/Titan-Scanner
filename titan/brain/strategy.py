@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ModuleScore:
     """Score for a detector module."""
+
     name: str
     successes: int = 0
     attempts: int = 0
@@ -125,11 +126,13 @@ class ProbeStrategy:
             score.successes += 1
             score.total_value += value
 
-        self._history.append({
-            "module": module,
-            "success": success,
-            "value": value,
-        })
+        self._history.append(
+            {
+                "module": module,
+                "success": success,
+                "value": value,
+            }
+        )
 
     def select_next(self, available_modules: list[str], n: int = 1) -> list[str]:
         """Select the next N modules to run using Thompson Sampling."""

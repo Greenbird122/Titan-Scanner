@@ -6,7 +6,6 @@ initializes the ``_transport_*`` state attributes in ``__init__`` before any
 transport use; the mixin only supplies the behavior.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -14,7 +13,6 @@ from typing import Any
 from titan.core.logger import get_logger
 
 logger = get_logger("transport_mixin")
-
 
 
 class TransportMixin:
@@ -25,6 +23,7 @@ class TransportMixin:
             return
         try:
             from titan.transport import TransportRegistry
+
             self._transport_registry = TransportRegistry()
             await self._transport_registry.auto_register()
             self._transport_http = self._transport_registry.get("http")
@@ -36,9 +35,12 @@ class TransportMixin:
             self._transport_ready = True
 
     async def _transport_send(
-        self, url: str, method: str = "GET",
+        self,
+        url: str,
+        method: str = "GET",
         headers: dict[str, str] | None = None,
-        body: Any = None, params: dict[str, str] | None = None,
+        body: Any = None,
+        params: dict[str, str] | None = None,
         timeout: float = 15.0,
     ) -> Any | None:
         await self._ensure_transport()
@@ -46,11 +48,18 @@ class TransportMixin:
             return None
         try:
             from titan.transport import AttackRequest, RequestMethod
+
             _method = RequestMethod(method.upper())
-            return await self._transport_http.send(AttackRequest(
-                url=url, method=_method, headers=headers or {},
-                body=body, params=params, timeout=timeout,
-            ))
+            return await self._transport_http.send(
+                AttackRequest(
+                    url=url,
+                    method=_method,
+                    headers=headers or {},
+                    body=body,
+                    params=params,
+                    timeout=timeout,
+                )
+            )
         except Exception:
             return None
 

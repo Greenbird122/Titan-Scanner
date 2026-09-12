@@ -18,7 +18,6 @@ Supports:
   - IPv6 IMDS (fd00::2 for AWS)
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -40,16 +39,18 @@ logger = logging.getLogger(__name__)
 # Cloud provider IMDS definitions
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class IMDSEndpoint:
     """A single IMDS endpoint to probe."""
+
     url: str
     method: str = "GET"
     headers: dict[str, str] = field(default_factory=dict)
     description: str = ""
     provider: str = "aws"
     requires_token: bool = False  # True = IMDSv2, needs PUT token first
-    sensitive: bool = False       # True = response may contain credentials
+    sensitive: bool = False  # True = response may contain credentials
 
 
 # AWS IMDSv1 endpoints
@@ -205,9 +206,11 @@ ALL_IMDS = {
 # Result types
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class IMDSProbeResult:
     """Result of probing a single IMDS endpoint."""
+
     endpoint: IMDSEndpoint
     success: bool
     status: int = 0
@@ -221,6 +224,7 @@ class IMDSProbeResult:
 @dataclass
 class IMDSReport:
     """Full IMDS probing report."""
+
     provider: str | None = None
     accessible: bool = False
     imdsv2_supported: bool = False
@@ -239,6 +243,7 @@ class IMDSReport:
 # ---------------------------------------------------------------------------
 # IMDS Prober
 # ---------------------------------------------------------------------------
+
 
 class IMDSProber:
     """Probes cloud IMDS through an SSRF sink.
@@ -297,10 +302,7 @@ class IMDSProber:
             logger.info(f"Probing {provider.upper()} IMDS ({len(endpoints)} endpoints)")
 
             # Probe endpoints concurrently
-            tasks = [
-                self._probe_endpoint(sink, ep)
-                for ep in endpoints
-            ]
+            tasks = [self._probe_endpoint(sink, ep) for ep in endpoints]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
@@ -422,7 +424,7 @@ class IMDSProber:
                         description=endpoint.description,
                         provider=endpoint.provider,
                         sensitive=endpoint.sensitive,
-                    )
+                    ),
                 )
                 if result and result.success:
                     return result
@@ -441,10 +443,7 @@ class IMDSProber:
         if not report.role_name:
             return
 
-        cred_url = (
-            f"http://169.254.169.254/latest/meta-data/iam/security-credentials/"
-            f"{report.role_name}"
-        )
+        cred_url = f"http://169.254.169.254/latest/meta-data/iam/security-credentials/{report.role_name}"
 
         result = await self._probe_endpoint(
             sink,
@@ -453,7 +452,7 @@ class IMDSProber:
                 description=f"AWS role credentials: {report.role_name}",
                 provider="aws",
                 sensitive=True,
-            )
+            ),
         )
 
         if result and result.success:
@@ -461,23 +460,25 @@ class IMDSProber:
             creds = self._try_extract_creds(result.body, "aws")
             if creds:
                 report.credentials = creds
-                report.findings.append({
-                    "type": "cloud_credential_exposure",
-                    "severity": "critical",
-                    "title": f"IAM Role Credentials Extracted: {report.role_name}",
-                    "evidence": f"AccessKeyId={creds.get('AccessKeyId', 'N/A')[:12]}... "
-                                f"via IMDS role {report.role_name}",
-                    "oracle": "imds_credential_extraction",
-                    "tier": "confirmed",
-                    "flow_types": ["creds", "auth_bypass"],
-                    "cvss_score": 10.0,
-                    "metadata": {
-                        "role_name": report.role_name,
-                        "provider": "aws",
-                        "access_key_prefix": creds.get("AccessKeyId", "")[:8],
-                        "expiration": creds.get("Expiration", ""),
-                    },
-                })
+                report.findings.append(
+                    {
+                        "type": "cloud_credential_exposure",
+                        "severity": "critical",
+                        "title": f"IAM Role Credentials Extracted: {report.role_name}",
+                        "evidence": f"AccessKeyId={creds.get('AccessKeyId', 'N/A')[:12]}... "
+                        f"via IMDS role {report.role_name}",
+                        "oracle": "imds_credential_extraction",
+                        "tier": "confirmed",
+                        "flow_types": ["creds", "auth_bypass"],
+                        "cvss_score": 10.0,
+                        "metadata": {
+                            "role_name": report.role_name,
+                            "provider": "aws",
+                            "access_key_prefix": creds.get("AccessKeyId", "")[:8],
+                            "expiration": creds.get("Expiration", ""),
+                        },
+                    }
+                )
 
     def _extract_metadata(self, report: IMDSReport, result: IMDSProbeResult) -> None:
         """Extract metadata from a successful IMDS response."""
@@ -582,66 +583,74 @@ class IMDSProber:
             return findings
 
         # IMDS accessible — always a critical finding
-        findings.append({
-            "type": "cloud_imds_exposure",
-            "severity": "critical",
-            "title": f"{report.provider.upper()} Instance Metadata Service Accessible",
-            "evidence": f"IMDS endpoint responded through SSRF sink — "
-                        f"provider={report.provider}, "
-                        f"instance={report.instance_id or 'unknown'}",
-            "oracle": "imds_endpoint_response",
-            "tier": "confirmed",
-            "flow_types": ["url_fetch", "creds"],
-            "cvss_score": 9.8,
-            "metadata": {
-                "provider": report.provider,
-                "instance_id": report.instance_id,
-                "instance_type": report.instance_type,
-                "region": report.region,
-                "imdsv2": report.imdsv2_supported,
-            },
-        })
+        findings.append(
+            {
+                "type": "cloud_imds_exposure",
+                "severity": "critical",
+                "title": f"{report.provider.upper()} Instance Metadata Service Accessible",
+                "evidence": f"IMDS endpoint responded through SSRF sink — "
+                f"provider={report.provider}, "
+                f"instance={report.instance_id or 'unknown'}",
+                "oracle": "imds_endpoint_response",
+                "tier": "confirmed",
+                "flow_types": ["url_fetch", "creds"],
+                "cvss_score": 9.8,
+                "metadata": {
+                    "provider": report.provider,
+                    "instance_id": report.instance_id,
+                    "instance_type": report.instance_type,
+                    "region": report.region,
+                    "imdsv2": report.imdsv2_supported,
+                },
+            }
+        )
 
         # User-data exposure
         if report.user_data:
-            findings.append({
-                "type": "cloud_userdata_exposure",
-                "severity": "critical",
-                "title": "EC2 User-Data Exposed",
-                "evidence": f"User-data accessible ({len(report.user_data)} chars) — "
-                            f"may contain secrets, boot scripts, API keys",
-                "oracle": "imds_userdata_response",
-                "tier": "confirmed",
-                "flow_types": ["data_leak", "creds"],
-                "cvss_score": 9.1,
-            })
+            findings.append(
+                {
+                    "type": "cloud_userdata_exposure",
+                    "severity": "critical",
+                    "title": "EC2 User-Data Exposed",
+                    "evidence": f"User-data accessible ({len(report.user_data)} chars) — "
+                    f"may contain secrets, boot scripts, API keys",
+                    "oracle": "imds_userdata_response",
+                    "tier": "confirmed",
+                    "flow_types": ["data_leak", "creds"],
+                    "cvss_score": 9.1,
+                }
+            )
 
         # GCP service account
         if report.service_account_email:
-            findings.append({
-                "type": "cloud_service_account_exposure",
-                "severity": "high",
-                "title": f"GCP Service Account Email Exposed: {report.service_account_email}",
-                "evidence": f"Service account {report.service_account_email} accessible via IMDS",
-                "oracle": "imds_service_account",
-                "tier": "confirmed",
-                "flow_types": ["data_leak"],
-                "cvss_score": 7.5,
-            })
+            findings.append(
+                {
+                    "type": "cloud_service_account_exposure",
+                    "severity": "high",
+                    "title": f"GCP Service Account Email Exposed: {report.service_account_email}",
+                    "evidence": f"Service account {report.service_account_email} accessible via IMDS",
+                    "oracle": "imds_service_account",
+                    "tier": "confirmed",
+                    "flow_types": ["data_leak"],
+                    "cvss_score": 7.5,
+                }
+            )
 
         # IMDSv2 not enforced (AWS specific)
         if report.provider == "aws" and not report.imdsv2_supported:
-            findings.append({
-                "type": "cloud_imdsv1_enabled",
-                "severity": "high",
-                "title": "AWS IMDSv1 Enabled (Token-Based Protection Not Enforced)",
-                "evidence": "IMDSv1 (GET-based) metadata access succeeded — "
-                            "IMDSv2 (PUT-based token) not required. "
-                            "IMDSv1 is vulnerable to SSRF-based credential theft.",
-                "oracle": "imdsv1_accessible",
-                "tier": "confirmed",
-                "flow_types": ["url_fetch", "creds"],
-                "cvss_score": 8.5,
-            })
+            findings.append(
+                {
+                    "type": "cloud_imdsv1_enabled",
+                    "severity": "high",
+                    "title": "AWS IMDSv1 Enabled (Token-Based Protection Not Enforced)",
+                    "evidence": "IMDSv1 (GET-based) metadata access succeeded — "
+                    "IMDSv2 (PUT-based token) not required. "
+                    "IMDSv1 is vulnerable to SSRF-based credential theft.",
+                    "oracle": "imdsv1_accessible",
+                    "tier": "confirmed",
+                    "flow_types": ["url_fetch", "creds"],
+                    "cvss_score": 8.5,
+                }
+            )
 
         return findings

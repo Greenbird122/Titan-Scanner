@@ -13,7 +13,6 @@ stance). Bounded: max_pages / max_depth / per-request timeout / asset cap, so
 a huge site archives in minutes, not hours.
 """
 
-
 from __future__ import annotations
 
 import html
@@ -188,7 +187,9 @@ class SiteArchiver:
                     )
                     continue
 
-                is_html = "html" in ctype.lower() or b"<html" in body[:2048].lower() or b"<!doctype" in body[:2048].lower()
+                is_html = (
+                    "html" in ctype.lower() or b"<html" in body[:2048].lower() or b"<!doctype" in body[:2048].lower()
+                )
 
                 if is_html and len(pages) < self.max_pages:
                     name = _safe_name(norm, len(pages) + 1)
@@ -254,7 +255,14 @@ class SiteArchiver:
                                 continue
                             kind = _asset_kind(asset, ar.headers.get("Content-Type", ""))
                             aname = _safe_name(asset, assets_saved + 1)
-                            ext = {"js": ".js", "css": ".css", "image": ".img", "font": ".fnt", "json": ".json", "other": ".bin"}[kind]
+                            ext = {
+                                "js": ".js",
+                                "css": ".css",
+                                "image": ".img",
+                                "font": ".fnt",
+                                "json": ".json",
+                                "other": ".bin",
+                            }[kind]
                             afile = assets_dir / f"{aname}{ext}"
                             afile.write_bytes(abody)
                             url_to_file[asset.rstrip("/")] = f"assets/{afile.name}"
@@ -305,7 +313,7 @@ class SiteArchiver:
         for ep in endpoints:
             if ep["url"] not in by_url:
                 by_url[ep["url"]] = ep
-        endpoints = sorted(by_url.values(), key=lambda e: (e["url"]))
+        endpoints = sorted(by_url.values(), key=lambda e: e["url"])
         kinds: dict[str, int] = {}
         for ep in endpoints:
             kinds[ep["kind"]] = kinds.get(ep["kind"], 0) + 1
@@ -398,13 +406,11 @@ class SiteArchiver:
             f'data-text="{html.escape(ep["url"] + " " + ep.get("note", ""), quote=True).lower()}">'
             f'<td><span class="sev sev-{"ok" if ep.get("status", 0) < 400 else "bad"}">{ep.get("status", "?")}</span></td>'
             f'<td class="muted">{html.escape(ep["kind"])}</td>'
-            f'<td><code>{html.escape(ep["url"])}</code></td>'
-            f'<td>{html.escape(ep.get("content_type", "") or (ep.get("note") or ""))}</td></tr>'
+            f"<td><code>{html.escape(ep['url'])}</code></td>"
+            f"<td>{html.escape(ep.get('content_type', '') or (ep.get('note') or ''))}</td></tr>"
             for ep in endpoints
         )
-        kind_summary = " ".join(
-            f'<span class="chip">{html.escape(k)}: {v}</span>' for k, v in sorted(kinds.items())
-        )
+        kind_summary = " ".join(f'<span class="chip">{html.escape(k)}: {v}</span>' for k, v in sorted(kinds.items()))
         return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

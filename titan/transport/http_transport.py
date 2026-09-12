@@ -100,11 +100,7 @@ class HttpTransport(Transport):
 
         try:
             session = await self._get_session()
-            timeout_override = (
-                aiohttp.ClientTimeout(total=request.timeout)
-                if request.timeout
-                else None
-            )
+            timeout_override = aiohttp.ClientTimeout(total=request.timeout) if request.timeout else None
             async with session.request(
                 method=request.method.value,
                 url=request.url,
@@ -140,11 +136,13 @@ class HttpTransport(Transport):
 
     async def connect(self, target: TargetDescriptor) -> None:
         """Verify target is reachable."""
-        response = await self.send(AttackRequest(
-            url=target.url,
-            method=RequestMethod.GET,
-            timeout=10.0,
-        ))
+        response = await self.send(
+            AttackRequest(
+                url=target.url,
+                method=RequestMethod.GET,
+                timeout=10.0,
+            )
+        )
         if response.is_error:
             logger.warning(f"Target unreachable: {target.url} — {response.error}")
 

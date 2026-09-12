@@ -66,7 +66,9 @@ class StealthEngine:
         if random.random() < 0.3:
             headers["DNT"] = "1"
         if random.random() < 0.2:
-            headers["X-Forwarded-For"] = f"{random.randint(1,255)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}"
+            headers["X-Forwarded-For"] = (
+                f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 254)}"
+            )
         return headers
 
     def observe_latency(self, rtt: float) -> None:

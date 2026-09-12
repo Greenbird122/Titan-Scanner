@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OnionService:
     """A discovered .onion hidden service."""
+
     url: str
     title: str = ""
     description: str = ""
@@ -35,6 +36,7 @@ class OnionService:
 @dataclass
 class SurfaceMap:
     """Attack surface of a .onion service."""
+
     url: str
     endpoints: list[dict] = field(default_factory=list)
     tech_stack: list[str] = field(default_factory=list)
@@ -47,6 +49,7 @@ class SurfaceMap:
 @dataclass
 class Delta:
     """Change detected between scans."""
+
     field: str
     old_value: Any
     new_value: Any
@@ -80,20 +83,24 @@ class DarkWebMapper:
         # Search via Ahmia API
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 url = self.CATALOG_SOURCES["ahmia"].format(query=keyword)
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                     if resp.status == 200:
                         import json
+
                         data = json.loads(await resp.text())
                         for item in data.get("results", []):
-                            services.append(OnionService(
-                                url=item.get("url", ""),
-                                title=item.get("title", ""),
-                                description=item.get("description", ""),
-                                source="ahmia",
-                                categories=item.get("categories", []),
-                            ))
+                            services.append(
+                                OnionService(
+                                    url=item.get("url", ""),
+                                    title=item.get("title", ""),
+                                    description=item.get("description", ""),
+                                    source="ahmia",
+                                    categories=item.get("categories", []),
+                                )
+                            )
         except Exception as e:
             logger.debug(f"Ahmia search failed: {e}")
 
@@ -118,11 +125,13 @@ class DarkWebMapper:
             transport = TorTransport()
 
             # Fetch the main page
-            response = await transport.send(AttackRequest(
-                url=onion_url,
-                method=RequestMethod.GET,
-                timeout=30.0,
-            ))
+            response = await transport.send(
+                AttackRequest(
+                    url=onion_url,
+                    method=RequestMethod.GET,
+                    timeout=30.0,
+                )
+            )
 
             if response.is_error:
                 logger.warning(f"Could not reach .onion service: {response.error}")
@@ -155,11 +164,13 @@ class DarkWebMapper:
                     form_html,
                     re.IGNORECASE,
                 )
-                surface.forms.append({
-                    "action": action,
-                    "inputs": inputs,
-                    "method": "POST" if "method" in form_html.lower() and "get" not in form_html.lower() else "GET",
-                })
+                surface.forms.append(
+                    {
+                        "action": action,
+                        "inputs": inputs,
+                        "method": "POST" if "method" in form_html.lower() and "get" not in form_html.lower() else "GET",
+                    }
+                )
 
             # Detect tech stack from headers and content
             surface.tech_stack = self._detect_tech(html, response.headers)
@@ -183,45 +194,53 @@ class DarkWebMapper:
 
         # Check status code change
         if current.status_code != baseline.status_code:
-            deltas.append(Delta(
-                field="status_code",
-                old_value=baseline.status_code,
-                new_value=current.status_code,
-                severity="high" if current.status_code != baseline.status_code else "info",
-            ))
+            deltas.append(
+                Delta(
+                    field="status_code",
+                    old_value=baseline.status_code,
+                    new_value=current.status_code,
+                    severity="high" if current.status_code != baseline.status_code else "info",
+                )
+            )
 
         # Check new endpoints
         baseline_links = set(baseline.links)
         current_links = set(current.links)
         new_links = current_links - baseline_links
         if new_links:
-            deltas.append(Delta(
-                field="new_endpoints",
-                old_value=len(baseline_links),
-                new_value=len(current_links),
-                severity="medium",
-            ))
+            deltas.append(
+                Delta(
+                    field="new_endpoints",
+                    old_value=len(baseline_links),
+                    new_value=len(current_links),
+                    severity="medium",
+                )
+            )
 
         # Check new forms
         if len(current.forms) > len(baseline.forms):
-            deltas.append(Delta(
-                field="new_forms",
-                old_value=len(baseline.forms),
-                new_value=len(current.forms),
-                severity="medium",
-            ))
+            deltas.append(
+                Delta(
+                    field="new_forms",
+                    old_value=len(baseline.forms),
+                    new_value=len(current.forms),
+                    severity="medium",
+                )
+            )
 
         # Check tech stack changes
         baseline_tech = set(baseline.tech_stack)
         current_tech = set(current.tech_stack)
         new_tech = current_tech - baseline_tech
         if new_tech:
-            deltas.append(Delta(
-                field="new_technology",
-                old_value=list(baseline_tech),
-                new_value=list(new_tech),
-                severity="low",
-            ))
+            deltas.append(
+                Delta(
+                    field="new_technology",
+                    old_value=list(baseline_tech),
+                    new_value=list(new_tech),
+                    severity="low",
+                )
+            )
 
         return deltas
 

@@ -16,6 +16,7 @@ from typing import Any
 @dataclass
 class TargetConfig:
     """Configuration for a single target."""
+
     url: str
     name: str = ""
     auth_headers: dict[str, str] = field(default_factory=dict)
@@ -30,6 +31,7 @@ class TargetConfig:
 @dataclass
 class TitanConfig:
     """Full Titan configuration."""
+
     targets: list[TargetConfig]
     global_auth: dict[str, str] = field(default_factory=dict)
     coverage_threshold: float = 70.0
@@ -73,6 +75,7 @@ class ConfigManager:
         instead of "your environment is broken".
         """
         import yaml
+
         data = yaml.safe_load(content)
         return self._dict_to_config(data)
 
@@ -85,17 +88,19 @@ class ConfigManager:
         """Convert dict to TitanConfig."""
         targets = []
         for t in data.get("targets", []):
-            targets.append(TargetConfig(
-                url=t["url"],
-                name=t.get("name", ""),
-                auth_headers=t.get("auth_headers", {}),
-                scope=t.get("scope", []),
-                exclude=t.get("exclude", []),
-                deep=t.get("deep", False),
-                max_tests=t.get("max_tests", 1000),
-                timeout=t.get("timeout", 30),
-                tags=t.get("tags", []),
-            ))
+            targets.append(
+                TargetConfig(
+                    url=t["url"],
+                    name=t.get("name", ""),
+                    auth_headers=t.get("auth_headers", {}),
+                    scope=t.get("scope", []),
+                    exclude=t.get("exclude", []),
+                    deep=t.get("deep", False),
+                    max_tests=t.get("max_tests", 1000),
+                    timeout=t.get("timeout", 30),
+                    tags=t.get("tags", []),
+                )
+            )
 
         return TitanConfig(
             targets=targets,
@@ -136,6 +141,7 @@ class ConfigManager:
         PyYAML is a declared runtime dependency; see `_load_yaml`.
         """
         import yaml
+
         yaml_text: str = yaml.dump(data, default_flow_style=False)
         return yaml_text
 
@@ -146,9 +152,7 @@ class ConfigManager:
                 {
                     "url": "https://example.com",
                     "name": "Example Site",
-                    "auth_headers": {
-                        "Authorization": "Bearer <token>"
-                    },
+                    "auth_headers": {"Authorization": "Bearer <token>"},
                     "scope": ["/api/*", "/admin/*"],
                     "exclude": ["/api/health"],
                     "deep": True,

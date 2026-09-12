@@ -23,7 +23,6 @@ and ``purple/batch.py run_batch`` (the arena's probe path, which its API can
 point at arbitrary hosts).
 """
 
-
 from __future__ import annotations
 
 import json

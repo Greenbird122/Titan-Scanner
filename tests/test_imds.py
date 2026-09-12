@@ -30,6 +30,7 @@ from titan.modules.cloud_control.imds import (
 # IMDSEndpoint tests
 # ---------------------------------------------------------------------------
 
+
 class TestIMDSEndpoint:
     def test_defaults(self):
         ep = IMDSEndpoint(url="http://169.254.169.254/latest/meta-data/")
@@ -55,6 +56,7 @@ class TestIMDSEndpoint:
 # ---------------------------------------------------------------------------
 # IMDS endpoint definitions
 # ---------------------------------------------------------------------------
+
 
 class TestIMDSEndpointDefs:
     def test_aws_has_endpoints(self):
@@ -88,6 +90,7 @@ class TestIMDSEndpointDefs:
 # IMDSProber tests
 # ---------------------------------------------------------------------------
 
+
 class TestIMDSProber:
     def test_init_defaults(self):
         prober = IMDSProber()
@@ -101,6 +104,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_no_access(self):
         """When IMDS is not accessible, report should show no access."""
+
         async def failing_sink(url, method="GET", headers=None, timeout=5.0):
             return (0, {}, "")
 
@@ -114,6 +118,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_aws_imdsv1(self):
         """When AWS IMDSv1 is accessible, should extract metadata."""
+
         async def aws_sink(url, method="GET", headers=None, timeout=5.0):
             if "security-credentials/" in url and url.endswith("/"):
                 return (200, {}, "test-role-name")
@@ -175,9 +180,7 @@ class TestIMDSProber:
                 "id": "1234567890",
                 "machineType": "projects/123456/zones/us-central1-a/machineTypes/n1-standard-1",
                 "zone": "projects/123456/zones/us-central1-a",
-                "serviceAccounts": [
-                    {"email": "123456-compute@developer.gserviceaccount.com"}
-                ],
+                "serviceAccounts": [{"email": "123456-compute@developer.gserviceaccount.com"}],
             },
             "project": {"projectId": "my-gcp-project"},
         }
@@ -223,6 +226,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_timeout_handling(self):
         """Timeouts should be handled gracefully."""
+
         async def slow_sink(url, method="GET", headers=None, timeout=5.0):
             await asyncio.sleep(10)  # Will timeout
             return (200, {}, "")
@@ -236,6 +240,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_exception_handling(self):
         """Exceptions in sink should be handled gracefully."""
+
         async def error_sink(url, method="GET", headers=None, timeout=5.0):
             raise ConnectionError("network unreachable")
 
@@ -247,6 +252,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_generates_imds_finding(self):
         """When IMDS is accessible, should generate a cloud_imds_exposure finding."""
+
         async def working_sink(url, method="GET", headers=None, timeout=5.0):
             if "meta-data/" in url and url.endswith("/"):
                 return (200, {}, "ami-id\ninstance-id\ninstance-type")
@@ -264,6 +270,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_generates_userdata_finding(self):
         """When user-data is accessible, should generate a userdata finding."""
+
         async def userdata_sink(url, method="GET", headers=None, timeout=5.0):
             if "user-data" in url:
                 return (200, {}, "#!/bin/bash\napt-get update && apt-get install -y docker.io")
@@ -281,6 +288,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_generates_imdsv1_finding(self):
         """When IMDSv1 works, should warn about lack of token protection."""
+
         async def imdsv1_sink(url, method="GET", headers=None, timeout=5.0):
             if "meta-data/" in url:
                 return (200, {}, "ami-id")
@@ -296,6 +304,7 @@ class TestIMDSProber:
     @pytest.mark.asyncio
     async def test_probe_gcp_service_account_finding(self):
         """When GCP SA email is exposed, should generate a finding."""
+
         async def gcp_sa_sink(url, method="GET", headers=None, timeout=5.0):
             if "service-accounts/default/email" in url:
                 return (200, {}, "sa@project.iam.gserviceaccount.com")
@@ -313,9 +322,11 @@ class TestIMDSProber:
 # CloudControlDetector integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestCloudControlDetectorIMDS:
     def test_detect_from_response_imds(self):
         from titan.modules.cloud_control.detector import CloudControlDetector
+
         detector = CloudControlDetector()
 
         findings = detector.detect_from_response(
@@ -329,13 +340,16 @@ class TestCloudControlDetectorIMDS:
 
     def test_detect_from_response_creds(self):
         from titan.modules.cloud_control.detector import CloudControlDetector
+
         detector = CloudControlDetector()
 
-        creds_body = json.dumps({
-            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
-            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-            "Token": "FwoGZXIvYXdzEBY...",
-        })
+        creds_body = json.dumps(
+            {
+                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+                "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "Token": "FwoGZXIvYXdzEBY...",
+            }
+        )
         findings = detector.detect_from_response(
             url="http://169.254.169.254/latest/meta-data/iam/security-credentials/my-role",
             status=200,
@@ -346,6 +360,7 @@ class TestCloudControlDetectorIMDS:
 
     def test_detect_from_response_userdata(self):
         from titan.modules.cloud_control.detector import CloudControlDetector
+
         detector = CloudControlDetector()
 
         findings = detector.detect_from_response(
@@ -358,6 +373,7 @@ class TestCloudControlDetectorIMDS:
 
     def test_generate_imds_payloads(self):
         from titan.modules.cloud_control.detector import CloudControlDetector
+
         detector = CloudControlDetector()
 
         payloads = detector.generate_imds_payloads()
@@ -369,6 +385,7 @@ class TestCloudControlDetectorIMDS:
     async def test_probe_imds_integration(self):
         """CloudControlDetector.probe_imds should return findings."""
         from titan.modules.cloud_control.detector import CloudControlDetector
+
         detector = CloudControlDetector()
 
         async def mock_sink(url, method="GET", headers=None, timeout=5.0):

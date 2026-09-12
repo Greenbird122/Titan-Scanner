@@ -8,7 +8,6 @@ This module wraps PayloadForge and adds:
 5. Feedback loop — learn from each scan, improve for next
 """
 
-
 from __future__ import annotations
 
 import json
@@ -32,7 +31,6 @@ from titan.ai.platform_payloads import PlatformPayloadsMixin
 from titan.core.logger import get_logger
 
 logger = get_logger("adaptive")
-
 
 
 class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
@@ -78,9 +76,7 @@ class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
                     }
                     for name, p in self.waf_profiles.items()
                 },
-                "learned_bypasses": {
-                    "global": self._learned_bypasses.get("global", [])[-200:]
-                },
+                "learned_bypasses": {"global": self._learned_bypasses.get("global", [])[-200:]},
             }
             self._state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception as exc:
@@ -177,9 +173,7 @@ class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
 
         # Add context-aware payloads
         if injection_context:
-            context_payloads = ContextAwarePayloadSelector.get_context_payloads(
-                attack_type, injection_context
-            )
+            context_payloads = ContextAwarePayloadSelector.get_context_payloads(attack_type, injection_context)
             base_payloads.extend(context_payloads)
 
         # Add target-specific payloads
@@ -207,9 +201,7 @@ class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
                 base_payloads.extend(chains)
 
         # Prioritize payloads
-        prioritized = PayloadPrioritizer.prioritize(
-            base_payloads, profile, waf_profile, self._error_dialect
-        )
+        prioritized = PayloadPrioritizer.prioritize(base_payloads, profile, waf_profile, self._error_dialect)
 
         # Deduplicate and limit
         seen = set()
@@ -377,18 +369,14 @@ class AdaptivePayloadEngine(PlatformPayloadsMixin, MutationMixin):
 
         # Analyze response using ResponseAnalyzer
         if self._is_blocked(status, response_body, response_headers):
-            analysis = ResponseAnalyzer.analyze_blocked(
-                payload, status, response_body, response_headers or {}
-            )
+            analysis = ResponseAnalyzer.analyze_blocked(payload, status, response_body, response_headers or {})
             blocked = True
             error_class = None
             # Update error dialect from analysis
             if analysis.get("waf_rule"):
                 pass  # WAF rule detected
         else:
-            analysis = ResponseAnalyzer.analyze_success(
-                payload, status, response_body, response_headers or {}
-            )
+            analysis = ResponseAnalyzer.analyze_success(payload, status, response_body, response_headers or {})
             blocked = False
             error_class = analysis.get("dialect")
             # Update error dialect

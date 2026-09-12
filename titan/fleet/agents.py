@@ -12,7 +12,6 @@ receives a target and a context (findings so far, transport, consent) and
 returns new findings.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -33,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class AgentType(str, Enum):
     """Types of fleet agents."""
+
     RECON = "recon"
     IDENTITY = "identity"
     EXPLOIT = "exploit"
@@ -43,17 +43,19 @@ class AgentType(str, Enum):
 @dataclass
 class AgentConfig:
     """Configuration for an agent type."""
+
     agent_type: AgentType
-    priority: float = 0.5           # 0.0-1.0, higher = run first
-    timeout: float = 120.0          # Per-agent wall-clock budget
-    max_concurrent: int = 1         # How many instances of this type can run
+    priority: float = 0.5  # 0.0-1.0, higher = run first
+    timeout: float = 120.0  # Per-agent wall-clock budget
+    max_concurrent: int = 1  # How many instances of this type can run
     requires_consent: bool = False  # Does this agent need consent?
-    requires_transport: bool = True # Does this agent need the transport layer?
+    requires_transport: bool = True  # Does this agent need the transport layer?
 
 
 @dataclass
 class AgentResult:
     """Result from a single agent execution."""
+
     agent_type: AgentType
     target: str
     findings: list[dict] = field(default_factory=list)
@@ -107,6 +109,7 @@ AGENT_CONFIGS: dict[AgentType, AgentConfig] = {
 # Agent runners — the actual work each agent type does
 # ---------------------------------------------------------------------------
 
+
 async def run_recon_agent(
     target: str,
     transport: Any = None,
@@ -150,6 +153,7 @@ async def run_recon_agent(
         # Surface mapping via transport
         if transport:
             from titan.transport import AttackRequest, RequestMethod
+
             try:
                 resp = await asyncio.wait_for(
                     transport.send(AttackRequest(url=target, method=RequestMethod.GET, timeout=15.0)),
@@ -192,15 +196,13 @@ async def run_identity_agent(
     result = AgentResult(agent_type=AgentType.IDENTITY, target=target)
 
     try:
-
         # These detectors need the full engine context — run what we can
         # with the transport layer for pure HTTP probing
         if transport:
             from titan.transport import AttackRequest, RequestMethod
 
             # Probe common auth endpoints
-            auth_paths = ["/login", "/auth", "/api/login", "/api/auth",
-                         "/token", "/oauth/token", "/api/v1/auth"]
+            auth_paths = ["/login", "/auth", "/api/login", "/api/auth", "/token", "/oauth/token", "/api/v1/auth"]
             for path in auth_paths:
                 try:
                     url = target.rstrip("/") + path
@@ -209,10 +211,12 @@ async def run_identity_agent(
                         timeout=8.0,
                     )
                     if resp and resp.status in (200, 301, 302, 405):
-                        result.metadata.setdefault("auth_endpoints", []).append({
-                            "path": path,
-                            "status": resp.status,
-                        })
+                        result.metadata.setdefault("auth_endpoints", []).append(
+                            {
+                                "path": path,
+                                "status": resp.status,
+                            }
+                        )
                 except (asyncio.TimeoutError, Exception) as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
                     continue
@@ -280,10 +284,7 @@ async def run_post_exploit_agent(
 
     try:
         findings = context.get("findings", []) if context else []
-        ssrf_findings = [
-            f for f in findings
-            if getattr(f, "type", "") == "ssrf"
-        ]
+        ssrf_findings = [f for f in findings if getattr(f, "type", "") == "ssrf"]
 
         if ssrf_findings and transport:
             # Probe IMDS through the SSRF sink
@@ -295,22 +296,28 @@ async def run_post_exploit_agent(
             ssrf_param = getattr(ssrf_findings[0], "param", "url")
 
             if ssrf_url:
+
                 async def _sink(url, method="GET", headers=None, timeout=5.0):
                     from urllib.parse import parse_qs, urlencode, urlparse
 
                     import aiohttp
+
                     parsed = urlparse(ssrf_url)
                     params = parse_qs(parsed.query, keep_blank_values=True)
                     params[ssrf_param] = [url]
                     new_query = urlencode(params, doseq=True)
                     sink_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
                     try:
-                        async with aiohttp.ClientSession() as session, session.request(
-                            method=method, url=sink_url,
-                            headers=headers or {},
-                            timeout=aiohttp.ClientTimeout(total=timeout),
-                            ssl=False,
-                        ) as resp:
+                        async with (
+                            aiohttp.ClientSession() as session,
+                            session.request(
+                                method=method,
+                                url=sink_url,
+                                headers=headers or {},
+                                timeout=aiohttp.ClientTimeout(total=timeout),
+                                ssl=False,
+                            ) as resp,
+                        ):
                             body = await resp.text(errors="replace")
                             return (resp.status, dict(resp.headers), body)
                     except Exception:
@@ -355,13 +362,15 @@ async def run_learning_agent(
         for f in findings:
             finding_type = getattr(f, "type", "")
             if finding_type:
-                probes.append({
-                    "finding_type": finding_type,
-                    "detection_pattern": getattr(f, "evidence", ""),
-                    "attack_type": finding_type,
-                    "severity": getattr(f, "severity", "medium"),
-                    "module": "fleet",
-                })
+                probes.append(
+                    {
+                        "finding_type": finding_type,
+                        "detection_pattern": getattr(f, "evidence", ""),
+                        "attack_type": finding_type,
+                        "severity": getattr(f, "severity", "medium"),
+                        "module": "fleet",
+                    }
+                )
 
         mutations = engine.harvest_mutations(probes)
         result.mutations = [

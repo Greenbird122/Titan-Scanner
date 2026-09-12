@@ -32,16 +32,19 @@ def _engine() -> TitanEngine:
     target is set so the localhost:5000 fixtures stay in scope — the scope
     check fails closed (no target = nothing in scope).
     """
-    return TitanEngine({
-        "target": "http://localhost:5000",
-        "stealth": {"min_delay": 0.01, "max_delay": 0.01},
-    })
+    return TitanEngine(
+        {
+            "target": "http://localhost:5000",
+            "stealth": {"min_delay": 0.01, "max_delay": 0.01},
+        }
+    )
 
 
 def _dedupe(findings):
     """Dedup as the engine does: module-level helper + root-cause types."""
     from titan.core.constants import ROOT_CAUSE_ATTACK_TYPES
     from titan.core.helpers import dedupe_findings
+
     return dedupe_findings(findings, ROOT_CAUSE_ATTACK_TYPES)
 
 
@@ -107,19 +110,14 @@ class TestCrawlCancellation:
         result = ScanResult(target="http://localhost:5000", started_at=time.time())
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(
-                engine._run_modules(
-                    None, "http://localhost:5000", _forms(2), [], [], {}, result
-                ),
+                engine._run_modules(None, "http://localhost:5000", _forms(2), [], [], {}, result),
                 timeout=0.5,
             )
 
         await asyncio.sleep(0.1)
 
         assert cancelled == ["http://localhost:5000/page/1"]
-        assert "kept-finding" in result.findings, (
-            "finding verified before the timeout must not be lost"
-        )
-
+        assert "kept-finding" in result.findings, "finding verified before the timeout must not be lost"
 
 
 class TestGroupFailureIsolation:
@@ -177,8 +175,18 @@ class TestDiscoveryIsolation:
 
         result = await engine._discover_all(None, None, "http://localhost:5000", "http://localhost:5000")
 
-        (forms, links, static_apis, js_apis, spa_routes, swagger_endpoints,
-         postman_endpoints, graphql_eps, common_param_discoveries, http_methods) = result
+        (
+            forms,
+            links,
+            static_apis,
+            js_apis,
+            spa_routes,
+            swagger_endpoints,
+            postman_endpoints,
+            graphql_eps,
+            common_param_discoveries,
+            http_methods,
+        ) = result
         assert forms == []
         assert links == []
         assert static_apis == []
@@ -217,8 +225,18 @@ class TestDiscoveryIsolation:
 
         result = await engine._discover_all(None, None, "http://localhost:5000", "http://localhost:5000")
 
-        (forms, links, static_apis, js_apis, spa_routes, swagger_endpoints,
-         postman_endpoints, graphql_eps, common_param_discoveries, http_methods) = result
+        (
+            forms,
+            links,
+            static_apis,
+            js_apis,
+            spa_routes,
+            swagger_endpoints,
+            postman_endpoints,
+            graphql_eps,
+            common_param_discoveries,
+            http_methods,
+        ) = result
         assert forms == [{"action": "http://localhost:5000/form", "method": "GET", "inputs": []}]
         assert links == ["http://localhost:5000/some?q=1"]
         assert static_apis == ["http://localhost:5000/api/data"]
@@ -302,7 +320,10 @@ class TestRestApiExistenceGate:
 
         engine._run_attack_modules = fake_attack
         findings = await engine._test_rest_api(
-            ctx, "http://localhost:5000", "http://localhost:5000/api/auth/token", {},
+            ctx,
+            "http://localhost:5000",
+            "http://localhost:5000/api/auth/token",
+            {},
         )
         return findings, calls
 
@@ -311,10 +332,7 @@ class TestRestApiExistenceGate:
         assert findings == [] and calls == [], "404 endpoint must not run modules"
 
     async def test_soft_404_html_endpoint_is_skipped(self):
-        body = (
-            "<html><title>Page not found</title>"
-            "<p>The requested URL was not found on this server.</p></html>"
-        )
+        body = "<html><title>Page not found</title><p>The requested URL was not found on this server.</p></html>"
         findings, calls = await self._run_gated(200, body)
         assert findings == [] and calls == [], "soft-404 endpoint must not run modules"
 
@@ -340,7 +358,10 @@ class TestRestApiExistenceGate:
 
         engine._run_attack_modules = fake_attack
         await engine._test_rest_api(
-            ctx, "http://localhost:5000", "http://localhost:5000/api/auth/token", {},
+            ctx,
+            "http://localhost:5000",
+            "http://localhost:5000/api/auth/token",
+            {},
         )
         assert len(calls) == 2, f"POST-rescued endpoint must run modules, got {calls}"
 
@@ -364,10 +385,14 @@ class TestRestApiExistenceGate:
 
         engine._run_attack_modules = fake_attack
         findings = await engine._test_rest_api(
-            ctx, "http://localhost:5000", "http://localhost:5000/api/otp", {},
+            ctx,
+            "http://localhost:5000",
+            "http://localhost:5000/api/otp",
+            {},
         )
-        assert findings == [] and calls == [], \
+        assert findings == [] and calls == [], (
             f"error-status HTML POST probe must be treated as a dead route, got {calls}"
+        )
 
     async def test_error_status_json_post_probe_is_rescued(self):
         """A structured error body (JSON) on POST still means the route
@@ -386,7 +411,10 @@ class TestRestApiExistenceGate:
 
         engine._run_attack_modules = fake_attack
         await engine._test_rest_api(
-            ctx, "http://localhost:5000", "http://localhost:5000/api/otp", {},
+            ctx,
+            "http://localhost:5000",
+            "http://localhost:5000/api/otp",
+            {},
         )
         assert len(calls) == 2, f"structured-error POST must still run modules, got {calls}"
 
@@ -395,11 +423,7 @@ class TestRestApiExistenceGate:
         their <title> says "Page not found" — they must still be skipped, or
         the module matrix runs on a dead route and every oracle "verifies" on
         the reflected error page (the github.com DVIA dead-endpoint findings)."""
-        body = (
-            "<html><head><title>Page not found · GitHub</title></head><body>"
-            + "x" * 150_000
-            + "</body></html>"
-        )
+        body = "<html><head><title>Page not found · GitHub</title></head><body>" + "x" * 150_000 + "</body></html>"
         findings, calls = await self._run_gated(200, body)
         assert findings == [] and calls == [], "branded >100KB 404 must not run modules"
 
@@ -439,7 +463,9 @@ class TestContentScanDedupe:
     def test_identical_body_scan_collapses_to_one(self):
         findings = [
             self._finding(
-                f"http://localhost:5000/p{i}", "body", "body",
+                f"http://localhost:5000/p{i}",
+                "body",
+                "body",
                 "Hardcoded credential: hardcoded_aws_access_key_id",
             )
             for i in range(3)
@@ -457,10 +483,7 @@ class TestContentScanDedupe:
 
     def test_query_injection_findings_not_collapsed(self):
         """Per-endpoint injection findings (real param names) stay per-URL."""
-        findings = [
-            self._finding(f"http://localhost:5000/p{i}", "id", "query", "' OR 1=1--")
-            for i in range(2)
-        ]
+        findings = [self._finding(f"http://localhost:5000/p{i}", "id", "query", "' OR 1=1--") for i in range(2)]
         out = _dedupe(findings)
         assert len(out) == 2, "distinct endpoints with the same injection must not collapse"
 
@@ -551,6 +574,7 @@ class TestDriverDeathResilience:
         engine = _engine()
         # The exact message Playwright raises after the Node driver dies.
         from playwright._impl._errors import Error as PlaywrightError
+
         exc = PlaywrightError("APIRequestContext.get: Connection closed while reading from the driver")
         assert engine._is_driver_death(exc)
         # A plain network error is NOT driver death.
@@ -569,6 +593,7 @@ class TestDriverDeathResilience:
             calls.append(url)
             if url.endswith("/0"):
                 from playwright._impl._errors import Error as PlaywrightError
+
                 raise PlaywrightError("Connection closed while reading from the driver")
             try:
                 await asyncio.sleep(60)
@@ -605,13 +630,20 @@ class TestDriverDeathResilience:
 
         async def dead_runner(context, target, method, url, params, fingerprint, **kwargs):
             from playwright._impl._errors import Error as PlaywrightError
+
             raise PlaywrightError("Connection closed while reading from the driver")
 
         # A single module; the runner raises driver death, which _run_single_module
         # must classify and propagate to the flag.
         await engine._run_single_module(
-            "xss", dead_runner, None, "http://localhost:5000", "GET",
-            "http://localhost:5000/x?q=1", {"q": "1"}, {},
+            "xss",
+            dead_runner,
+            None,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/x?q=1",
+            {"q": "1"},
+            {},
         )
         assert engine._driver_dead is True
 

@@ -128,11 +128,13 @@ class TorTransport(Transport):
     async def connect(self, target: TargetDescriptor) -> None:
         """Verify Tor connectivity before scanning."""
         try:
-            response = await self.send(AttackRequest(
-                url="https://check.torproject.org/api/ip",
-                method=RequestMethod.GET,
-                timeout=30.0,
-            ))
+            response = await self.send(
+                AttackRequest(
+                    url="https://check.torproject.org/api/ip",
+                    method=RequestMethod.GET,
+                    timeout=30.0,
+                )
+            )
             if response.status == 200:
                 data = response.json
                 logger.info(f"Tor connected: IP={data.get('IP')}, IsTor={data.get('IsTor')}")
@@ -153,7 +155,7 @@ class TorTransport(Transport):
                 await writer.drain()
                 await reader.readline()
 
-                writer.write(b'SIGNAL NEWNYM\r\n')
+                writer.write(b"SIGNAL NEWNYM\r\n")
                 await writer.drain()
                 await reader.readline()
             finally:

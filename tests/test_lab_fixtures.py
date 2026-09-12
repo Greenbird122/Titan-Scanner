@@ -4,6 +4,7 @@ Round 1: SCN-003 puzzle gate, SCN-004 integrity, SCN-005 gated redirect.
 Round 2: SCN-007 stored XSS, SCN-011 stored SQLi, SCN-010 token leak channels,
          SCN-009 Host-header cache poisoning, SCN-013 prototype pollution.
 """
+
 import base64
 import sys
 from pathlib import Path

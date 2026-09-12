@@ -21,7 +21,6 @@ Features:
      • Exclusion of generic login failure or soft-404 responses.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -92,17 +91,42 @@ class AuthDetector:
     """Production-grade Authentication Bypass detector."""
 
     SUCCESS_INDICATORS = [
-        "welcome", "dashboard", "logout", "profile", "account",
-        "authenticated", "logged in", "sign out", "admin panel",
-        "control panel", "settings", "my account", "member area",
-        "jwt", "access_token", "bearer", "session_id",
+        "welcome",
+        "dashboard",
+        "logout",
+        "profile",
+        "account",
+        "authenticated",
+        "logged in",
+        "sign out",
+        "admin panel",
+        "control panel",
+        "settings",
+        "my account",
+        "member area",
+        "jwt",
+        "access_token",
+        "bearer",
+        "session_id",
     ]
 
     FAILURE_INDICATORS = [
-        "invalid", "incorrect", "wrong", "failed", "error",
-        "denied", "unauthorized", "401", "403", "not found",
-        "login failed", "authentication failed", "bad credentials",
-        "password incorrect", "user not found", "access denied",
+        "invalid",
+        "incorrect",
+        "wrong",
+        "failed",
+        "error",
+        "denied",
+        "unauthorized",
+        "401",
+        "403",
+        "not found",
+        "login failed",
+        "authentication failed",
+        "bad credentials",
+        "password incorrect",
+        "user not found",
+        "access denied",
     ]
 
     def __init__(self, payload_smith, fingerprint: dict[str, Any]):
@@ -126,22 +150,16 @@ class AuthDetector:
         # 1. Baseline Request
         try:
             if method.upper() == "GET":
-                baseline_resp = await context.request.get(
-                    url, params=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
             else:
-                baseline_resp = await context.request.post(
-                    url, data=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
         except Exception:
             return findings
 
         # ── Engine 1: Parameter-level SQLi/NoSQLi Auth Bypass ───────────
-        param_findings = await self._scan_params(
-            context, target, method, url, params, baseline_body, baseline_status
-        )
+        param_findings = await self._scan_params(context, target, method, url, params, baseline_body, baseline_status)
         findings.extend(param_findings)
 
         # ── Engine 2: Protected Endpoint Bypasses (if 401 / 403) ────────
@@ -208,10 +226,16 @@ class AuthDetector:
                     body = await resp.text()
 
                     f = self._evaluate_auth_response(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, method, param_name,
+                        baseline_body,
+                        baseline_status,
+                        body,
+                        resp,
+                        target,
+                        url,
+                        method,
+                        param_name,
                         "query" if method.upper() == "GET" else "body",
-                        payload
+                        payload,
                     )
                     if f:
                         findings.append(f)
@@ -249,8 +273,16 @@ class AuthDetector:
 
                 hdr_name, hdr_val = next(iter(hdr.items()))
                 f = self._evaluate_auth_response(
-                    baseline_body, baseline_status, body, resp,
-                    target, url, method, hdr_name, "header", f"{hdr_name}: {hdr_val}"
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    method,
+                    hdr_name,
+                    "header",
+                    f"{hdr_name}: {hdr_val}",
                 )
                 if f:
                     findings.append(f)
@@ -268,8 +300,16 @@ class AuthDetector:
                 resp = await context.request.get(f"{parsed.scheme}://{parsed.netloc}/", headers=headers, timeout=3000)
                 body = await resp.text()
                 f = self._evaluate_auth_response(
-                    baseline_body, baseline_status, body, resp,
-                    target, url, "GET", rewrite_hdr, "header", f"{rewrite_hdr}: {path}"
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    "GET",
+                    rewrite_hdr,
+                    "header",
+                    f"{rewrite_hdr}: {path}",
                 )
                 if f:
                     findings.append(f)
@@ -299,9 +339,7 @@ class AuthDetector:
         for verb in verbs:
             try:
                 if hasattr(context.request, "fetch"):
-                    resp = await context.request.fetch(
-                        url, method=verb, headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.fetch(url, method=verb, headers={"Referer": target}, timeout=3000)
                 else:
                     req_fn = getattr(context.request, verb.lower(), None)
                     if not req_fn:
@@ -310,8 +348,16 @@ class AuthDetector:
 
                 body = await resp.text()
                 f = self._evaluate_auth_response(
-                    baseline_body, baseline_status, body, resp,
-                    target, url, verb, "__method__", "http_verb", f"HTTP Method: {verb}"
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    verb,
+                    "__method__",
+                    "http_verb",
+                    f"HTTP Method: {verb}",
                 )
                 if f:
                     findings.append(f)
@@ -343,10 +389,9 @@ class AuthDetector:
         for mut in _PATH_BYPASS_MUTATIONS:
             try:
                 mutated_path = f"{base_path}{mut}"
-                mutated_url = urlunparse((
-                    parsed.scheme, parsed.netloc, mutated_path,
-                    parsed.params, parsed.query, parsed.fragment
-                ))
+                mutated_url = urlunparse(
+                    (parsed.scheme, parsed.netloc, mutated_path, parsed.params, parsed.query, parsed.fragment)
+                )
                 if method.upper() == "GET":
                     resp = await context.request.get(
                         mutated_url, params=params, headers={"Referer": target}, timeout=3000
@@ -358,8 +403,16 @@ class AuthDetector:
                 body = await resp.text()
 
                 f = self._evaluate_auth_response(
-                    baseline_body, baseline_status, body, resp,
-                    target, mutated_url, method, "__path__", "url_path", f"Path mutation: {mut}"
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    mutated_url,
+                    method,
+                    "__path__",
+                    "url_path",
+                    f"Path mutation: {mut}",
                 )
                 if f:
                     findings.append(f)

@@ -12,7 +12,6 @@ This module:
 6. Distributed testing
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -25,10 +24,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class RateLimitPayload:
     """A rate limit bypass payload."""
+
     name: str
     technique: str
     headers: dict[str, str]
@@ -186,15 +185,11 @@ class RateLimitBypassTester:
 
         # Test rapid requests without bypass
         try:
-            tasks = [
-                self._send_request(url, method, auth_headers)
-                for _ in range(20)
-            ]
+            tasks = [self._send_request(url, method, auth_headers) for _ in range(20)]
             responses = await asyncio.gather(*tasks, return_exceptions=True)
 
             success_count = sum(
-                1 for r in responses
-                if not isinstance(r, Exception) and r and r.get("status") in (200, 201, 202)
+                1 for r in responses if not isinstance(r, Exception) and r and r.get("status") in (200, 201, 202)
             )
 
             if success_count >= 18:
@@ -230,6 +225,7 @@ class RateLimitBypassTester:
     ) -> dict[str, Any] | None:
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 h = headers or {}
                 async with session.request(method, url, headers=h, timeout=aiohttp.ClientTimeout(total=5)) as resp:

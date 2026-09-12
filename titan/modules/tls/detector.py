@@ -12,7 +12,6 @@ This module:
 6. Certificate pinning testing
 """
 
-
 from __future__ import annotations
 
 import socket
@@ -27,10 +26,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class TLSPayload:
     """A TLS security test payload."""
+
     name: str
     category: str
     description: str
@@ -48,7 +47,13 @@ class TLSSecurityTester:
     ]
 
     INSECURE_CIPHERS = [
-        "RC4", "DES", "3DES", "MD5", "NULL", "EXPORT", "anon",
+        "RC4",
+        "DES",
+        "3DES",
+        "MD5",
+        "NULL",
+        "EXPORT",
+        "anon",
     ]
 
     def __init__(self, context: Any = None):
@@ -73,6 +78,7 @@ class TLSSecurityTester:
 
                     # Check expiry
                     import datetime
+
                     not_after = ssl.cert_time_to_seconds(cert.get("notAfter", ""))
                     if not_after < datetime.datetime.now().timestamp():
                         finding = Finding(
@@ -221,6 +227,7 @@ class TLSSecurityTester:
 
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(target_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     headers = resp.headers
@@ -247,6 +254,7 @@ class TLSSecurityTester:
                     else:
                         # Check max-age
                         import re
+
                         max_age_match = re.search(r"max-age=(\d+)", hsts)
                         if max_age_match:
                             max_age = int(max_age_match.group(1))

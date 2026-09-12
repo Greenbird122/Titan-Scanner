@@ -5,6 +5,7 @@ Regression guard for the DataFactor remediation pass: the committed
 (``LOCAL_LAB_SECRET_KEY``) falling back to a random per-boot token. If
 someone re-adds the literal to committed source, this test fails.
 """
+
 import sys
 from pathlib import Path
 

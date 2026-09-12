@@ -12,7 +12,6 @@ from:
         scan_meta.json           target, timing, counts, errors, fingerprint
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -101,9 +100,7 @@ class SiteReportWriter:
                 repro_count += 1
                 repro_dir.mkdir(parents=True, exist_ok=True)
                 name = f"repro_{repro_count:02d}.py"
-                (repro_dir / name).write_text(
-                    generate_repro(f, ordinal=repro_count), encoding="utf-8"
-                )
+                (repro_dir / name).write_text(generate_repro(f, ordinal=repro_count), encoding="utf-8")
                 f.metadata["repro"] = f"repros/{name}"
 
         (site_dir / "findings.json").write_text(
@@ -119,9 +116,7 @@ class SiteReportWriter:
         # the S5 dashboard can render them and the next scan can diff flux.
         hostile = result.hostile or {}
         if hostile:
-            (site_dir / "hostile.json").write_text(
-                json.dumps(hostile, indent=2, ensure_ascii=False), encoding="utf-8"
-            )
+            (site_dir / "hostile.json").write_text(json.dumps(hostile, indent=2, ensure_ascii=False), encoding="utf-8")
             observed = hostile.get("observed") or {}
             if observed:
                 (site_dir / "intel.json").write_text(
@@ -147,10 +142,7 @@ class SiteReportWriter:
 
             def _scrub(obj: Any) -> Any:
                 if isinstance(obj, dict):
-                    return {
-                        k: ("[REDACTED]" if k in _REDACT_KEYS else _scrub(v))
-                        for k, v in obj.items()
-                    }
+                    return {k: ("[REDACTED]" if k in _REDACT_KEYS else _scrub(v)) for k, v in obj.items()}
                 if isinstance(obj, list):
                     return [_scrub(v) for v in obj]
                 return obj
@@ -204,6 +196,7 @@ class SiteReportWriter:
     def _markdown(self, result: ScanResult) -> str:
         """Render the full markdown report (moved to markdown_report.py)."""
         return render_markdown_report(result, self)
+
     # ------------------------------------------------------------ estate avg
 
     def _estate_average(self) -> float | None:
@@ -283,9 +276,7 @@ class SiteReportWriter:
         # Atomic write (temp + rename) so a crash mid-write can't corrupt the
         # site index.
         tmp = index_path.with_suffix(".json.tmp")
-        tmp.write_text(
-            json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        tmp.write_text(json.dumps(index, indent=2, ensure_ascii=False), encoding="utf-8")
         tmp.replace(index_path)
 
 

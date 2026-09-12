@@ -253,10 +253,10 @@ GET    /api/dashboard/severity   # Severity distribution
 
 ```python
 # Queue definitions
-SCAN_QUEUE = "titan:scans"           # Scan jobs
+SCAN_QUEUE = "titan:scans"  # Scan jobs
 NOTIFICATION_QUEUE = "titan:notify"  # Email/webhook notifications
-REPORT_QUEUE = "titan:reports"       # Report generation
-CLEANUP_QUEUE = "titan:cleanup"      # Old data cleanup
+REPORT_QUEUE = "titan:reports"  # Report generation
+CLEANUP_QUEUE = "titan:cleanup"  # Old data cleanup
 
 # Worker configuration
 CELERY_CONFIG = {
@@ -288,6 +288,7 @@ def run_scan(self, target_id: str, config: dict):
     # 5. Generate report
     # 6. Send notifications
 
+
 # Report generation task
 @celery_app.task
 def generate_report(target_id: str, format: str = "pdf"):
@@ -297,6 +298,7 @@ def generate_report(target_id: str, format: str = "pdf"):
     # 3. Convert to PDF if requested
     # 4. Store in file system
     # 5. Return download URL
+
 
 # Notification task
 @celery_app.task
@@ -433,12 +435,12 @@ interface Finding {
 # Can be scoped to specific targets
 # Rate limited per key
 
-POST /api/auth/api-keys
+POST / api / auth / api - keys
 {
-  "name": "CI/CD Pipeline",
-  "scopes": ["scans:write", "findings:read"],
-  "target_ids": ["target-1", "target-2"],  # Optional: restrict to specific targets
-  "expires_at": "2027-08-30"
+    "name": "CI/CD Pipeline",
+    "scopes": ["scans:write", "findings:read"],
+    "target_ids": ["target-1", "target-2"],  # Optional: restrict to specific targets
+    "expires_at": "2027-08-30",
 }
 ```
 

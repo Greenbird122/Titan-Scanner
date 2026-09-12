@@ -61,20 +61,33 @@ no gain. Unknown keys pass through untouched, by design.
 from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class ConfigValidationError(ValueError):
     """Raised when config.yaml fails validation before a scan starts."""
 
+
 class _Allow(BaseModel):
-    model_config = ConfigDict(extra="allow")   # unknown keys pass + warn
+    model_config = ConfigDict(extra="allow")  # unknown keys pass + warn
+
 
 class CrawlProfile(str, Enum):
-    fast = "fast"; deep = "deep"; hostile = "hostile"
+    fast = "fast"
+    deep = "deep"
+    hostile = "hostile"
+
 
 class Aggression(str, Enum):
-    passive = "passive"; active = "active"; aggressive = "aggressive"; hostile = "hostile"
+    passive = "passive"
+    active = "active"
+    aggressive = "aggressive"
+    hostile = "hostile"
+
 
 class Browser(str, Enum):
-    auto = "auto"; system = "system"; bundled = "bundled"
+    auto = "auto"
+    system = "system"
+    bundled = "bundled"
+
 
 class CrawlConfig(_Allow):
     profile: CrawlProfile = CrawlProfile.fast
@@ -83,16 +96,23 @@ class CrawlConfig(_Allow):
     max_depth: int = Field(default=1, ge=0)
     timeout: int = Field(default=600, gt=0)
 
+
 class StealthConfig(_Allow):
     adaptive: bool = True
     jitter: float = Field(default=0.3, ge=0, le=10)
 
+
 class AuthConfig(_Allow):
-    cookies: str = ""; url: str = ""; username: str = ""; password: str = ""
+    cookies: str = ""
+    url: str = ""
+    username: str = ""
+    password: str = ""
+
 
 class ExploitConfig(_Allow):
     enabled: bool = False
     consent_dir: str = "consent"
+
 
 class TitanConfig(_Allow):
     target: str | None = None
@@ -107,6 +127,7 @@ class TitanConfig(_Allow):
     exploit: ExploitConfig = ExploitConfig()
     # governance/brain/deep_audit/ai/reporting/proxy/... stay unmodeled:
     # extra="allow" passes them through untouched.
+
 
 def validate_config(data: dict) -> dict:
     try:
@@ -136,8 +157,10 @@ Notes for the implementer:
 # top of run.py, after existing imports
 from titan.core.config_schema import ConfigValidationError, validate_config
 
+
 def load_config(path: str = "config.yaml") -> dict:
     import yaml
+
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return validate_config(data)

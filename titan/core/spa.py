@@ -33,9 +33,9 @@ def ws_to_http(url: str) -> str:
     if not url:
         return url
     if url.startswith("ws://"):
-        return "http://" + url[len("ws://"):]
+        return "http://" + url[len("ws://") :]
     if url.startswith("wss://"):
-        return "https://" + url[len("wss://"):]
+        return "https://" + url[len("wss://") :]
     return url
 
 

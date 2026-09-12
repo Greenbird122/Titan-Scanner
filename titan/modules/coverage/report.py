@@ -24,6 +24,7 @@ from titan.modules.coverage.tracker import CoverageTracker
 @dataclass
 class CoverageReport:
     """A complete coverage report."""
+
     target: str
     timestamp: str
     executive_summary: str
@@ -179,17 +180,20 @@ class CoverageReportGenerator:
 
     def to_json(self, report: CoverageReport) -> str:
         """Convert report to JSON."""
-        return json.dumps({
-            "target": report.target,
-            "timestamp": report.timestamp,
-            "executive_summary": report.executive_summary,
-            "coverage_score": self.scorer.to_dict(report.coverage_score),
-            "matrix": report.matrix,
-            "gaps": report.gaps,
-            "proof": report.proof,
-            "recommendations": report.recommendations,
-            "raw_data": report.raw_data,
-        }, indent=2)
+        return json.dumps(
+            {
+                "target": report.target,
+                "timestamp": report.timestamp,
+                "executive_summary": report.executive_summary,
+                "coverage_score": self.scorer.to_dict(report.coverage_score),
+                "matrix": report.matrix,
+                "gaps": report.gaps,
+                "proof": report.proof,
+                "recommendations": report.recommendations,
+                "raw_data": report.raw_data,
+            },
+            indent=2,
+        )
 
     def to_html(self, report: CoverageReport) -> str:
         """Convert report to HTML with visualization."""
@@ -216,10 +220,7 @@ class CoverageReportGenerator:
             heatmap_rows += row
 
         # Build attack type headers
-        attack_headers = "".join(
-            f"<th class='attack-header'>{at[:10]}</th>"
-            for at in matrix["attack_types"]
-        )
+        attack_headers = "".join(f"<th class='attack-header'>{at[:10]}</th>" for at in matrix["attack_types"])
 
         html = f"""
 <!DOCTYPE html>
@@ -274,24 +275,24 @@ class CoverageReportGenerator:
     <h2>Score Breakdown</h2>
     <table>
         <tr><th>Dimension</th><th>Score</th><th>Weight</th><th>Details</th></tr>
-        <tr><td>Endpoints</td><td>{score.breakdown['endpoints']['score']}%</td><td>{score.breakdown['endpoints']['weight']}</td><td>{score.breakdown['endpoints']['tested']} tested</td></tr>
-        <tr><td>Attack Types</td><td>{score.breakdown['attack_types']['score']}%</td><td>{score.breakdown['attack_types']['weight']}</td><td>{score.breakdown['attack_types']['tested']} tested</td></tr>
-        <tr><td>Combinations</td><td>{score.breakdown['combinations']['score']}%</td><td>{score.breakdown['combinations']['weight']}</td><td>{score.breakdown['combinations']['tested']}/{score.breakdown['combinations']['total']}</td></tr>
-        <tr><td>Depth</td><td>{score.breakdown['depth']['score']}%</td><td>{score.breakdown['depth']['weight']}</td><td>{score.breakdown['depth']['avg_tests_per_combination']} avg tests/comb</td></tr>
-        <tr><td>Quality</td><td>{score.breakdown['quality']['score']}%</td><td>{score.breakdown['quality']['weight']}</td><td>{score.breakdown['quality']['findings_confirmed']}/{score.breakdown['quality']['total_tests']} confirmed</td></tr>
-        <tr><td>Risk</td><td>{score.breakdown['risk']['score']}%</td><td>{score.breakdown['risk']['weight']}</td><td>Risk-weighted coverage</td></tr>
+        <tr><td>Endpoints</td><td>{score.breakdown["endpoints"]["score"]}%</td><td>{score.breakdown["endpoints"]["weight"]}</td><td>{score.breakdown["endpoints"]["tested"]} tested</td></tr>
+        <tr><td>Attack Types</td><td>{score.breakdown["attack_types"]["score"]}%</td><td>{score.breakdown["attack_types"]["weight"]}</td><td>{score.breakdown["attack_types"]["tested"]} tested</td></tr>
+        <tr><td>Combinations</td><td>{score.breakdown["combinations"]["score"]}%</td><td>{score.breakdown["combinations"]["weight"]}</td><td>{score.breakdown["combinations"]["tested"]}/{score.breakdown["combinations"]["total"]}</td></tr>
+        <tr><td>Depth</td><td>{score.breakdown["depth"]["score"]}%</td><td>{score.breakdown["depth"]["weight"]}</td><td>{score.breakdown["depth"]["avg_tests_per_combination"]} avg tests/comb</td></tr>
+        <tr><td>Quality</td><td>{score.breakdown["quality"]["score"]}%</td><td>{score.breakdown["quality"]["weight"]}</td><td>{score.breakdown["quality"]["findings_confirmed"]}/{score.breakdown["quality"]["total_tests"]} confirmed</td></tr>
+        <tr><td>Risk</td><td>{score.breakdown["risk"]["score"]}%</td><td>{score.breakdown["risk"]["weight"]}</td><td>Risk-weighted coverage</td></tr>
     </table>
 
     <h2>Gaps ({len(report.gaps)} found)</h2>
-    {''.join(f"<div class='gap-{g['severity']}'>[{g['severity'].upper()}] {g['description']}<br><small>{g['recommendation']}</small></div>" for g in report.gaps[:10])}
+    {"".join(f"<div class='gap-{g['severity']}'>[{g['severity'].upper()}] {g['description']}<br><small>{g['recommendation']}</small></div>" for g in report.gaps[:10])}
 
     <h2>Recommendations</h2>
-    {''.join(f"<div class='recommendation'>{r}</div>" for r in report.recommendations)}
+    {"".join(f"<div class='recommendation'>{r}</div>" for r in report.recommendations)}
 
     <h2>Proof</h2>
-    <p>Root Hash: <code>{report.proof['root_hash']}</code></p>
-    <p>Tests Proven: {report.proof['test_proofs_count']}</p>
-    <p>Merkle Tree Depth: {report.proof['merkle_tree_depth']}</p>
+    <p>Root Hash: <code>{report.proof["root_hash"]}</code></p>
+    <p>Tests Proven: {report.proof["test_proofs_count"]}</p>
+    <p>Merkle Tree Depth: {report.proof["merkle_tree_depth"]}</p>
 
 </body>
 </html>"""
@@ -313,17 +314,17 @@ class CoverageReportGenerator:
 
 | Dimension | Score | Weight | Details |
 |-----------|-------|--------|----------|
-| Endpoints | {score.breakdown['endpoints']['score']}% | {score.breakdown['endpoints']['weight']} | {score.breakdown['endpoints']['tested']} tested |
-| Attack Types | {score.breakdown['attack_types']['score']}% | {score.breakdown['attack_types']['weight']} | {score.breakdown['attack_types']['tested']} tested |
-| Combinations | {score.breakdown['combinations']['score']}% | {score.breakdown['combinations']['weight']} | {score.breakdown['combinations']['tested']}/{score.breakdown['combinations']['total']} |
-| Depth | {score.breakdown['depth']['score']}% | {score.breakdown['depth']['weight']} | {score.breakdown['depth']['avg_tests_per_combination']} avg tests/comb |
-| Quality | {score.breakdown['quality']['score']}% | {score.breakdown['quality']['weight']} | {score.breakdown['quality']['findings_confirmed']}/{score.breakdown['quality']['total_tests']} confirmed |
-| Risk | {score.breakdown['risk']['score']}% | {score.breakdown['risk']['weight']} | Risk-weighted coverage |
+| Endpoints | {score.breakdown["endpoints"]["score"]}% | {score.breakdown["endpoints"]["weight"]} | {score.breakdown["endpoints"]["tested"]} tested |
+| Attack Types | {score.breakdown["attack_types"]["score"]}% | {score.breakdown["attack_types"]["weight"]} | {score.breakdown["attack_types"]["tested"]} tested |
+| Combinations | {score.breakdown["combinations"]["score"]}% | {score.breakdown["combinations"]["weight"]} | {score.breakdown["combinations"]["tested"]}/{score.breakdown["combinations"]["total"]} |
+| Depth | {score.breakdown["depth"]["score"]}% | {score.breakdown["depth"]["weight"]} | {score.breakdown["depth"]["avg_tests_per_combination"]} avg tests/comb |
+| Quality | {score.breakdown["quality"]["score"]}% | {score.breakdown["quality"]["weight"]} | {score.breakdown["quality"]["findings_confirmed"]}/{score.breakdown["quality"]["total_tests"]} confirmed |
+| Risk | {score.breakdown["risk"]["score"]}% | {score.breakdown["risk"]["weight"]} | Risk-weighted coverage |
 
 ## Coverage Matrix
 
-| Endpoint | {' | '.join(matrix['attack_types'][:10])} |
-|----------|{'|'.join(['---'] * min(len(matrix['attack_types']), 10))}|
+| Endpoint | {" | ".join(matrix["attack_types"][:10])} |
+|----------|{"|".join(["---"] * min(len(matrix["attack_types"]), 10))}|
 """
 
         for endpoint in matrix["endpoints"][:15]:

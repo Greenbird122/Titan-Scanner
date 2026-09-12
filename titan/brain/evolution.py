@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Mutation:
     """A new attack pattern discovered during a scan."""
+
     finding_type: str
     pattern: str
     attack_type: str
@@ -37,6 +38,7 @@ class Mutation:
 @dataclass
 class DetectorModule:
     """An auto-generated detector module."""
+
     name: str
     attack_type: str
     detection_pattern: str
@@ -72,13 +74,39 @@ class EvolutionEngine:
 
     # Known detector types (don't re-generate these)
     KNOWN_DETECTOR_TYPES = {
-        "sqli", "nosqli", "xss", "ssrf", "lfi", "rce",
-        "ssti", "xxe", "idor", "bola", "massassignment",
-        "jwt", "sessionfix", "auth", "cors", "headers",
-        "redirect", "upload", "race", "cache", "smuggling",
-        "logic", "crypto", "deser", "fuzzer", "parserdiff",
-        "domxss", "postmessage", "prototype", "thirdparty", "csp",
-        "apixss", "sourcesecret",
+        "sqli",
+        "nosqli",
+        "xss",
+        "ssrf",
+        "lfi",
+        "rce",
+        "ssti",
+        "xxe",
+        "idor",
+        "bola",
+        "massassignment",
+        "jwt",
+        "sessionfix",
+        "auth",
+        "cors",
+        "headers",
+        "redirect",
+        "upload",
+        "race",
+        "cache",
+        "smuggling",
+        "logic",
+        "crypto",
+        "deser",
+        "fuzzer",
+        "parserdiff",
+        "domxss",
+        "postmessage",
+        "prototype",
+        "thirdparty",
+        "csp",
+        "apixss",
+        "sourcesecret",
     }
 
     def harvest_mutations(
@@ -121,7 +149,7 @@ class EvolutionEngine:
           4. Includes a test payload
         """
         # Clean the finding type for use as a module name
-        module_name = re.sub(r'[^a-z0-9_]', '_', mutation.finding_type.lower())
+        module_name = re.sub(r"[^a-z0-9_]", "_", mutation.finding_type.lower())
 
         detector = DetectorModule(
             name=f"auto_{module_name}",

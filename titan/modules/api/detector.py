@@ -17,7 +17,6 @@ Features:
      • Tests HTTP verb escalation (DELETE when only GET is expected).
 """
 
-
 from __future__ import annotations
 
 import json
@@ -31,15 +30,28 @@ logger = get_logger("detector")
 
 
 _SWAGGER_PATHS = (
-    "/swagger.json", "/openapi.json", "/api-docs", "/v2/api-docs",
-    "/swagger/v1/swagger.json", "/api/swagger.json", "/_docs", "/docs.json",
-    "/swagger-ui.html", "/api/v1/swagger.json", "/api/v2/swagger.json",
+    "/swagger.json",
+    "/openapi.json",
+    "/api-docs",
+    "/v2/api-docs",
+    "/swagger/v1/swagger.json",
+    "/api/swagger.json",
+    "/_docs",
+    "/docs.json",
+    "/swagger-ui.html",
+    "/api/v1/swagger.json",
+    "/api/v2/swagger.json",
     "/swagger/index.html",
 )
 
 _GRAPHQL_PATHS = (
-    "/graphql", "/api/graphql", "/graphiql", "/gql", "/query",
-    "/api/gql", "/graphql/v1",
+    "/graphql",
+    "/api/graphql",
+    "/graphiql",
+    "/gql",
+    "/query",
+    "/api/gql",
+    "/graphql/v1",
 )
 
 _GRAPHQL_INTROSPECTION = """{
@@ -61,9 +73,17 @@ _GRAPHQL_INTROSPECTION = """{
 _GRAPHQL_BATCH_PROBE = '[{"query": "{ __typename }"}, {"query": "{ __typename }"}, {"query": "{ __typename }"}]'
 
 _HIDDEN_API_PATHS = (
-    "/api/v1", "/api/v2", "/api/v3", "/v1", "/v2",
-    "/admin/api", "/internal/api", "/debug", "/api/debug",
-    "/api/internal", "/api/admin",
+    "/api/v1",
+    "/api/v2",
+    "/api/v3",
+    "/v1",
+    "/v2",
+    "/admin/api",
+    "/internal/api",
+    "/debug",
+    "/api/debug",
+    "/api/internal",
+    "/api/admin",
 )
 
 
@@ -111,9 +131,7 @@ class APIDetector:
     # SWAGGER / OPENAPI
     # ------------------------------------------------------------------
 
-    async def _probe_swagger(
-        self, context, target: str, base: str, path: str
-    ) -> Finding | None:
+    async def _probe_swagger(self, context, target: str, base: str, path: str) -> Finding | None:
         spec_url = urljoin(base, path)
         try:
             resp = await context.request.get(spec_url, headers={"Referer": target}, timeout=4000)
@@ -165,9 +183,7 @@ class APIDetector:
     # GRAPHQL
     # ------------------------------------------------------------------
 
-    async def _probe_graphql(
-        self, context, target: str, base: str, path: str
-    ) -> Finding | None:
+    async def _probe_graphql(self, context, target: str, base: str, path: str) -> Finding | None:
         gql_url = urljoin(base, path)
         try:
             # Introspection query
@@ -203,7 +219,8 @@ class APIDetector:
                         method="POST",
                         param="query",
                         location="body",
-                        payload=f"GraphQL introspection enabled: {len(types)} types exposed" + (" + batching" if batch_supported else ""),
+                        payload=f"GraphQL introspection enabled: {len(types)} types exposed"
+                        + (" + batching" if batch_supported else ""),
                         attack_type=AttackType.API_EXPOSURE,
                         severity=Severity.MEDIUM,
                         verified=True,
@@ -249,9 +266,7 @@ class APIDetector:
     # HIDDEN API PATH DISCOVERY
     # ------------------------------------------------------------------
 
-    async def _probe_hidden_path(
-        self, context, target: str, base: str, path: str
-    ) -> Finding | None:
+    async def _probe_hidden_path(self, context, target: str, base: str, path: str) -> Finding | None:
         probe_url = urljoin(base, path)
         try:
             resp = await context.request.get(probe_url, headers={"Referer": target}, timeout=3000)

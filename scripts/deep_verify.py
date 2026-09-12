@@ -79,6 +79,7 @@ window.fetch = async function(...args) {
 async def verify_git_vizor():
     """Replay the F6 class: GitHub API data -> innerHTML, with route intercept."""
     from playwright.async_api import async_playwright
+
     results = {"target": "https://git-vizor.vercel.app", "verified": False, "detail": ""}
     p = await async_playwright().start()
     try:
@@ -105,7 +106,9 @@ async def verify_git_vizor():
             results["detail"] = "GitHub API repo.description (attacker-controlled) rendered into card.innerHTML"
         # Grab a snippet of the rendered DOM for evidence
         try:
-            dom = await page.evaluate("document.getElementById('github-container') ? document.getElementById('github-container').innerHTML.substring(0,600) : ''")
+            dom = await page.evaluate(
+                "document.getElementById('github-container') ? document.getElementById('github-container').innerHTML.substring(0,600) : ''"
+            )
             results["dom_snippet"] = dom
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
@@ -132,6 +135,7 @@ async def verify_database_tulia():
     bundle. We inject a marker via the URL hash/query and observe whether it
     reaches an innerHTML sink (the React bundle's script-tag parsing path)."""
     from playwright.async_api import async_playwright
+
     results = {"target": "https://database-tulia.vercel.app", "verified": False, "detail": ""}
     p = await async_playwright().start()
     try:
@@ -178,7 +182,9 @@ window.__titan_marked__ = false;
             results["verified"] = True
             results["detail"] = "URL param/hash marker reached innerHTML sink in React bundle"
         elif sink_hits:
-            results["detail"] = f"{len(sink_hits)} innerHTML writes observed; marker not in sink (React sanitizer may strip)"
+            results["detail"] = (
+                f"{len(sink_hits)} innerHTML writes observed; marker not in sink (React sanitizer may strip)"
+            )
         results["sink_samples"] = [str(s)[:300] for s in sink_hits[:5]]
     except Exception as e:
         results["error"] = str(e)
@@ -208,6 +214,7 @@ async def test_firebase_key():
     import os
 
     import aiohttp
+
     API_KEY = os.environ.get("FIREBASE_API_KEY", "")
     if not API_KEY:
         print("[!] FIREBASE_API_KEY not set")
@@ -220,13 +227,12 @@ async def test_firebase_key():
         # This is read-only (lists sign-in methods for an email).
         try:
             payload = {"identifier": "test@example.com", "continueUri": "http://localhost"}
-            async with s.post(f"{IDENTITY}/createAuthUri?key={API_KEY}",
-                              json=payload, timeout=15) as r:
+            async with s.post(f"{IDENTITY}/createAuthUri?key={API_KEY}", json=payload, timeout=15) as r:
                 body = await r.text()
                 results["tests"]["createAuthUri"] = {
                     "status": r.status,
                     "body": body[:500],
-                    "project_confirmed": "PROJECT_ID" in body.upper() or r.status == 200
+                    "project_confirmed": "PROJECT_ID" in body.upper() or r.status == 200,
                 }
         except Exception as e:
             results["tests"]["createAuthUri"] = {"error": str(e)}
@@ -238,10 +244,11 @@ async def test_firebase_key():
             payload = {
                 "email": f"titan.seprobe+{MARKER}@example.com",
                 "password": "T1tanProbe!Pwn",
-                "returnSecureToken": True
+                "returnSecureToken": True,
             }
-            async with s.post(f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={API_KEY}",
-                              json=payload, timeout=15) as r:
+            async with s.post(
+                f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={API_KEY}", json=payload, timeout=15
+            ) as r:
                 body = await r.json() if r.status == 200 else {}
                 text = await r.text()
                 created_id = body.get("localId")
@@ -250,17 +257,17 @@ async def test_firebase_key():
                     "status": r.status,
                     "created_account": bool(created_id),
                     "localId": created_id or None,
-                    "body": text[:400]
+                    "body": text[:400],
                 }
                 # Cleanup: delete the SECPROBE account immediately
                 if id_token:
                     try:
                         async with s.post(
                             f"https://identitytoolkit.googleapis.com/v1/accounts:delete?key={API_KEY}",
-                            json={"idToken": id_token}, timeout=15) as dr:
-                            results["tests"]["cleanup_delete"] = {
-                                "status": dr.status, "cleaned_up": dr.status == 200
-                            }
+                            json={"idToken": id_token},
+                            timeout=15,
+                        ) as dr:
+                            results["tests"]["cleanup_delete"] = {"status": dr.status, "cleaned_up": dr.status == 200}
                     except Exception as ce:
                         results["tests"]["cleanup_delete"] = {"error": str(ce)}
         except Exception as e:

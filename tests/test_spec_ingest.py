@@ -158,9 +158,11 @@ class TestSemanticPayloads:
     def test_mass_assignment_on_matching_schema(self, ingestor):
         surface = AttackSurface(
             base_url="https://api.t.example",
-            schemas=[__import__(
-                "titan.core.spec_ingest", fromlist=["ApiSchema"]
-            ).ApiSchema(name="users", properties={"role": {}})],
+            schemas=[
+                __import__("titan.core.spec_ingest", fromlist=["ApiSchema"]).ApiSchema(
+                    name="users", properties={"role": {}}
+                )
+            ],
             endpoints=[ApiEndpoint(method="POST", path="/users")],
         )
         payloads = ingestor.generate_semantic_payloads(surface)
@@ -205,11 +207,13 @@ class TestSemanticPayloads:
     def test_sqli_on_query_params(self, ingestor):
         surface = AttackSurface(
             base_url="https://api.t.example",
-            endpoints=[ApiEndpoint(
-                method="GET",
-                path="/search",
-                parameters=[{"name": "q", "in": "query"}],
-            )],
+            endpoints=[
+                ApiEndpoint(
+                    method="GET",
+                    path="/search",
+                    parameters=[{"name": "q", "in": "query"}],
+                )
+            ],
         )
         payloads = ingestor.generate_semantic_payloads(surface)
         sqli = [p for p in payloads if p.metadata.get("attack_type") == "sqli"]

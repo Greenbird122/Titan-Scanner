@@ -1,6 +1,5 @@
 """Behavioral tests for the evidence-oracle engine (titan.verify.oracles)."""
 
-
 from titan.verify.oracles import (
     extract_error_classes,
     json_differential,

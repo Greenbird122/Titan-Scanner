@@ -1,6 +1,5 @@
 """Authentication engine for Titan Scanner."""
 
-
 from __future__ import annotations
 
 import json
@@ -9,7 +8,6 @@ from typing import Any
 from titan.core.logger import get_logger
 
 logger = get_logger("auth")
-
 
 
 class AuthEngine:
@@ -58,8 +56,13 @@ class AuthEngine:
 
         username = self.credentials.get("username", "")
         password = self.credentials.get("password", "")
-        username_selector = self.credentials.get("username_selector", 'input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"], input[id*="user"], input[id*="email"], input[id*="phone"]')
-        password_selector = self.credentials.get("password_selector", 'input[type="password"], input[name*="pass"], input[id*="pass"]')
+        username_selector = self.credentials.get(
+            "username_selector",
+            'input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"], input[id*="user"], input[id*="email"], input[id*="phone"]',
+        )
+        password_selector = self.credentials.get(
+            "password_selector", 'input[type="password"], input[name*="pass"], input[id*="pass"]'
+        )
         submit_selector = self.credentials.get("submit_selector", 'button[type="submit"], input[type="submit"], button')
 
         try:
@@ -113,7 +116,9 @@ class AuthEngine:
         password = role_creds.get("password", "")
 
         try:
-            user_el = await page.wait_for_selector('input[type="text"], input[name*="user"], input[name*="phone"]', timeout=5000)
+            user_el = await page.wait_for_selector(
+                'input[type="text"], input[name*="user"], input[name*="phone"]', timeout=5000
+            )
             if user_el:
                 await user_el.fill(username)
         except Exception as exc:
@@ -149,7 +154,7 @@ class AuthEngine:
 
     async def _extract_token(self, page, context) -> str | None:
         try:
-            js_token = await page.evaluate('''() => {
+            js_token = await page.evaluate("""() => {
                 const sources = [
                     () => localStorage.getItem('access_token'),
                     () => localStorage.getItem('token'),
@@ -163,7 +168,7 @@ class AuthEngine:
                     if (val) return val;
                 }
                 return null;
-            }''')
+            }""")
             if js_token:
                 return js_token
         except Exception as exc:
@@ -172,9 +177,11 @@ class AuthEngine:
 
         try:
             apis = []
+
             def capture(request):
-                if '/api/' in request.url or '/auth/' in request.url:
+                if "/api/" in request.url or "/auth/" in request.url:
                     apis.append(request.url)
+
             page.on("request", capture)
             await page.wait_for_timeout(2000)
             page.remove_listener("request", capture)
@@ -195,10 +202,16 @@ class AuthEngine:
 
     def _guess_login_url(self, target: str) -> str | None:
         from urllib.parse import urljoin
+
         candidates = [
-            "/login", "/api/auth/login/", "/api/login",
-            "/signin", "/auth/login", "/users/login",
-            "/account/login", "/session/login",
+            "/login",
+            "/api/auth/login/",
+            "/api/login",
+            "/signin",
+            "/auth/login",
+            "/users/login",
+            "/account/login",
+            "/session/login",
         ]
         for path in candidates:
             return urljoin(target, path)
@@ -231,6 +244,7 @@ class AuthEngine:
             return False
 
         from urllib.parse import urljoin
+
         refresh_url = urljoin(target, "/api/auth/refresh/")
         try:
             resp = await context.request.post(
@@ -251,6 +265,7 @@ class AuthEngine:
 
     async def logout(self, context, page, target: str) -> bool:
         from urllib.parse import urljoin
+
         logout_url = urljoin(target, "/api/auth/logout/")
         try:
             await context.request.post(

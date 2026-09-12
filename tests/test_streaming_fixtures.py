@@ -5,6 +5,7 @@ unlock, admin panel, edge bypass) using only what the site itself ships —
 the salt in the player JS, the unauthenticated signing oracle, and the
 client-derivable challenge secret.
 """
+
 import sys
 from pathlib import Path
 

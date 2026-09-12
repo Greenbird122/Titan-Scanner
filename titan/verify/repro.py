@@ -73,7 +73,7 @@ def _error_classes_from_diffs(diffs: list[str]) -> list[str]:
     for d in diffs or []:
         d = d.lower()
         if d.startswith(_ERROR_CLASS_DIFF_PREFIX):
-            cls = d[len(_ERROR_CLASS_DIFF_PREFIX):].strip()
+            cls = d[len(_ERROR_CLASS_DIFF_PREFIX) :].strip()
             if cls:
                 out.append(cls)
     return out
@@ -107,10 +107,7 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
     J = json.dumps
     checks = []
     if signature:
-        checks.append(
-            (f"oracle signature {signature[:24]!r} in response body",
-             "signature in body")
-        )
+        checks.append((f"oracle signature {signature[:24]!r} in response body", "signature in body"))
     if status:
         checks.append((f"response status is {status}", "status match"))
     for ec in error_classes:
@@ -124,11 +121,11 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
 
     header = (
         f"#!/usr/bin/env python3\n"
-        f"\"\"\"Repro {ordinal} — {finding.attack_type.value if finding.attack_type else 'Unknown'}\n"
+        f'"""Repro {ordinal} — {finding.attack_type.value if finding.attack_type else "Unknown"}\n'
         f"at {url} (param {param!r}).\n\n"
         f"PASS (exit 0) = the flaw is STILL present. FAIL (exit 1) = fixed or\n"
         f"no longer reproducible. Dependency-free (urllib).\n"
-        f"\"\"\"\n"
+        f'"""\n'
     )
 
     lines = [
@@ -175,16 +172,14 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
     if mode == "assert":
         for label, cond in checks:
             if cond == "status match":
-                lines.append(
-                    f"    results.append(({J(label)}, status == EXPECT_STATUS, f'got {{status}}'))"
-                )
+                lines.append(f"    results.append(({J(label)}, status == EXPECT_STATUS, f'got {{status}}'))")
             elif cond == "signature in body":
                 lines.append(
                     f"    results.append(({J(label)}, bool(SIGNATURE) and SIGNATURE in body, "
                     f"'sig present' if SIGNATURE in body else 'sig ABSENT'))"
                 )
             elif cond.startswith("error "):
-                ec = cond[len("error "):]
+                ec = cond[len("error ") :]
                 lines.append(
                     f"    results.append(({J(label)}, bool(ERROR_CLASSES) and {J(ec)} in body.lower(), "
                     f"'class present' if {J(ec)} in body.lower() else 'class ABSENT'))"
@@ -200,8 +195,8 @@ def generate_repro(finding: Finding, ordinal: int = 1) -> str:
         "    for label, passed, detail in results:",
         "        print(f\"[{'PASS' if passed else 'FAIL'}] {label} — {detail}\")",
         "        ok = ok and passed",
-        "    print(f\"\\n{len(results)}/{len(results)} checks pass\" if ok "
-        "else f\"\\n{sum(1 for _ in results if _[1])}/{len(results)} checks pass\")",
+        '    print(f"\\n{len(results)}/{len(results)} checks pass" if ok '
+        'else f"\\n{sum(1 for _ in results if _[1])}/{len(results)} checks pass")',
         "    return 0 if ok else 1",
         "",
         "if __name__ == '__main__':",

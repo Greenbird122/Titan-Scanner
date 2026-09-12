@@ -138,9 +138,7 @@ class GrpcTransport(Transport):
             stub = reflection_pb2_grpc.ServerReflectionStub(channel)
 
             # Request list of services
-            request = reflection_pb2.ServerReflectionRequest(
-                list_services=""
-            )
+            request = reflection_pb2.ServerReflectionRequest(list_services="")
 
             services = []
             responses = stub.ServerReflectionInfo(iter([request]))

@@ -293,11 +293,11 @@ Observe → Learn → Attack → Adapt → Chain → Exploit → Prove
 # Price tampering
 "-0.01", "0", "-1", "2147483648", "0.00000001", "999999999"
 
-# Quantity manipulation  
+# Quantity manipulation
 "-1", "0", "999999999", "1.5", "0.5"
 
 # Discount abuse
-"DISCOUNT100", "FREE", "admin", "test", "{\"discount\":100}"
+"DISCOUNT100", "FREE", "admin", "test", '{"discount":100}'
 
 # Payment bypass
 "payment_status=paid", "amount=0", "skip_payment=true"

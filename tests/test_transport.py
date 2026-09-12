@@ -27,6 +27,7 @@ from titan.transport.base import (
 # Base type tests
 # ---------------------------------------------------------------------------
 
+
 class TestAttackRequest:
     def test_defaults(self):
         req = AttackRequest(url="https://example.com")
@@ -143,10 +144,12 @@ class TestRequestMethod:
 # HttpTransport tests
 # ---------------------------------------------------------------------------
 
+
 class TestHttpTransport:
     @pytest.fixture
     def http(self):
         from titan.transport.http_transport import HttpTransport
+
         return HttpTransport(timeout=10.0)
 
     def test_supports_http(self, http):
@@ -197,6 +200,7 @@ class TestHttpTransport:
 
     def test_custom_user_agent(self):
         from titan.transport.http_transport import HttpTransport
+
         http = HttpTransport(user_agent="CustomBot/1.0")
         assert http.user_agent == "CustomBot/1.0"
 
@@ -207,6 +211,7 @@ class TestHttpTransport:
 # ---------------------------------------------------------------------------
 # TransportRegistry tests
 # ---------------------------------------------------------------------------
+
 
 class TestTransportRegistry:
     @pytest.fixture
@@ -256,6 +261,7 @@ class TestTransportRegistry:
 # ---------------------------------------------------------------------------
 # Transport fallback integration test
 # ---------------------------------------------------------------------------
+
 
 class TestTransportFallback:
     """Test the transport → context.request fallback pattern used in TitanEngine."""
@@ -316,11 +322,13 @@ class TestTransportFallback:
 # Extracted TransportMixin (titan/core/transport_mixin.py)
 # ---------------------------------------------------------------------------
 
+
 class TestTransportMixin:
     """Cover the transport helpers extracted out of TitanEngine."""
 
     def _engine(self):
         from titan.core.engine import TitanEngine
+
         return TitanEngine({"crawl": {"profile": "fast"}})
 
     def test_mixin_public_surface_intact(self):

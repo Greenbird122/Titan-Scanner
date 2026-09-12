@@ -103,15 +103,19 @@ class SimpleNamespace:
 class TestDomXSS:
     async def test_marker_reaching_innerhtml_is_verified(self):
         from titan.modules.clientside.domxss.detector import DomXSSDetector
+
         # The page reads ?q= into innerHTML (a vulnerable app). The marker
         # is passed explicitly so the fake page's canned DOM state matches.
         page = FakePage(
-            evaluate_results={"window.__titan_sinks__": [
-                {"sink": "innerHTML", "value": "<img src=x onerror=alert('titanmxdeadbeef')>"},
-            ]},
+            evaluate_results={
+                "window.__titan_sinks__": [
+                    {"sink": "innerHTML", "value": "<img src=x onerror=alert('titanmxdeadbeef')>"},
+                ]
+            },
         )
         findings = await DomXSSDetector(StubSmith(), {}).scan(
-            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}, marker="titanmxdeadbeef")
+            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}, marker="titanmxdeadbeef"
+        )
         assert findings, "marker reaching innerHTML must be found"
         f = findings[0]
         assert f.attack_type == AttackType.DOM_XSS
@@ -122,29 +126,42 @@ class TestDomXSS:
         """A sink write containing the SITE's own content (no marker) is not
         attacker-controlled — must not fire."""
         from titan.modules.clientside.domxss.detector import DomXSSDetector
+
         page = FakePage(
-            evaluate_results={"window.__titan_sinks__": [
-                {"sink": "innerHTML", "value": "<p>legitimate page content</p>"},
-            ]},
+            evaluate_results={
+                "window.__titan_sinks__": [
+                    {"sink": "innerHTML", "value": "<p>legitimate page content</p>"},
+                ]
+            },
         )
-        findings = await DomXSSDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"})
+        findings = await DomXSSDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}
+        )
         assert findings == [], f"site content in sink must not be DOM XSS, got {findings}"
 
     async def test_no_sinks_is_not_domxss(self):
         from titan.modules.clientside.domxss.detector import DomXSSDetector
+
         page = FakePage(evaluate_results={"window.__titan_sinks__": []})
-        findings = await DomXSSDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"})
+        findings = await DomXSSDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}
+        )
         assert findings == [], f"no sink hits must not be DOM XSS, got {findings}"
 
     async def test_non_dangerous_sink_is_not_domxss(self):
         """A marker landing in a SAFE sink (textContent) proves nothing."""
         from titan.modules.clientside.domxss.detector import DomXSSDetector
+
         page = FakePage(
-            evaluate_results={"window.__titan_sinks__": [
-                {"sink": "textContent", "value": "titanmxdeadbeef"},
-            ]},
+            evaluate_results={
+                "window.__titan_sinks__": [
+                    {"sink": "textContent", "value": "titanmxdeadbeef"},
+                ]
+            },
         )
-        findings = await DomXSSDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"})
+        findings = await DomXSSDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}
+        )
         assert findings == [], f"marker in safe sink must not be DOM XSS, got {findings}"
 
 
@@ -154,6 +171,7 @@ class TestDomXSS:
 class TestPostMessage:
     async def test_unvalidated_handler_with_attacker_message_is_verified(self):
         from titan.modules.clientside.postmessage.detector import PostMessageDetector
+
         page = FakePage(
             evaluate_results={
                 "window.__titan_messages__": {
@@ -162,7 +180,9 @@ class TestPostMessage:
                 },
             },
         )
-        findings = await PostMessageDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {})
+        findings = await PostMessageDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {}
+        )
         assert findings, "unvalidated handler receiving attacker message must be found"
         f = findings[0]
         assert f.attack_type == AttackType.POSTMESSAGE
@@ -172,23 +192,34 @@ class TestPostMessage:
         """Handler compares event.origin against an allowlist — the flaw is
         absent (this is the secure pattern)."""
         from titan.modules.clientside.postmessage.detector import PostMessageDetector
+
         page = FakePage(
             evaluate_results={
                 "window.__titan_messages__": {
-                    "handlers": [{"checksOrigin": True, "source": "function(e){ if (e.origin !== 'https://trusted.com') return; ... }"}],
+                    "handlers": [
+                        {
+                            "checksOrigin": True,
+                            "source": "function(e){ if (e.origin !== 'https://trusted.com') return; ... }",
+                        }
+                    ],
                     "received": [{"origin": "https://attacker-controlled.example", "data": "titanmsgprobe"}],
                 },
             },
         )
-        findings = await PostMessageDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {})
+        findings = await PostMessageDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {}
+        )
         assert findings == [], f"origin-validating handler must not be flagged, got {findings}"
 
     async def test_no_handlers_is_not_found(self):
         from titan.modules.clientside.postmessage.detector import PostMessageDetector
+
         page = FakePage(
             evaluate_results={"window.__titan_messages__": {"handlers": [], "received": []}},
         )
-        findings = await PostMessageDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {})
+        findings = await PostMessageDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {}
+        )
         assert findings == [], f"no handlers must not be flagged, got {findings}"
 
     async def test_hook_own_capture_listener_is_not_an_app_handler(self):
@@ -198,15 +229,23 @@ class TestPostMessage:
         though the probe is always received by the hook's own listener.
         This pins the systematic self-FP regression."""
         from titan.modules.clientside.postmessage.detector import PostMessageDetector
+
         page = FakePage(
             evaluate_results={
                 "window.__titan_messages__": {
-                    "handlers": [{"checksOrigin": False, "source": "(ev) => { window.__titan_messages__.received.push({origin: ev.origin}); }"}],
+                    "handlers": [
+                        {
+                            "checksOrigin": False,
+                            "source": "(ev) => { window.__titan_messages__.received.push({origin: ev.origin}); }",
+                        }
+                    ],
                     "received": [{"origin": "https://attacker-controlled.example", "data": "titanmsgprobe"}],
                 },
             },
         )
-        findings = await PostMessageDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {})
+        findings = await PostMessageDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {}
+        )
         assert findings == [], f"hook's own capture listener must not be flagged, got {findings}"
 
     async def test_unvalidated_handler_without_received_message_is_not_found(self):
@@ -215,6 +254,7 @@ class TestPostMessage:
         origin). A handler that never executed for our origin proves
         nothing."""
         from titan.modules.clientside.postmessage.detector import PostMessageDetector
+
         page = FakePage(
             evaluate_results={
                 "window.__titan_messages__": {
@@ -223,7 +263,9 @@ class TestPostMessage:
                 },
             },
         )
-        findings = await PostMessageDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {})
+        findings = await PostMessageDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {}
+        )
         assert findings == [], f"handler that never ran for the attacker origin must not be flagged, got {findings}"
 
 
@@ -233,10 +275,13 @@ class TestPostMessage:
 class TestPrototypePollution:
     async def test_marker_inherited_by_fresh_object_is_verified(self):
         from titan.modules.clientside.prototype.detector import PrototypePollutionDetector
+
         # A vulnerable app merges the query __proto__[marker] into a deep
         # object, so a fresh {} inherits the marker.
         page = FakePage(evaluate_results={"fresh[marker]": "polluted_titanppdeadbeef"})
-        findings = await PrototypePollutionDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"})
+        findings = await PrototypePollutionDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}
+        )
         assert findings, "marker inherited by fresh object must be found"
         f = findings[0]
         assert f.attack_type == AttackType.PROTO_POLLUTION
@@ -244,9 +289,12 @@ class TestPrototypePollution:
 
     async def test_clean_page_is_not_polluted(self):
         from titan.modules.clientside.prototype.detector import PrototypePollutionDetector
+
         # A sanitizing app never merges __proto__ — fresh objects stay clean.
         page = FakePage(evaluate_results={"fresh[marker]": None})
-        findings = await PrototypePollutionDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"})
+        findings = await PrototypePollutionDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/page", {"q": "test"}
+        )
         assert findings == [], f"clean page must not be polluted, got {findings}"
 
 
@@ -256,14 +304,19 @@ class TestPrototypePollution:
 class TestThirdParty:
     async def test_external_script_with_sensitive_inputs_is_flagged(self):
         from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
+
         page = FakePage(
-            evaluate_results={"document.querySelectorAll('script[src]')": {
-                "scripts": [{"src": "https://skimmer-evil.example/analytics.js"}],
-                "sensitive_inputs": ["cardnumber", "cvv"],
-                "origin": "https://shop.example",
-            }},
+            evaluate_results={
+                "document.querySelectorAll('script[src]')": {
+                    "scripts": [{"src": "https://skimmer-evil.example/analytics.js"}],
+                    "sensitive_inputs": ["cardnumber", "cvv"],
+                    "origin": "https://shop.example",
+                }
+            },
         )
-        findings = await ThirdPartyDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/", {})
+        findings = await ThirdPartyDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/", {}
+        )
         assert findings, "external script + sensitive inputs must be flagged"
         f = findings[0]
         assert f.attack_type == AttackType.SKIMMER
@@ -271,23 +324,31 @@ class TestThirdParty:
 
     async def test_known_good_cdn_alone_is_not_flagged(self):
         from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
+
         page = FakePage(
-            evaluate_results={"document.querySelectorAll('script[src]')": {
-                "scripts": [{"src": "https://cdn.jsdelivr.net/npm/lib/dist.js"}],
-                "sensitive_inputs": [],
-                "origin": "https://shop.example",
-            }},
+            evaluate_results={
+                "document.querySelectorAll('script[src]')": {
+                    "scripts": [{"src": "https://cdn.jsdelivr.net/npm/lib/dist.js"}],
+                    "sensitive_inputs": [],
+                    "origin": "https://shop.example",
+                }
+            },
         )
-        findings = await ThirdPartyDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/", {})
+        findings = await ThirdPartyDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/", {}
+        )
         assert findings == [], f"known-good CDN without sensitive inputs must not be flagged, got {findings}"
 
     def test_score_threshold(self):
         from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
+
         # Same-origin script: score must be low.
         score, reasons = ThirdPartyDetector._score_script("https://shop.example/app.js", "https://shop.example", [])
         assert score < 2, f"same-origin script must not reach threshold, score={score} reasons={reasons}"
         # External + sensitive inputs + unlisted: score >= 2.
-        score2, reasons2 = ThirdPartyDetector._score_script("https://evil.example/x.js", "https://shop.example", ["cardnumber"])
+        score2, reasons2 = ThirdPartyDetector._score_script(
+            "https://evil.example/x.js", "https://shop.example", ["cardnumber"]
+        )
         assert score2 >= 2, f"external + sensitive inputs must reach threshold, score={score2} reasons={reasons2}"
 
 
@@ -297,6 +358,7 @@ class TestThirdParty:
 class TestCSP:
     async def test_missing_csp_is_found(self):
         from titan.modules.clientside.csp.detector import CSPDetector
+
         page = FakePage(evaluate_results={"meta[http-equiv": ""})
         findings = await CSPDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/", {})
         assert findings, "missing CSP must be found"
@@ -304,6 +366,7 @@ class TestCSP:
 
     async def test_unsafe_inline_script_src_is_high(self):
         from titan.modules.clientside.csp.detector import CSPDetector
+
         policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.example.com"
         page = FakePage(
             evaluate_results={"meta[http-equiv": ""},
@@ -315,9 +378,12 @@ class TestCSP:
 
     async def test_strong_csp_is_not_high(self):
         from titan.modules.clientside.csp.detector import CSPDetector
-        policy = ("default-src 'none'; script-src 'self'; style-src 'self'; "
-                  "img-src 'self' data:; object-src 'none'; base-uri 'none'; "
-                  "frame-ancestors 'none'")
+
+        policy = (
+            "default-src 'none'; script-src 'self'; style-src 'self'; "
+            "img-src 'self' data:; object-src 'none'; base-uri 'none'; "
+            "frame-ancestors 'none'"
+        )
         page = FakePage(
             evaluate_results={"meta[http-equiv": ""},
             headers={"content-security-policy": policy},
@@ -328,6 +394,7 @@ class TestCSP:
 
     def test_parse_directives(self):
         from titan.modules.clientside.csp.detector import CSPDetector
+
         d = CSPDetector._parse_directives("default-src 'self'; script-src 'self' 'unsafe-inline'")
         assert d["default-src"] == ["'self'"]
         assert d["script-src"] == ["'self'", "'unsafe-inline'"]
@@ -339,15 +406,17 @@ class TestCSP:
 class TestClientsideEngineWiring:
     async def test_browser_matrix_runs_through_engine(self):
         from titan.core.engine import TitanEngine
-        cfg = {"governance": {"enabled": False}, "ai": {"enabled": False},
-               "clientside": {"enabled": True}}
+
+        cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}, "clientside": {"enabled": True}}
         engine = TitanEngine(cfg)
 
         class FakeContext:
             async def new_page(self):
                 return FakePage(
                     evaluate_results={
-                        "window.__titan_sinks__": [{"sink": "innerHTML", "value": "<img src=x onerror=alert('titanmxdeadbeef')>"}],
+                        "window.__titan_sinks__": [
+                            {"sink": "innerHTML", "value": "<img src=x onerror=alert('titanmxdeadbeef')>"}
+                        ],
                         "window.__titan_messages__": {"handlers": [], "received": []},
                         "fresh[marker]": None,
                         "scripts.length": {"scripts": [], "sensitive_inputs": [], "origin": "http://localhost:5000"},
@@ -360,6 +429,7 @@ class TestClientsideEngineWiring:
         engine._client_marker = "titanmxdeadbeef"
 
         from titan.core.models import ScanResult
+
         result = ScanResult(target="http://localhost:5000", started_at=0)
         await engine._run_browser_modules(FakeContext(), None, "http://localhost:5000", {}, result)
         domxss = [f for f in result.findings if f.attack_type == AttackType.DOM_XSS]
@@ -368,6 +438,7 @@ class TestClientsideEngineWiring:
     async def test_browser_seam_skips_when_driver_dead(self):
         from titan.core.engine import TitanEngine
         from titan.core.models import ScanResult
+
         cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}}
         engine = TitanEngine(cfg)
         engine._driver_dead = True

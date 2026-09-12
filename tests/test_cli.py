@@ -42,16 +42,25 @@ class TestCLIParser:
 
     def test_scan_with_options(self):
         parser = create_parser()
-        args = parser.parse_args([
-            "scan", "--target", "https://example.com",
-            "--deep",
-            "--config", "config.yaml",
-            "--output", "out.json",
-            "--html", "report.html",
-            "--markdown", "report.md",
-            "--scan-id", "scan_abc",
-            "--no-governance",
-        ])
+        args = parser.parse_args(
+            [
+                "scan",
+                "--target",
+                "https://example.com",
+                "--deep",
+                "--config",
+                "config.yaml",
+                "--output",
+                "out.json",
+                "--html",
+                "report.html",
+                "--markdown",
+                "report.md",
+                "--scan-id",
+                "scan_abc",
+                "--no-governance",
+            ]
+        )
         assert args.target == "https://example.com"
         assert args.deep is True
         assert args.config == "config.yaml"
@@ -137,6 +146,7 @@ class TestCLIHelp:
             return asyncio.sleep(0)
 
         import titan.cli
+
         monkeypatch.setattr(titan.cli, "run_scan", fake_run_scan)
         monkeypatch.setattr("sys.argv", ["tscan", "scan", "--target", "https://example.com"])
         main()
@@ -147,6 +157,7 @@ class TestCLIHandlers:
     def test_run_report_missing_scan(self, capsys):
         """Report for a nonexistent scan must print a clear error, not crash."""
         from titan.cli import run_report
+
         run_report(_Args(scan_id="scan_does_not_exist_xyz", format="json", output=None))
         captured = capsys.readouterr()
         assert "not found" in captured.out.lower() or "not found" in captured.err.lower()
@@ -154,6 +165,7 @@ class TestCLIHandlers:
     def test_run_list_empty(self, capsys, tmp_path, monkeypatch):
         """List with an empty findings dir must say no scans, not crash."""
         from titan.cli import run_list
+
         monkeypatch.chdir(tmp_path)
         run_list(_Args())
         captured = capsys.readouterr()
@@ -161,12 +173,14 @@ class TestCLIHandlers:
 
     def test_run_status_missing_scan(self, capsys):
         from titan.cli import run_status
+
         run_status(_Args(scan_id="scan_does_not_exist_xyz"))
         captured = capsys.readouterr()
         assert "not found" in captured.out.lower() or "not found" in captured.err.lower()
 
     def test_run_delete_missing_scan(self, capsys):
         from titan.cli import run_delete
+
         run_delete(_Args(scan_id="scan_does_not_exist_xyz"))
         captured = capsys.readouterr()
         assert "not found" in captured.out.lower() or "not found" in captured.err.lower()
@@ -176,16 +190,22 @@ class TestCLIHandlers:
         import json
 
         from titan.cli import run_status
+
         (tmp_path / "findings").mkdir()
-        (tmp_path / "findings" / "scan_real_123.json").write_text(json.dumps({
-            "scan_id": "scan_real_123",
-            "target": "https://example.com",
-            "mode": "fast",
-            "duration_seconds": 3.5,
-            "findings": [{"severity": "CRITICAL", "verified": True}],
-            "chains": [],
-            "errors": [],
-        }), encoding="utf-8")
+        (tmp_path / "findings" / "scan_real_123.json").write_text(
+            json.dumps(
+                {
+                    "scan_id": "scan_real_123",
+                    "target": "https://example.com",
+                    "mode": "fast",
+                    "duration_seconds": 3.5,
+                    "findings": [{"severity": "CRITICAL", "verified": True}],
+                    "chains": [],
+                    "errors": [],
+                }
+            ),
+            encoding="utf-8",
+        )
         monkeypatch.chdir(tmp_path)
         run_status(_Args(scan_id="scan_real_123"))
         captured = capsys.readouterr()

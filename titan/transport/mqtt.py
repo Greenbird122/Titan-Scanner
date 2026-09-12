@@ -171,12 +171,14 @@ class MqttTransport(Transport):
         messages = []
 
         def on_message(client, userdata, msg):
-            messages.append({
-                "topic": msg.topic,
-                "payload": msg.payload.decode(errors="replace"),
-                "qos": msg.qos,
-                "retain": msg.retain,
-            })
+            messages.append(
+                {
+                    "topic": msg.topic,
+                    "payload": msg.payload.decode(errors="replace"),
+                    "qos": msg.qos,
+                    "retain": msg.retain,
+                }
+            )
 
         def _subscribe_sync():
             client = mqtt.Client(client_id=f"titan-sub-{int(time.time())}")
@@ -194,9 +196,16 @@ class MqttTransport(Transport):
     async def fuzz_topics(self, broker: str, port: int, base_topic: str = "") -> list[dict]:
         """Fuzz MQTT topics with common patterns."""
         common_topics = [
-            "test", "debug", "admin", "config", "status",
-            "sensor/temperature", "device/+/status",
-            "#", "+/+/+", "$SYS/#",
+            "test",
+            "debug",
+            "admin",
+            "config",
+            "status",
+            "sensor/temperature",
+            "device/+/status",
+            "#",
+            "+/+/+",
+            "$SYS/#",
             "home/automation/lights",
             "iot/+/telemetry",
         ]
@@ -208,11 +217,13 @@ class MqttTransport(Transport):
             try:
                 messages = await self.subscribe(broker, port, topic, duration=3)
                 if messages:
-                    results.append({
-                        "topic": topic,
-                        "messages": messages,
-                        "vulnerable": True,
-                    })
+                    results.append(
+                        {
+                            "topic": topic,
+                            "messages": messages,
+                            "vulnerable": True,
+                        }
+                    )
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass

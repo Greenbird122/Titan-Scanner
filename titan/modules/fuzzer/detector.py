@@ -15,7 +15,6 @@ Features:
      • Status / length differential -> LOW, informational.
 """
 
-
 from __future__ import annotations
 
 import urllib.parse as up
@@ -26,7 +25,6 @@ from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import extract_error_classes
 
 logger = get_logger("detector")
-
 
 
 def _mutate(value: str) -> list[tuple[str, str]]:
@@ -117,9 +115,7 @@ class FuzzerDetector:
     def __init__(self, payload_smith, fingerprint: dict[str, Any]):
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
-        self.max_mutations = int(
-            (fingerprint or {}).get("config", {}).get("max_mutations_per_param", 16)
-        )
+        self.max_mutations = int((fingerprint or {}).get("config", {}).get("max_mutations_per_param", 16))
 
     async def scan(
         self,
@@ -139,9 +135,13 @@ class FuzzerDetector:
 
             try:
                 if method.upper() == "POST":
-                    baseline_resp = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
+                    baseline_resp = await context.request.post(
+                        url, data=params, headers={"Referer": target}, timeout=3000
+                    )
                 else:
-                    baseline_resp = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
+                    baseline_resp = await context.request.get(
+                        url, params=params, headers={"Referer": target}, timeout=3000
+                    )
                 baseline_body = (await baseline_resp.text()) or ""
                 baseline_status = getattr(baseline_resp, "status", 200)
             except Exception as exc:
@@ -156,18 +156,20 @@ class FuzzerDetector:
 
                 try:
                     if method.upper() == "POST":
-                        resp = await context.request.post(url, data=mutated_params, headers={"Referer": target}, timeout=3000)
+                        resp = await context.request.post(
+                            url, data=mutated_params, headers={"Referer": target}, timeout=3000
+                        )
                     else:
-                        resp = await context.request.get(url, params=mutated_params, headers={"Referer": target}, timeout=3000)
+                        resp = await context.request.get(
+                            url, params=mutated_params, headers={"Referer": target}, timeout=3000
+                        )
                     body = (await resp.text()) or ""
                     status = getattr(resp, "status", 200)
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
-                diff_label, severity, confidence = classify_differential(
-                    baseline_status, baseline_body, status, body
-                )
+                diff_label, severity, confidence = classify_differential(baseline_status, baseline_body, status, body)
                 if not diff_label:
                     continue
 

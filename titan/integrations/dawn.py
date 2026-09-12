@@ -1,6 +1,5 @@
 """Dawn integration for Titan Scanner."""
 
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -61,6 +60,7 @@ class DawnMemory:
             return results
         try:
             from datetime import datetime, timedelta
+
             cutoff = datetime.now() - timedelta(days=days)
             for path in MEMORY_DIR.glob("*.md"):
                 if path.stem < cutoff.strftime("%Y-%m-%d"):

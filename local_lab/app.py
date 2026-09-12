@@ -4,7 +4,6 @@ Run: python local_lab/app.py
 Then scan: http://localhost:5000
 """
 
-
 import os
 import re
 import secrets
@@ -176,7 +175,7 @@ def sqli_pg():
         time.sleep(3)
         return jsonify({"query": user_id, "result": ""})
     if "'" in user_id:
-        return "psycopg2.errors.SyntaxError: syntax error at or near \"1\"", 500
+        return 'psycopg2.errors.SyntaxError: syntax error at or near "1"', 500
     return jsonify({"query": user_id, "result": "admin"})
 
 
@@ -393,6 +392,7 @@ def index():
 def hash_password():
     password = request.form.get("password", "")
     import hashlib
+
     # Vulnerable: uses MD5
     hashed = hashlib.md5(password.encode()).hexdigest()
     return jsonify({"hash": hashed})
@@ -401,11 +401,13 @@ def hash_password():
 # === 10. Hardcoded Credentials ===
 @app.route("/config", methods=["GET"])
 def config():
-    return jsonify({
-        "database_password": "SuperSecret123!",
-        "api_key": "firebase-api-key-EXAMPLE-PLACEHOLDER",
-        "aws_secret": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-    }        )
+    return jsonify(
+        {
+            "database_password": "SuperSecret123!",
+            "api_key": "firebase-api-key-EXAMPLE-PLACEHOLDER",
+            "aws_secret": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        }
+    )
 
 
 # === 11. Client-side redirect hijacks (Track F) ===
@@ -419,8 +421,8 @@ def config():
 def redirect_meta():
     # Meta-refresh hijack fired on page parse.
     return (
-        "<html><head><meta http-equiv=\"refresh\" "
-        "content=\"0;url=https://evil.example/steal\"></head>"
+        '<html><head><meta http-equiv="refresh" '
+        'content="0;url=https://evil.example/steal"></head>'
         "<body><h1>Legit page</h1></body></html>"
     )
 
@@ -438,17 +440,20 @@ def redirect_js():
 @app.route("/redirect-clean")
 def redirect_clean():
     # Benign control: same-origin link, no hijack.
-    return (
-        "<html><head><meta http-equiv=\"refresh\" "
-        "content=\"0;url=/\"></head><body>ok</body></html>"
-    )
+    return '<html><head><meta http-equiv="refresh" content="0;url=/"></head><body>ok</body></html>'
 
 
 if __name__ == "__main__":
     print("[+] Starting vulnerable app on http://localhost:5000")
-    print("[+] Endpoints: /sqli, /sqli_mssql, /sqli_pg, /sqli_comment_bypass, /xss, /lfi, /ssrf, /internal/meta, /cmd, /upload, /api/user, /api/login, /api/data, /hash, /config, /redirect-meta, /redirect-js")
-    print("[+] Titan Shop: /shop (auth /shop/register, /shop/login, /shop/admin, /shop/reset; catalog /shop/products, /shop/product/<id>, /shop/product/<id>/review; orders /shop/checkout, /shop/order/<id>; payments /shop/pay, /shop/payments, /shop/refund/<id>, /shop/webhook/payment)")
-    print("[+] STREAM-PEAK: /stream (player; leaks signing salt in JS), /stream/play/<id> (token-gated), /stream/sign (unauthenticated signing oracle), /stream/admin (forged-token gate), /stream/cdn/edge (anti-scraper challenge)")
+    print(
+        "[+] Endpoints: /sqli, /sqli_mssql, /sqli_pg, /sqli_comment_bypass, /xss, /lfi, /ssrf, /internal/meta, /cmd, /upload, /api/user, /api/login, /api/data, /hash, /config, /redirect-meta, /redirect-js"
+    )
+    print(
+        "[+] Titan Shop: /shop (auth /shop/register, /shop/login, /shop/admin, /shop/reset; catalog /shop/products, /shop/product/<id>, /shop/product/<id>/review; orders /shop/checkout, /shop/order/<id>; payments /shop/pay, /shop/payments, /shop/refund/<id>, /shop/webhook/payment)"
+    )
+    print(
+        "[+] STREAM-PEAK: /stream (player; leaks signing salt in JS), /stream/play/<id> (token-gated), /stream/sign (unauthenticated signing oracle), /stream/admin (forged-token gate), /stream/cdn/edge (anti-scraper challenge)"
+    )
     # Default to loopback + no debug: the lab is deliberately vulnerable, so it
     # must not be reachable from the network or carry the Werkzeug interactive
     # debugger (an RCE console) unless the operator explicitly opts in.

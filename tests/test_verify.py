@@ -66,6 +66,7 @@ class _TimedContext:
 def async_fn():
     async def _text():
         return "ok"
+
     return _text
 
 
@@ -77,10 +78,20 @@ class TestBlindDetector:
         # 0.24s delta as load variance, not a real sleep).
         ctx = _TimedContext(sleep_delay=3.05)
         params = {"id": "1"}
-        is_blind, elapsed = asyncio.run(detector.detect_time_based(
-            ctx, "http://t/", "GET", params, {}, {},
-            "1 AND SLEEP(3)--", "query", [0.01, 0.01, 0.01], param_name="id",
-        ))
+        is_blind, elapsed = asyncio.run(
+            detector.detect_time_based(
+                ctx,
+                "http://t/",
+                "GET",
+                params,
+                {},
+                {},
+                "1 AND SLEEP(3)--",
+                "query",
+                [0.01, 0.01, 0.01],
+                param_name="id",
+            )
+        )
         assert is_blind is True
         assert elapsed > 0.1
         # The payload must be injected into the *actual* parameter, not a
@@ -93,10 +104,20 @@ class TestBlindDetector:
         # Baseline stats must reflect a realistic baseline (here 0.05s, matching
         # the fake's base_delay+margin). A tight 0.01 threshold would let CPU
         # contention overshoot a 10ms sleep and flip this negative case.
-        is_blind, _ = asyncio.run(detector.detect_time_based(
-            ctx, "http://t/", "GET", {"id": "1"}, {}, {},
-            "1", "query", [0.05, 0.05, 0.05], param_name="id",
-        ))
+        is_blind, _ = asyncio.run(
+            detector.detect_time_based(
+                ctx,
+                "http://t/",
+                "GET",
+                {"id": "1"},
+                {},
+                {},
+                "1",
+                "query",
+                [0.05, 0.05, 0.05],
+                param_name="id",
+            )
+        )
         assert is_blind is False
 
     def test_samples_one_is_clamped_to_two(self):
@@ -104,10 +125,20 @@ class TestBlindDetector:
         detector = BlindDetector(samples=1, confidence=0.95)
         # Realistic 3s delay (see declared-delay gate note above).
         ctx = _TimedContext(sleep_delay=3.05)
-        is_blind, _ = asyncio.run(detector.detect_time_based(
-            ctx, "http://t/", "GET", {"id": "1"}, {}, {},
-            "1 AND SLEEP(3)--", "query", [0.01, 0.01, 0.01], param_name="id",
-        ))
+        is_blind, _ = asyncio.run(
+            detector.detect_time_based(
+                ctx,
+                "http://t/",
+                "GET",
+                {"id": "1"},
+                {},
+                {},
+                "1 AND SLEEP(3)--",
+                "query",
+                [0.01, 0.01, 0.01],
+                param_name="id",
+            )
+        )
         assert is_blind is True
 
     def test_body_location_injection(self):
@@ -118,7 +149,9 @@ class TestBlindDetector:
         class _BodyRequest(_TimedContext._Request):
             async def post(self, url, data=None, headers=None, timeout=10000, **kwargs):
                 if kwargs:
-                    raise TypeError(f"APIRequestContext.post() got an unexpected keyword argument {next(iter(kwargs))!r}")
+                    raise TypeError(
+                        f"APIRequestContext.post() got an unexpected keyword argument {next(iter(kwargs))!r}"
+                    )
                 self.parent.last_params = data
                 injected = " ".join(str(v) for v in (data or {}).values()).lower()
                 delay = self.parent.sleep_delay if "sleep" in injected else self.parent.base_delay
@@ -126,10 +159,20 @@ class TestBlindDetector:
                 return SimpleNamespace(status=200, url=url, headers={}, text=async_fn())
 
         ctx.request = _BodyRequest(ctx)
-        is_blind, _ = asyncio.run(detector.detect_time_based(
-            ctx, "http://t/", "POST", {}, {"q": "1"}, {},
-            "1 OR SLEEP(3)--", "body", [0.01, 0.01, 0.01], param_name="q",
-        ))
+        is_blind, _ = asyncio.run(
+            detector.detect_time_based(
+                ctx,
+                "http://t/",
+                "POST",
+                {},
+                {"q": "1"},
+                {},
+                "1 OR SLEEP(3)--",
+                "body",
+                [0.01, 0.01, 0.01],
+                param_name="q",
+            )
+        )
         assert is_blind is True
         assert ctx.last_params.get("q") == "1 OR SLEEP(3)--"
 
@@ -137,6 +180,7 @@ class TestBlindDetector:
         """Regression: the historical `cookies=` TypeError was swallowed by a
         bare except and timing silently returned elapsed=0.0. Now an unexpected
         error must surface once (one-time diagnostic) instead of hiding."""
+
         class _ExplodingContext:
             class _Request:
                 async def get(self, url, params=None, headers=None, timeout=10000, **kwargs):
@@ -147,15 +191,35 @@ class TestBlindDetector:
 
         BlindDetector._warned_unexpected = False  # deterministic
         detector = BlindDetector(samples=2, confidence=0.95)
-        is_blind, elapsed = asyncio.run(detector.detect_time_based(
-            _ExplodingContext(), "http://t/", "GET", {"id": "1"}, {}, {},
-            "1 AND SLEEP(3)--", "query", [0.01, 0.01, 0.01], param_name="id",
-        ))
+        is_blind, elapsed = asyncio.run(
+            detector.detect_time_based(
+                _ExplodingContext(),
+                "http://t/",
+                "GET",
+                {"id": "1"},
+                {},
+                {},
+                "1 AND SLEEP(3)--",
+                "query",
+                [0.01, 0.01, 0.01],
+                param_name="id",
+            )
+        )
         assert is_blind is False and elapsed == 0.0
         assert "BlindDetector unexpected error" in capsys.readouterr().out
         # A second failure must not spam the console.
-        is_blind, _ = asyncio.run(detector.detect_time_based(
-            _ExplodingContext(), "http://t/", "GET", {"id": "1"}, {}, {},
-            "1 AND SLEEP(3)--", "query", [0.01, 0.01, 0.01], param_name="id",
-        ))
+        is_blind, _ = asyncio.run(
+            detector.detect_time_based(
+                _ExplodingContext(),
+                "http://t/",
+                "GET",
+                {"id": "1"},
+                {},
+                {},
+                "1 AND SLEEP(3)--",
+                "query",
+                [0.01, 0.01, 0.01],
+                param_name="id",
+            )
+        )
         assert "BlindDetector unexpected error" not in capsys.readouterr().out

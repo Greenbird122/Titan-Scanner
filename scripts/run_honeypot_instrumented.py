@@ -5,6 +5,7 @@ on the engine and the API-only runner) so we can see the matrix actually
 run against crawl-discovered endpoints, and confirm the BaaS on-origin
 sweep reaches its origin-level dedupe cache.
 """
+
 import asyncio
 import sys
 from pathlib import Path
@@ -37,12 +38,10 @@ async def main() -> int:
     _orig_modules = engine._run_modules
     _orig_api = engine._run_api_modules
 
-    async def wrapped_modules(context, target, forms, links, apis,
-                              fingerprint, result=None, route_score=5):
+    async def wrapped_modules(context, target, forms, links, apis, fingerprint, result=None, route_score=5):
         COUNTERS["modules"] += 1
         COUNTERS["module_calls"] += len(forms) + len(links) + len(apis)
-        return await _orig_modules(context, target, forms, links, apis,
-                                   fingerprint, result, route_score)
+        return await _orig_modules(context, target, forms, links, apis, fingerprint, result, route_score)
 
     async def wrapped_api(context, target, api_url, fingerprint):
         COUNTERS["api_modules"] += 1
@@ -54,25 +53,30 @@ async def main() -> int:
 
     result = await engine.scan(TARGET)
 
-    print(f"\n[+] Scan complete: {len(result.findings)} findings "
-          f"({result.verified_count} verified)")
-    print(f"    Critical: {result.critical_count}, High: {result.high_count}, "
-          f"Chains: {result.chain_count}, Duration: {result.duration_seconds}s")
+    print(f"\n[+] Scan complete: {len(result.findings)} findings ({result.verified_count} verified)")
+    print(
+        f"    Critical: {result.critical_count}, High: {result.high_count}, "
+        f"Chains: {result.chain_count}, Duration: {result.duration_seconds}s"
+    )
 
     for f in sorted(result.findings, key=lambda x: (x.severity.value, x.attack_type.value)):
-        print(f"  [{f.severity.value.upper()}] {f.attack_type.value} "
-              f"conf={f.confidence:.2f} verified={'Y' if f.verified else 'N'} tier={f.tier}")
+        print(
+            f"  [{f.severity.value.upper()}] {f.attack_type.value} "
+            f"conf={f.confidence:.2f} verified={'Y' if f.verified else 'N'} tier={f.tier}"
+        )
         print(f"    {f.method} {f.url}  param={f.param} ({f.location})")
         note = (f.notes or "")[:120]
         if note:
             print(f"    note: {note}")
 
     from titan.modules.baas.detector import BaasDetector
-    print(f"\n[+] Module matrix dispatch: _run_modules={COUNTERS['modules']} "
-          f"runs over {COUNTERS['module_calls']} endpoints, "
-          f"_run_api_modules={COUNTERS['api_modules']}")
-    print(f"[+] BaaS on-origin sweep cache size: "
-          f"{len(BaasDetector._SWEPT_ORIGINS)}")
+
+    print(
+        f"\n[+] Module matrix dispatch: _run_modules={COUNTERS['modules']} "
+        f"runs over {COUNTERS['module_calls']} endpoints, "
+        f"_run_api_modules={COUNTERS['api_modules']}"
+    )
+    print(f"[+] BaaS on-origin sweep cache size: {len(BaasDetector._SWEPT_ORIGINS)}")
     return 0
 
 

@@ -47,28 +47,36 @@ class _FakeDetector:
 
 async def _scan(evaluate_results, page_url="http://localhost:5000/", target="http://localhost:5000/"):
     from titan.modules.redirect.detector import RedirectDetector
+
     page = FakePage(
         evaluate_results={"window.__titan_redirects__": evaluate_results},
         page_url=page_url,
     )
     return await RedirectDetector(_FakeDetector(), {}).scan(
-        page, target, target, {},
+        page,
+        target,
+        target,
+        {},
     )
 
 
 class TestRedirectDetector:
     async def test_js_redirect_off_origin_is_flagged(self):
-        findings = await _scan({
-            "redirects": [{
-                "dest": "https://evil.example/phish",
-                "mechanism": "location.replace",
-                "trigger": "script",
-                "source": "Error\n    at https://evil.example/inject.js:1:1",
-                "timing": 120,
-            }],
-            "origin": "http://localhost:5000",
-            "finalUrl": "http://localhost:5000/",
-        })
+        findings = await _scan(
+            {
+                "redirects": [
+                    {
+                        "dest": "https://evil.example/phish",
+                        "mechanism": "location.replace",
+                        "trigger": "script",
+                        "source": "Error\n    at https://evil.example/inject.js:1:1",
+                        "timing": 120,
+                    }
+                ],
+                "origin": "http://localhost:5000",
+                "finalUrl": "http://localhost:5000/",
+            }
+        )
         assert findings, "off-origin JS redirect must be flagged"
         f = findings[0]
         assert f.attack_type == AttackType.REDIRECT_HIJACK
@@ -81,76 +89,92 @@ class TestRedirectDetector:
         assert f.severity.value == "high"
 
     async def test_meta_refresh_on_load_is_flagged(self):
-        findings = await _scan({
-            "redirects": [{
-                "dest": "https://evil.example/steal",
-                "mechanism": "meta-refresh",
-                "trigger": "parse",
-                "source": '<meta http-equiv="refresh" content="0;url=https://evil.example/steal">',
-                "timing": 5,
-            }],
-            "origin": "http://localhost:5000",
-            "finalUrl": "http://localhost:5000/",
-        })
+        findings = await _scan(
+            {
+                "redirects": [
+                    {
+                        "dest": "https://evil.example/steal",
+                        "mechanism": "meta-refresh",
+                        "trigger": "parse",
+                        "source": '<meta http-equiv="refresh" content="0;url=https://evil.example/steal">',
+                        "timing": 5,
+                    }
+                ],
+                "origin": "http://localhost:5000",
+                "finalUrl": "http://localhost:5000/",
+            }
+        )
         assert findings, "meta-refresh hijack must be flagged"
         f = findings[0]
         assert f.metadata["mechanism"] == "meta-refresh"
         assert f.severity.value == "high"
 
     async def test_same_origin_navigation_is_not_a_hijack(self):
-        findings = await _scan({
-            "redirects": [{
-                "dest": "http://localhost:5000/dashboard",
-                "mechanism": "location.assign",
-                "trigger": "script",
-                "source": "",
-                "timing": 800,
-            }],
-            "origin": "http://localhost:5000",
-            "finalUrl": "http://localhost:5000/",
-        })
+        findings = await _scan(
+            {
+                "redirects": [
+                    {
+                        "dest": "http://localhost:5000/dashboard",
+                        "mechanism": "location.assign",
+                        "trigger": "script",
+                        "source": "",
+                        "timing": 800,
+                    }
+                ],
+                "origin": "http://localhost:5000",
+                "finalUrl": "http://localhost:5000/",
+            }
+        )
         assert findings == [], f"same-origin app routing must not be a hijack, got {findings}"
 
     async def test_clean_page_finds_nothing(self):
-        findings = await _scan({
-            "redirects": [],
-            "origin": "http://localhost:5000",
-            "finalUrl": "http://localhost:5000/",
-        })
+        findings = await _scan(
+            {
+                "redirects": [],
+                "origin": "http://localhost:5000",
+                "finalUrl": "http://localhost:5000/",
+            }
+        )
         assert findings == []
 
     async def test_server_redirect_to_off_origin_is_flagged(self):
         """Even without any JS redirect recorded, a final page URL on a
         different host than the request is a server-side hijack."""
-        findings = await _scan({
-            "redirects": [],
-            "origin": "http://localhost:5000",
-            "finalUrl": "https://evil.example/landed",
-        })
+        findings = await _scan(
+            {
+                "redirects": [],
+                "origin": "http://localhost:5000",
+                "finalUrl": "https://evil.example/landed",
+            }
+        )
         assert findings, "server redirect to an off-origin host must be flagged"
         assert findings[0].metadata["mechanism"] == "server-redirect"
 
 
 class TestRedirectConsentGate:
     def test_redirect_flag_is_accepted_and_enforced(self, tmp_path):
-        doc = create_consent("http://lab.local", flags=[FLAG_REDIRECT],
-                             expiry="1h", key_path=tmp_path / "k.pem")
+        doc = create_consent("http://lab.local", flags=[FLAG_REDIRECT], expiry="1h", key_path=tmp_path / "k.pem")
         write_consent(doc, consent_dir=tmp_path / "consent")
         # Granted -> passes.
-        require_consent("http://lab.local/deep/path", need=FLAG_REDIRECT,
-                        consent_dir=tmp_path / "consent", key_path=tmp_path / "k.pem")
+        require_consent(
+            "http://lab.local/deep/path",
+            need=FLAG_REDIRECT,
+            consent_dir=tmp_path / "consent",
+            key_path=tmp_path / "k.pem",
+        )
         # Not granted -> refused.
-        doc2 = create_consent("http://lab2.local", flags=["write"],
-                              expiry="1h", key_path=tmp_path / "k.pem")
+        doc2 = create_consent("http://lab2.local", flags=["write"], expiry="1h", key_path=tmp_path / "k.pem")
         write_consent(doc2, consent_dir=tmp_path / "consent")
         with pytest.raises(ConsentError, match="lacks flag"):
-            require_consent("http://lab2.local", need=FLAG_REDIRECT,
-                            consent_dir=tmp_path / "consent", key_path=tmp_path / "k.pem")
+            require_consent(
+                "http://lab2.local", need=FLAG_REDIRECT, consent_dir=tmp_path / "consent", key_path=tmp_path / "k.pem"
+            )
 
 
 @pytest.fixture(scope="module")
 def lab_client():
     from local_lab.app import app as lab_app
+
     lab_app.testing = True
     return lab_app.test_client()
 
@@ -172,5 +196,5 @@ class TestRedirectLab:
 
     def test_clean_control_stays_same_origin(self, lab_client):
         body = lab_client.get("/redirect-clean").data.decode("utf-8")
-        assert "content=\"0;url=/\"" in body or "content='0;url=/'" in body
+        assert 'content="0;url=/"' in body or "content='0;url=/'" in body
         assert "evil.example" not in body

@@ -18,8 +18,15 @@ if str(ROOT) not in sys.path:
 from titan.core.models import AttackType, Finding, Severity
 
 
-def _finding(url, attack=AttackType.LFI, payload="../../../../etc/passwd",
-             verified=True, confidence=0.9, diffs=None, param="page"):
+def _finding(
+    url,
+    attack=AttackType.LFI,
+    payload="../../../../etc/passwd",
+    verified=True,
+    confidence=0.9,
+    diffs=None,
+    param="page",
+):
     return Finding(
         target="https://zairaku.rest",
         url=url,
@@ -39,6 +46,7 @@ def _dedupe(findings):
     """Dedup as the engine does: module-level helper + root-cause types."""
     from titan.core.constants import ROOT_CAUSE_ATTACK_TYPES
     from titan.core.helpers import dedupe_findings
+
     return dedupe_findings(findings, ROOT_CAUSE_ATTACK_TYPES)
 
 
@@ -46,12 +54,32 @@ class TestRootCauseDedup:
     def test_identical_findings_collapse_to_one(self):
         """21 endpoints, identical attack+payload+verified -> ONE finding with
         all 21 URLs recorded in metadata['affected_urls']."""
-        findings = [_finding(f"https://zairaku.rest/{path}?id=1&q=test")
-                    for path in ("token", "hash", "login", "signin", "signup",
-                                 "register", "session", "refresh", "upload",
-                                 "api.raml", "backup", "xss", "manager",
-                                 "export", ".DS_Store", "test", "console",
-                                 "bak", "dev", "users", "panel")]
+        findings = [
+            _finding(f"https://zairaku.rest/{path}?id=1&q=test")
+            for path in (
+                "token",
+                "hash",
+                "login",
+                "signin",
+                "signup",
+                "register",
+                "session",
+                "refresh",
+                "upload",
+                "api.raml",
+                "backup",
+                "xss",
+                "manager",
+                "export",
+                ".DS_Store",
+                "test",
+                "console",
+                "bak",
+                "dev",
+                "users",
+                "panel",
+            )
+        ]
         out = _dedupe(findings)
         assert len(out) == 1, f"21 identical LFI must collapse to 1, got {len(out)}"
         rep = out[0]
@@ -79,10 +107,8 @@ class TestRootCauseDedup:
         """Header misconfigs collapse via their own site-wide rule; the
         root-cause pass must not merge identical header findings that live on
         distinct endpoints with distinct params."""
-        h1 = _finding("https://x/a", attack=AttackType.INFO_LEAK, param="body",
-                      payload="Missing: X-Frame-Options")
-        h2 = _finding("https://x/b", attack=AttackType.INFO_LEAK, param="body",
-                      payload="Missing: X-Frame-Options")
+        h1 = _finding("https://x/a", attack=AttackType.INFO_LEAK, param="body", payload="Missing: X-Frame-Options")
+        h2 = _finding("https://x/b", attack=AttackType.INFO_LEAK, param="body", payload="Missing: X-Frame-Options")
         out = _dedupe([h1, h2])
         # site-wide rule collapses these (same sig) BEFORE the root-cause pass
         assert len(out) == 1, f"identical header leak must collapse via site-wide rule, got {len(out)}"
@@ -94,11 +120,16 @@ class TestEvidenceGateIntegration:
         1, and the evidence gate demotes it because its diffs name no strong
         oracle marker (the pre-fix version emitted 21 CRITICAL)."""
         from titan.verify.oracles import enforce_evidence
+
         # Reflection-only diffs: exactly what a catch-all echo produces.
-        findings = [_finding(f"https://zairaku.rest/{i}", verified=True,
-                             diffs=["payload_reflected", "content_hash_changed",
-                                    "response_length_increased"])
-                    for i in range(21)]
+        findings = [
+            _finding(
+                f"https://zairaku.rest/{i}",
+                verified=True,
+                diffs=["payload_reflected", "content_hash_changed", "response_length_increased"],
+            )
+            for i in range(21)
+        ]
         deduped = _dedupe(findings)
         assert len(deduped) == 1
         stats = enforce_evidence(deduped)
@@ -115,10 +146,15 @@ class TestEvidenceGateIntegration:
         marker — so the gate grades it confirmed instead of auto-demoting a
         genuinely verified CRITICAL RCE to unverified MEDIUM."""
         from titan.verify.oracles import enforce_evidence, grade_finding
-        f = _finding("https://x/cmd?host=test", attack=AttackType.RCE,
-                     payload="| id", verified=True, confidence=0.93,
-                     diffs=["rce:content:uid=", "rce:content:gid=",
-                            "content_hash_changed"])
+
+        f = _finding(
+            "https://x/cmd?host=test",
+            attack=AttackType.RCE,
+            payload="| id",
+            verified=True,
+            confidence=0.93,
+            diffs=["rce:content:uid=", "rce:content:gid=", "content_hash_changed"],
+        )
         assert grade_finding(f) == "confirmed"
         stats = enforce_evidence([f])
         assert f.verified is True, "verified RCE content leak must NOT be demoted"
@@ -128,18 +164,30 @@ class TestEvidenceGateIntegration:
     def test_rce_marker_reflection_stays_confirmed(self):
         """Unique-marker echo proof of execution keeps the confirmed grade."""
         from titan.verify.oracles import grade_finding
-        f = _finding("https://x/cmd?host=test", attack=AttackType.RCE,
-                     payload=";echo 8hK2fQ9a", verified=True, confidence=0.92,
-                     diffs=["rce:marker_reflected", "payload_reflected"])
+
+        f = _finding(
+            "https://x/cmd?host=test",
+            attack=AttackType.RCE,
+            payload=";echo 8hK2fQ9a",
+            verified=True,
+            confidence=0.92,
+            diffs=["rce:marker_reflected", "payload_reflected"],
+        )
         assert grade_finding(f) == "confirmed"
 
     def test_rce_bare_old_style_diff_is_demoted(self):
         """A pre-fix ``rce:uid=`` diff (no strong marker) still gets demoted:
         the gate is strict about naming the oracle that backed the label."""
         from titan.verify.oracles import enforce_evidence
-        f = _finding("https://x/cmd?host=test", attack=AttackType.RCE,
-                     payload="| id", verified=True, confidence=0.93,
-                     diffs=["rce:uid=", "content_hash_changed"])
+
+        f = _finding(
+            "https://x/cmd?host=test",
+            attack=AttackType.RCE,
+            payload="| id",
+            verified=True,
+            confidence=0.93,
+            diffs=["rce:uid=", "content_hash_changed"],
+        )
         stats = enforce_evidence([f])
         assert f.verified is False
         assert f.severity == Severity.MEDIUM
@@ -151,10 +199,15 @@ class TestEvidenceGateIntegration:
         signature leaked from the app is a content leak, so a verified
         CRITICAL deser finding must NOT be demoted for missing a marker."""
         from titan.verify.oracles import grade_finding
-        f = _finding("https://x/api?data=1", attack=AttackType.DESERIALIZATION,
-                     payload="Deserialization indicator: Java IO deserialization",
-                     verified=True, confidence=0.85,
-                     diffs=["deser:content:java_io_deserialization"])
+
+        f = _finding(
+            "https://x/api?data=1",
+            attack=AttackType.DESERIALIZATION,
+            payload="Deserialization indicator: Java IO deserialization",
+            verified=True,
+            confidence=0.85,
+            diffs=["deser:content:java_io_deserialization"],
+        )
         assert grade_finding(f) == "confirmed"
 
     def test_smuggling_heuristic_is_demoted_by_design(self):
@@ -164,11 +217,15 @@ class TestEvidenceGateIntegration:
         docstring admits Playwright may strip the TE header, so the probe is
         best-effort). The demotion is the strictness the program mandates."""
         from titan.verify.oracles import enforce_evidence
-        f = _finding("https://x/weather-hourly?next=test",
-                     attack=AttackType.REQUEST_SMUGGLING,
-                     payload="Smuggling probe: test%0d%0a...",
-                     verified=True, confidence=0.6,
-                     diffs=["smuggle:duplicate_te_header", "smuggle:bad request"])
+
+        f = _finding(
+            "https://x/weather-hourly?next=test",
+            attack=AttackType.REQUEST_SMUGGLING,
+            payload="Smuggling probe: test%0d%0a...",
+            verified=True,
+            confidence=0.6,
+            diffs=["smuggle:duplicate_te_header", "smuggle:bad request"],
+        )
         stats = enforce_evidence([f])
         assert f.verified is False, "heuristic smuggling must not keep verified"
         assert f.severity == Severity.MEDIUM
@@ -181,9 +238,15 @@ class TestEvidenceGateIntegration:
         report trusts, and a marker alone (e.g. RCE marker echoed by an app
         that merely echoes the query string) is not proof of execution."""
         from titan.verify.oracles import grade_finding
-        f = _finding("https://x/cmd?host=1", attack=AttackType.RCE,
-                     payload=";echo 8hK2fQ9a", verified=False, confidence=0.6,
-                     diffs=["rce:marker_reflected", "payload_reflected"])
+
+        f = _finding(
+            "https://x/cmd?host=1",
+            attack=AttackType.RCE,
+            payload=";echo 8hK2fQ9a",
+            verified=False,
+            confidence=0.6,
+            diffs=["rce:marker_reflected", "payload_reflected"],
+        )
         assert grade_finding(f) == "indicative"
 
     def test_non_injection_verified_grades_confirmed(self):
@@ -191,7 +254,14 @@ class TestEvidenceGateIntegration:
         verified flag is ``confirmed`` by construction, never "corroborated"
         (which would read as weak/demoted in the report's evidence column)."""
         from titan.verify.oracles import grade_finding
-        f = _finding("https://x/", attack=AttackType.INFO_LEAK, param="body",
-                     payload="Missing: X-Frame-Options", verified=True,
-                     confidence=0.9, diffs=["Missing: X-Frame-Options"])
+
+        f = _finding(
+            "https://x/",
+            attack=AttackType.INFO_LEAK,
+            param="body",
+            payload="Missing: X-Frame-Options",
+            verified=True,
+            confidence=0.9,
+            diffs=["Missing: X-Frame-Options"],
+        )
         assert grade_finding(f) == "confirmed"

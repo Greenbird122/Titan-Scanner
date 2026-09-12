@@ -5,6 +5,7 @@ tampering, SCN-018 unsigned webhook, SCN-019 plaintext PAN, SCN-020 SQLi,
 SCN-021 session fixation + reset-token leak. Each test asserts the fixture's
 vulnerable behaviour the way a real scanner would observe it.
 """
+
 import sys
 from pathlib import Path
 
@@ -25,16 +26,14 @@ def client():
 
 # --- SCN-014: register mass assignment ---------------------------------------
 def test_register_echoes_client_role(client):
-    r = client.post("/shop/register",
-                    json={"username": "hax", "password": "x", "role": "admin"})
+    r = client.post("/shop/register", json={"username": "hax", "password": "x", "role": "admin"})
     assert r.status_code == 200
     body = r.get_data(as_text=True)
     assert '"role":"admin"' in body  # Flask compact JSON separators
 
 
 def test_mass_assigned_admin_reaches_panel(client):
-    client.post("/shop/register",
-                json={"username": "hax", "password": "x", "role": "admin"})
+    client.post("/shop/register", json={"username": "hax", "password": "x", "role": "admin"})
     client.post("/shop/login", data={"username": "hax", "password": "x"})
     r = client.get("/shop/admin")
     assert r.status_code == 200
@@ -50,8 +49,7 @@ def test_plain_user_forbidden_from_admin(client):
 
 # --- SCN-015: stored XSS via review ------------------------------------------
 def test_review_stored_and_rendered_unescaped(client):
-    client.post("/shop/product/1/review",
-                data={"body": "<script>alert(1)</script>"})
+    client.post("/shop/product/1/review", data={"body": "<script>alert(1)</script>"})
     body = client.get("/shop/product/1").get_data(as_text=True)
     assert "<script>alert(1)</script>" in body
 
@@ -75,8 +73,7 @@ def test_order_requires_login(client):
 # --- SCN-017: checkout price tampering ----------------------------------------
 def test_checkout_trusts_client_total(client):
     client.post("/shop/login", data={"username": "alice", "password": "alice123"})
-    r = client.post("/shop/checkout",
-                    json={"total_cents": 1, "note": "TITAN-PENNY-CHARGE"})
+    r = client.post("/shop/checkout", json={"total_cents": 1, "note": "TITAN-PENNY-CHARGE"})
     assert r.status_code == 200
     assert r.get_json()["total_cents"] == 1
     assert r.get_json()["note"] == "TITAN-PENNY-CHARGE"
@@ -88,8 +85,7 @@ def test_checkout_requires_login(client):
 
 # --- SCN-018: unsigned payment webhook ----------------------------------------
 def test_forged_webhook_marks_order_paid(client):
-    r = client.post("/shop/webhook/payment",
-                    json={"order_id": 1, "status": "paid"})
+    r = client.post("/shop/webhook/payment", json={"order_id": 1, "status": "paid"})
     assert r.status_code == 200
     assert r.get_json()["status"] == "paid"
     assert r.get_json()["ok"] is True
@@ -114,8 +110,7 @@ def test_order_detail_echoes_full_pan(client):
 
 def test_pay_echoes_card_number(client):
     client.post("/shop/login", data={"username": "alice", "password": "alice123"})
-    r = client.post("/shop/pay", json={"order_id": 2, "amount_cents": 2999,
-                                       "card_number": "4242-4242-4242-4242"})
+    r = client.post("/shop/pay", json={"order_id": 2, "amount_cents": 2999, "card_number": "4242-4242-4242-4242"})
     assert r.get_json()["card_number"] == "4242-4242-4242-4242"
 
 
@@ -135,8 +130,7 @@ def test_login_reuses_attacker_sid(client):
     # Werkzeug's test client prefers its cookie jar over an explicit
     # Cookie header, so seed the jar exactly as an attacker would.
     client.set_cookie("sid", "attacker_fixed_token")
-    r = client.post("/shop/login",
-                    data={"username": "alice", "password": "alice123"})
+    r = client.post("/shop/login", data={"username": "alice", "password": "alice123"})
     assert "attacker_fixed_token" in r.get_data(as_text=True)
 
 

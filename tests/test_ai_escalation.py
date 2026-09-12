@@ -94,7 +94,9 @@ def test_parse_verdict_fenced_json():
 
 
 def test_parse_verdict_prose_around_json():
-    v = parse_verdict('Here is my analysis:\n{"verdict": "inconclusive", "confidence": 0.4, "reason": "unclear"}.\nHope this helps.')
+    v = parse_verdict(
+        'Here is my analysis:\n{"verdict": "inconclusive", "confidence": 0.4, "reason": "unclear"}.\nHope this helps.'
+    )
     assert v["verdict"] == "inconclusive"
 
 
@@ -289,11 +291,11 @@ def test_escalator_model_error_keeps_finding():
 
 def test_escalator_respects_per_scan_cap_and_priorities():
     findings = [
-        make_finding(confidence=0.5, severity=Severity.MEDIUM),   # not eligible
-        make_finding(confidence=0.9),                              # not eligible (too confident)
+        make_finding(confidence=0.5, severity=Severity.MEDIUM),  # not eligible
+        make_finding(confidence=0.9),  # not eligible (too confident)
         make_finding(confidence=0.7, severity=Severity.CRITICAL),  # eligible, first (highest sev)
-        make_finding(confidence=0.4, severity=Severity.HIGH),      # eligible
-        make_finding(confidence=0.6, severity=Severity.HIGH),      # eligible
+        make_finding(confidence=0.4, severity=Severity.HIGH),  # eligible
+        make_finding(confidence=0.6, severity=Severity.HIGH),  # eligible
     ]
     cfg = dict(AI_CFG)
     cfg["escalate"] = {**AI_CFG["escalate"], "max_per_scan": 2}

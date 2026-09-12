@@ -7,7 +7,6 @@ This module:
 4. Selects and runs appropriate testing modules
 """
 
-
 from __future__ import annotations
 
 import json
@@ -21,10 +20,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("enumerator")
 
 
-
 @dataclass
 class BaasFingerprint:
     """Detected BaaS platform information."""
+
     platform: str  # "supabase", "firebase", "appwrite", "clerk", "auth0", "unknown"
     confidence: float
     endpoint: str | None = None
@@ -103,35 +102,105 @@ class BaaSEnumerator:
     # ── Common Table/Collection Names ───────────────────────────────────
 
     COMMON_TABLES = [
-        "users", "user", "accounts", "profiles", "profile",
-        "orders", "order", "products", "product", "items",
-        "payments", "payment", "invoices", "invoice",
-        "sessions", "session", "tokens", "token",
-        "messages", "message", "comments", "comment",
-        "posts", "post", "articles", "article",
-        "files", "file", "uploads", "upload",
-        "settings", "setting", "config", "configuration",
-        "admin", "admins", "roles", "role",
-        "teams", "team", "organizations", "organization",
-        "subscriptions", "subscription", "plans", "plan",
-        "credits", "credit", "balances", "balance",
+        "users",
+        "user",
+        "accounts",
+        "profiles",
+        "profile",
+        "orders",
+        "order",
+        "products",
+        "product",
+        "items",
+        "payments",
+        "payment",
+        "invoices",
+        "invoice",
+        "sessions",
+        "session",
+        "tokens",
+        "token",
+        "messages",
+        "message",
+        "comments",
+        "comment",
+        "posts",
+        "post",
+        "articles",
+        "article",
+        "files",
+        "file",
+        "uploads",
+        "upload",
+        "settings",
+        "setting",
+        "config",
+        "configuration",
+        "admin",
+        "admins",
+        "roles",
+        "role",
+        "teams",
+        "team",
+        "organizations",
+        "organization",
+        "subscriptions",
+        "subscription",
+        "plans",
+        "plan",
+        "credits",
+        "credit",
+        "balances",
+        "balance",
     ]
 
     COMMON_BUCKETS = [
-        "avatars", "avatar", "images", "image", "photos", "photo",
-        "documents", "document", "files", "file", "uploads", "upload",
-        "public", "private", "media", "assets", "static",
+        "avatars",
+        "avatar",
+        "images",
+        "image",
+        "photos",
+        "photo",
+        "documents",
+        "document",
+        "files",
+        "file",
+        "uploads",
+        "upload",
+        "public",
+        "private",
+        "media",
+        "assets",
+        "static",
     ]
 
     COMMON_FUNCTIONS = [
-        "send-email", "sendEmail", "send_email",
-        "process-payment", "processPayment", "process_payment",
-        "create-user", "createUser", "create_user",
-        "delete-user", "deleteUser", "delete_user",
-        "generate-report", "generateReport", "generate_report",
-        "webhook", "callback", "notify", "notification",
-        "upload", "download", "export", "import",
-        "admin", "dashboard", "analytics",
+        "send-email",
+        "sendEmail",
+        "send_email",
+        "process-payment",
+        "processPayment",
+        "process_payment",
+        "create-user",
+        "createUser",
+        "create_user",
+        "delete-user",
+        "deleteUser",
+        "delete_user",
+        "generate-report",
+        "generateReport",
+        "generate_report",
+        "webhook",
+        "callback",
+        "notify",
+        "notification",
+        "upload",
+        "download",
+        "export",
+        "import",
+        "admin",
+        "dashboard",
+        "analytics",
     ]
 
     def __init__(self, context: Any = None):
@@ -182,11 +251,13 @@ class BaaSEnumerator:
                     existing.confidence = max(existing.confidence, confidence)
                     existing.raw_detection += f" | {detection_type}: {matches[0][:50]}"
                 else:
-                    self._fingerprints.append(BaasFingerprint(
-                        platform=platform,
-                        confidence=confidence,
-                        raw_detection=f"{detection_type}: {matches[0][:100]}",
-                    ))
+                    self._fingerprints.append(
+                        BaasFingerprint(
+                            platform=platform,
+                            confidence=confidence,
+                            raw_detection=f"{detection_type}: {matches[0][:100]}",
+                        )
+                    )
 
         # Extract API keys from source
         key_patterns = [
@@ -230,6 +301,7 @@ class BaaSEnumerator:
         """Detect BaaS from HTTP headers."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(target_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     headers = dict(resp.headers)
@@ -239,20 +311,24 @@ class BaaSEnumerator:
                     if "x-supabase" in str(headers).lower():
                         fp = next((f for f in self._fingerprints if f.platform == "supabase"), None)
                         if not fp:
-                            self._fingerprints.append(BaasFingerprint(
-                                platform="supabase",
-                                confidence=0.80,
-                                raw_detection="x-supabase header",
-                            ))
+                            self._fingerprints.append(
+                                BaasFingerprint(
+                                    platform="supabase",
+                                    confidence=0.80,
+                                    raw_detection="x-supabase header",
+                                )
+                            )
 
                     if "x-appwrite" in str(headers).lower():
                         fp = next((f for f in self._fingerprints if f.platform == "appwrite"), None)
                         if not fp:
-                            self._fingerprints.append(BaasFingerprint(
-                                platform="appwrite",
-                                confidence=0.80,
-                                raw_detection="x-appwrite header",
-                            ))
+                            self._fingerprints.append(
+                                BaasFingerprint(
+                                    platform="appwrite",
+                                    confidence=0.80,
+                                    raw_detection="x-appwrite header",
+                                )
+                            )
 
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
@@ -262,6 +338,7 @@ class BaaSEnumerator:
         """Detect BaaS from JavaScript bundles."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(target_url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     body = await resp.text()
@@ -270,7 +347,9 @@ class BaaSEnumerator:
                 js_urls = re.findall(r'src=["\']([^"\']*\.js(?:\?[^"\']*)?)["\']', body)
 
                 for js_url in js_urls[:5]:
-                    full_js_url = js_url if js_url.startswith("http") else f"{target_url.rstrip('/')}/{js_url.lstrip('/')}"
+                    full_js_url = (
+                        js_url if js_url.startswith("http") else f"{target_url.rstrip('/')}/{js_url.lstrip('/')}"
+                    )
                     try:
                         async with session.get(full_js_url, timeout=aiohttp.ClientTimeout(total=10)) as js_resp:
                             js_body = await js_resp.text()
@@ -290,11 +369,13 @@ class BaaSEnumerator:
                                         if fp:
                                             fp.confidence = max(fp.confidence, confidence)
                                         else:
-                                            self._fingerprints.append(BaasFingerprint(
-                                                platform=platform,
-                                                confidence=confidence,
-                                                raw_detection=f"JS: {detection_type}",
-                                            ))
+                                            self._fingerprints.append(
+                                                BaasFingerprint(
+                                                    platform=platform,
+                                                    confidence=confidence,
+                                                    raw_detection=f"JS: {detection_type}",
+                                                )
+                                            )
 
                                     # Extract keys from JS
                                     key_match = re.search(r"sbp_[a-zA-Z0-9]{30,}", js_body)
@@ -330,6 +411,7 @@ class BaaSEnumerator:
         """Enumerate Supabase resources."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 # Try to list tables via REST API
                 headers = {
@@ -373,6 +455,7 @@ class BaaSEnumerator:
         """Enumerate Firebase resources."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 # Try common Realtime DB paths
                 for table in self.COMMON_TABLES:
@@ -395,6 +478,7 @@ class BaaSEnumerator:
         """Enumerate AppWrite resources."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 # Try to list databases
                 try:
@@ -446,13 +530,15 @@ class BaaSEnumerator:
             method="GET",
             param="baas_detection",
             location="page_source",
-            payload=json.dumps({
-                "platform": primary.platform,
-                "endpoint": primary.endpoint,
-                "tables": primary.tables[:10],
-                "buckets": primary.buckets[:5],
-                "functions": primary.functions[:5],
-            }),
+            payload=json.dumps(
+                {
+                    "platform": primary.platform,
+                    "endpoint": primary.endpoint,
+                    "tables": primary.tables[:10],
+                    "buckets": primary.buckets[:5],
+                    "functions": primary.functions[:5],
+                }
+            ),
             attack_type=AttackType.INFO_LEAK,
             severity=severity_map.get(primary.platform, Severity.INFO),
             confidence=primary.confidence,

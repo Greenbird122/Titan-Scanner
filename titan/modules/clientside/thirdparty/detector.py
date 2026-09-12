@@ -13,7 +13,6 @@ Indicators:
 - the script is tiny and self-contained (skimmers are usually small)
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -31,16 +30,32 @@ logger = get_logger("detector")
 # flag them (the weather.co.ke FP: adsbygoogle scored 2 indicators on a page
 # with zero card fields).
 KNOWN_GOOD_ORIGINS = {
-    "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com", "code.jquery.com",
-    "ajax.googleapis.com", "ajax.aspnetcdn.com", "cdn.tailwindcss.com",
-    "polyfill.io", "polyfill-fastly.io", "www.googletagmanager.com",
-    "www.google-analytics.com", "analytics.google.com", "static.cloudflareinsights.com",
-    "platform.twitter.com", "connect.facebook.net", "www.gstatic.com",
-    "use.typekit.net", "kit.fontawesome.com", "cdn.shopify.com",
+    "cdn.jsdelivr.net",
+    "cdnjs.cloudflare.com",
+    "unpkg.com",
+    "code.jquery.com",
+    "ajax.googleapis.com",
+    "ajax.aspnetcdn.com",
+    "cdn.tailwindcss.com",
+    "polyfill.io",
+    "polyfill-fastly.io",
+    "www.googletagmanager.com",
+    "www.google-analytics.com",
+    "analytics.google.com",
+    "static.cloudflareinsights.com",
+    "platform.twitter.com",
+    "connect.facebook.net",
+    "www.gstatic.com",
+    "use.typekit.net",
+    "kit.fontawesome.com",
+    "cdn.shopify.com",
     # Google AdSense / ad stack — present on virtually every ad-supported site.
-    "pagead2.googlesyndication.com", "googleads.g.doubleclick.net",
-    "securepubads.g.doubleclick.net", "adservice.google.com",
-    "static.doubleclick.net", "tpc.googlesyndication.com",
+    "pagead2.googlesyndication.com",
+    "googleads.g.doubleclick.net",
+    "securepubads.g.doubleclick.net",
+    "adservice.google.com",
+    "static.doubleclick.net",
+    "tpc.googlesyndication.com",
 }
 
 SCRIPT_ENUM_JS = """
@@ -103,7 +118,9 @@ class ThirdPartyDetector:
                     continue
                 score, reasons = self._score_script(src, page_origin, sensitive_inputs)
                 if score >= MIN_SCORE:
-                    findings.append(self._finding(target, str(page.url or url), src, score, reasons, len(sensitive_inputs)))
+                    findings.append(
+                        self._finding(target, str(page.url or url), src, score, reasons, len(sensitive_inputs))
+                    )
         except Exception:
             return findings
         return findings

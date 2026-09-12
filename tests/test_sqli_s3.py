@@ -46,11 +46,15 @@ class TestS3PayloadInventory:
             # building block directly: the payloads appended in scan() must
             # include each flavour.
             from titan.ai.payloadforge import PayloadForge
+
             forge = PayloadForge()
             base = forge.get_context_payloads("sqli", {"attack_type": "sqli"})[:8]
             assembled = base + [
-                "' AND SLEEP(3)--", "' OR SLEEP(3)--", "1' AND SLEEP(3)--",
-                "' AND pg_sleep(3)--", "'; WAITFOR DELAY '0:0:3'--",
+                "' AND SLEEP(3)--",
+                "' OR SLEEP(3)--",
+                "1' AND SLEEP(3)--",
+                "' AND pg_sleep(3)--",
+                "'; WAITFOR DELAY '0:0:3'--",
                 "' AND BENCHMARK(5000000, MD5('x'))--",
             ]
             return assembled
@@ -67,12 +71,14 @@ class TestS3PayloadInventory:
         SQLiDetector(StubSmith(), {})
         # The bypass strings are built in scan(); pin the exact set here so a
         # future refactor can't silently drop them.
-        expected = ["' OR/**/1=1--", "'/**/OR/**/1=1--",
-                    "1'/**/AND/**/SLEEP(3)--", "1'/**/AND/**/pg_sleep(3)--"]
+        expected = ["' OR/**/1=1--", "'/**/OR/**/1=1--", "1'/**/AND/**/SLEEP(3)--", "1'/**/AND/**/pg_sleep(3)--"]
         # Reconstruct the same way scan() does.
         base = ["' OR 1=1--", "' AND 1=2--"] + [
-            "' AND SLEEP(3)--", "' OR SLEEP(3)--", "1' AND SLEEP(3)--",
-            "' AND pg_sleep(3)--", "'; WAITFOR DELAY '0:0:3'--",
+            "' AND SLEEP(3)--",
+            "' OR SLEEP(3)--",
+            "1' AND SLEEP(3)--",
+            "' AND pg_sleep(3)--",
+            "'; WAITFOR DELAY '0:0:3'--",
             "' AND BENCHMARK(5000000, MD5('x'))--",
         ]
         assembled = base + expected
@@ -86,11 +92,17 @@ class TestS3PayloadInventory:
         import inspect
 
         from titan.modules.sqli.detector import SQLiDetector as SD
+
         src = inspect.getsource(SD._test_param)
-        for sig in ("incorrect syntax near", "microsoft ole db",
-                    "sqlite3.operationalerror", "database error",
-                    "syntax error at or near", "conversion failed",
-                    "db2 sql error"):
+        for sig in (
+            "incorrect syntax near",
+            "microsoft ole db",
+            "sqlite3.operationalerror",
+            "database error",
+            "syntax error at or near",
+            "conversion failed",
+            "db2 sql error",
+        ):
             assert sig in src.lower(), f"error signature '{sig}' reverted"
 
 
@@ -101,17 +113,20 @@ class TestS3LabDetection:
     @pytest.fixture(scope="module")
     def client(self):
         from local_lab.app import app as lab_app
+
         lab_app.testing = True
         return lab_app.test_client()
 
     @pytest.fixture()
     def context(self, client):
         from tests.test_lab_detection import FakeLabContext
+
         return FakeLabContext(client)
 
     def _fast_blind(self, detector):
         async def _no_blind(*args, **kwargs):
             return False, 0.0
+
         detector.blind_detector.detect_time_based = _no_blind
         return detector
 
@@ -120,8 +135,11 @@ class TestS3LabDetection:
         the detector's comment-token payloads must confirm the sink."""
         detector = self._fast_blind(SQLiDetector(StubSmith(), {}))
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/sqli_comment_bypass", {"id": "1"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/sqli_comment_bypass",
+            {"id": "1"},
         )
         assert findings, "comment-bypass payloads must confirm /sqli_comment_bypass"
         f = findings[0]
@@ -132,8 +150,11 @@ class TestS3LabDetection:
         mssql error signature must confirm it (pre-S3 this stayed silent)."""
         detector = self._fast_blind(SQLiDetector(StubSmith(), {}))
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/sqli_mssql", {"id": "1"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/sqli_mssql",
+            {"id": "1"},
         )
         assert findings, "mssql error signature must confirm /sqli_mssql"
         assert findings[0].verified is True
@@ -143,8 +164,11 @@ class TestS3LabDetection:
         near' signature must confirm it."""
         detector = self._fast_blind(SQLiDetector(StubSmith(), {}))
         findings = await detector.scan(
-            context, "http://localhost:5000", "GET",
-            "http://localhost:5000/sqli_pg", {"id": "1"},
+            context,
+            "http://localhost:5000",
+            "GET",
+            "http://localhost:5000/sqli_pg",
+            {"id": "1"},
         )
         assert findings, "pg error signature must confirm /sqli_pg"
         assert findings[0].verified is True

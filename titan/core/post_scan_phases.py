@@ -54,10 +54,21 @@ class PostScanPhasesMixin:
     def _is_llm_endpoint(url: str) -> bool:
         path = urlparse(url).path.lower()
         markers = (
-            "/api/chat", "/chat/completions", "/v1/chat", "/v1/completions",
-            "/api/assistant", "/api/generate", "/api/completion",
-            "/api/message", "/api/ai", "/api/ask", "/api/answer",
-            "/api/query", "/api/inference", "/api/prompt", "/api/completions",
+            "/api/chat",
+            "/chat/completions",
+            "/v1/chat",
+            "/v1/completions",
+            "/api/assistant",
+            "/api/generate",
+            "/api/completion",
+            "/api/message",
+            "/api/ai",
+            "/api/ask",
+            "/api/answer",
+            "/api/query",
+            "/api/inference",
+            "/api/prompt",
+            "/api/completions",
         )
         return any(m in path for m in markers)
 
@@ -76,6 +87,7 @@ class PostScanPhasesMixin:
         try:
             from titan.modules.llm.channel import LLMChannel
             from titan.modules.llm.detector import LLMDetector
+
             channel = getattr(self, "_llm_channel", None)
             if channel is None:
                 channel = LLMChannel(
@@ -103,6 +115,7 @@ class PostScanPhasesMixin:
             return
         try:
             from titan.modules.cloud.storage import StorageProbe
+
             probe = StorageProbe(fetcher=getattr(self, "_storage_fetcher", None))
             storage_findings = await probe.scan(target, result.findings)
             result.findings.extend(storage_findings)
@@ -116,10 +129,15 @@ class PostScanPhasesMixin:
             return
         try:
             from titan.modules.subdomain_takeover.detector import SubdomainTakeoverDetector
+
             detector = SubdomainTakeoverDetector()
             takeover_findings = await detector.scan(
-                context=None, target=target, method="GET",
-                url=target, params={}, fingerprint={},
+                context=None,
+                target=target,
+                method="GET",
+                url=target,
+                params={},
+                fingerprint={},
             )
             result.findings.extend(takeover_findings)
             if takeover_findings:
@@ -129,9 +147,9 @@ class PostScanPhasesMixin:
 
     async def _probe_cloud_imds(self, target, result):
         ssrf_findings = [
-            f for f in result.findings
-            if str(getattr(f, "type", "")) in ("ssrf", "AttackType.SSRF", "cloud_imds_exposure")
-            and f.url
+            f
+            for f in result.findings
+            if str(getattr(f, "type", "")) in ("ssrf", "AttackType.SSRF", "cloud_imds_exposure") and f.url
         ]
         if not ssrf_findings:
             return
@@ -148,16 +166,23 @@ class PostScanPhasesMixin:
             from urllib.parse import urlparse as _up
 
             import aiohttp
+
             parsed = _up(ssrf_url)
             params = parse_qs(parsed.query, keep_blank_values=True)
             params[ssrf_param] = [imds_url]
             new_query = urlencode(params, doseq=True)
             sink_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query}"
             try:
-                async with aiohttp.ClientSession() as session, session.request(
-                    method=method, url=sink_url, headers=headers or {},
-                    timeout=aiohttp.ClientTimeout(total=timeout), ssl=False,
-                ) as resp:
+                async with (
+                    aiohttp.ClientSession() as session,
+                    session.request(
+                        method=method,
+                        url=sink_url,
+                        headers=headers or {},
+                        timeout=aiohttp.ClientTimeout(total=timeout),
+                        ssl=False,
+                    ) as resp,
+                ):
                     body = await resp.text(errors="replace")
                     return (resp.status, dict(resp.headers), body)
             except Exception:
@@ -190,14 +215,21 @@ class PostScanPhasesMixin:
             for f_dict in report.findings:
                 try:
                     from titan.core.models import AttackType, Severity
-                    severity_map = {"critical": Severity.CRITICAL, "high": Severity.HIGH,
-                                    "medium": Severity.MEDIUM, "low": Severity.LOW}
+
+                    severity_map = {
+                        "critical": Severity.CRITICAL,
+                        "high": Severity.HIGH,
+                        "medium": Severity.MEDIUM,
+                        "low": Severity.LOW,
+                    }
                     finding = Finding(
-                        type=AttackType.SUPPLY_CHAIN if hasattr(AttackType, 'SUPPLY_CHAIN') else AttackType.OTHER,
+                        type=AttackType.SUPPLY_CHAIN if hasattr(AttackType, "SUPPLY_CHAIN") else AttackType.OTHER,
                         severity=severity_map.get(f_dict.get("severity", "medium"), Severity.MEDIUM),
                         title=f_dict.get("title", "Supply Chain Finding"),
-                        url=target, param=f_dict.get("type", ""),
-                        evidence=f_dict.get("evidence", ""), confidence=0.8,
+                        url=target,
+                        param=f_dict.get("type", ""),
+                        evidence=f_dict.get("evidence", ""),
+                        confidence=0.8,
                         cvss_score=f_dict.get("cvss_score", 5.0),
                         tags=["supplychain", "sbom"],
                         metadata=f_dict.get("metadata", {}),
@@ -211,11 +243,14 @@ class PostScanPhasesMixin:
     async def _run_deep_audit(self, target, result):
         try:
             from titan.modules.deep_audit.prober import DeepAuditor
+
             auditor = DeepAuditor()
             audit_result = await auditor.audit(
-                target, budget=float(self.config.get("deep_audit", {}).get("budget", 60)),
+                target,
+                budget=float(self.config.get("deep_audit", {}).get("budget", 60)),
             )
             from titan.core.models import AttackType, Severity
+
             for af in audit_result.findings:
                 if af.severity in ("critical", "high", "medium"):
                     try:
@@ -227,11 +262,17 @@ class PostScanPhasesMixin:
                     except ValueError:
                         atype = AttackType.INFO_LEAK
                     finding = Finding(
-                        target=target, url=target, method="GET", param="deep-audit",
-                        location="cloud", payload=af.description[:200],
-                        attack_type=atype, severity=sev,
+                        target=target,
+                        url=target,
+                        method="GET",
+                        param="deep-audit",
+                        location="cloud",
+                        payload=af.description[:200],
+                        attack_type=atype,
+                        severity=sev,
                         confidence=0.95 if af.verified else 0.7,
-                        status=200, evidence=af.proof,
+                        status=200,
+                        evidence=af.proof,
                         tier="confirmed" if af.verified else "suspicious",
                         tags=["deep-audit", af.category, af.id],
                         notes=f"{af.title}: {af.remediation}",
@@ -242,4 +283,3 @@ class PostScanPhasesMixin:
         except Exception as exc:
             result.errors.append(f"Deep audit failed: {exc}")
             logger.warning(f"[!] Deep audit: {exc}")
-

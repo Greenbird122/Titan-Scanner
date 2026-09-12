@@ -24,6 +24,7 @@ async def _fp(headers=None, body="", url="http://example.com/"):
 # The observed bug: "Play Framework on every scan"
 # ---------------------------------------------------------------------------
 
+
 def test_display_word_does_not_yield_play_framework():
     """The literal bug: a page whose CSS/text contains 'display' must NOT be
     fingerprinted as Play Framework."""
@@ -45,14 +46,14 @@ def test_clean_page_stays_clean():
     body = "<html><head><title>Home</title></head><body><h1>Welcome</h1></body></html>"
     fp = asyncio.run(_fp(body=body))
     # no generic English word may claim a framework
-    for bad in ("Play Framework", "Express", "Vue", "React", "Spring",
-                "Slim", "Unity", "Foundation"):
+    for bad in ("Play Framework", "Express", "Vue", "React", "Spring", "Slim", "Unity", "Foundation"):
         assert bad not in fp["technologies"], bad
 
 
 # ---------------------------------------------------------------------------
 # Strong markers: known apps fingerprint correctly
 # ---------------------------------------------------------------------------
+
 
 def test_angular_app_fingerprints_angular_not_play():
     """A real Angular shell (the Juice Shop shape): ng-version + <app-root>.
@@ -95,6 +96,7 @@ def test_express_fingerprinted_by_header():
 # Word-boundary + denylist discipline
 # ---------------------------------------------------------------------------
 
+
 def test_word_boundary_still_detects_real_markers():
     """Word-boundary matching must not kill genuine signals: 'django' stands
     alone as a real framework word, 'php' stands alone as a real language."""
@@ -108,10 +110,12 @@ def test_frameworks_deduped_across_sources():
     """A page with Django in body AND a Django CSRF cookie names it twice;
     the list must read clean."""
     body = "<form>django</form>"
-    fp = asyncio.run(_fp(
-        headers={"set-cookie": "csrftoken=abc; Path=/"},
-        body=body,
-    ))
+    fp = asyncio.run(
+        _fp(
+            headers={"set-cookie": "csrftoken=abc; Path=/"},
+            body=body,
+        )
+    )
     assert fp["technologies"].count("Django") == 1
 
 
@@ -119,17 +123,20 @@ def test_analyze_resets_between_calls():
     """The fingerprinter instance is reused across scans; a second analyze()
     must not carry the first page's technologies."""
     tp = TechFingerprinter()
+
     async def run():
         await tp.analyze({}, "<p>django</p>", "http://a.com/")
         assert "Django" in tp.fingerprint["technologies"]
         await tp.analyze({}, "<p>clean page</p>", "http://b.com/")
         assert "Django" not in tp.fingerprint["technologies"]
+
     asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
 # URL detection
 # ---------------------------------------------------------------------------
+
 
 def test_url_restaurant_not_rest_api():
     """A URL containing 'rest' as part of a domain/path word must not be an

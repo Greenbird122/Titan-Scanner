@@ -23,15 +23,15 @@ class TechFingerprinter:
     # framework globals, distinctive attributes), not English words — so a
     # page can never inherit a framework from a substring coincidence.
     STRONG_BODY_MARKERS = [
-        (r"ng-version=", "Angular"),              # Angular attribute
-        (r"<app-root", "Angular"),                # Angular shell element
-        (r"_nghost-", "Angular"),                 # Angular host binding
-        (r"data-reactroot", "React"),             # React 16+ mount marker
-        (r"_reactRootContainer", "React"),        # React 15 mount marker
-        (r"__NEXT_DATA__", "Next.js"),            # Next.js data blob
-        (r"/_next/static/", "Next.js"),           # Next.js asset path
-        (r"__NUXT__", "Nuxt.js"),                 # Nuxt.js data blob
-        (r"data-v-[0-9a-f]{6,}", "Vue"),          # Vue scoped-style attr
+        (r"ng-version=", "Angular"),  # Angular attribute
+        (r"<app-root", "Angular"),  # Angular shell element
+        (r"_nghost-", "Angular"),  # Angular host binding
+        (r"data-reactroot", "React"),  # React 16+ mount marker
+        (r"_reactRootContainer", "React"),  # React 15 mount marker
+        (r"__NEXT_DATA__", "Next.js"),  # Next.js data blob
+        (r"/_next/static/", "Next.js"),  # Next.js asset path
+        (r"__NUXT__", "Nuxt.js"),  # Nuxt.js data blob
+        (r"data-v-[0-9a-f]{6,}", "Vue"),  # Vue scoped-style attr
         (r"__VUE_DEVTOOLS_GLOBAL_HOOK__", "Vue"),
         (r"__SAPPER__", "Sapper"),
         (r"__sveltekit", "SvelteKit"),
@@ -63,8 +63,19 @@ class TechFingerprinter:
     # are genuine signals when they stand alone. Only the STRONG markers may
     # claim the denied frameworks.
     GENERIC_BODY_WORDS = {
-        "play", "rest", "express", "vue", "react", "spring", "slim",
-        "spark", "unity", "foundation", "project", "workspace", "status",
+        "play",
+        "rest",
+        "express",
+        "vue",
+        "react",
+        "spring",
+        "slim",
+        "spark",
+        "unity",
+        "foundation",
+        "project",
+        "workspace",
+        "status",
     }
 
     async def analyze(self, response_headers: dict[str, str], body: str, url: str) -> dict[str, Any]:
@@ -72,8 +83,7 @@ class TechFingerprinter:
         # B2 — reset accumulated lists so repeated analyze() calls can't grow
         # stale/duplicate entries (a fingerprinter instance is reused across
         # scans in the engine).
-        for key in ("technologies", "frameworks", "languages", "servers",
-                    "js_libraries", "api_types"):
+        for key in ("technologies", "frameworks", "languages", "servers", "js_libraries", "api_types"):
             self.fingerprint[key] = []
         self._detect_headers()
         self._detect_cookies(response_headers)
@@ -81,8 +91,7 @@ class TechFingerprinter:
         self._detect_url(url)
         # B2 — dedupe while preserving order (headers + body + url can name the
         # same technology several times; the scorecard must read clean).
-        for key in ("technologies", "frameworks", "languages", "servers",
-                    "js_libraries", "api_types"):
+        for key in ("technologies", "frameworks", "languages", "servers", "js_libraries", "api_types"):
             self.fingerprint[key] = list(dict.fromkeys(self.fingerprint[key]))
         return self.fingerprint
 

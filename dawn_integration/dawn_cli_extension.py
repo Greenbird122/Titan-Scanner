@@ -28,7 +28,7 @@ import sys
 
 
 def _scan_target(raw: str) -> str:
-    arg = raw[len("/scan"):].strip()
+    arg = raw[len("/scan") :].strip()
     if not arg:
         return ""
     return arg
@@ -40,6 +40,7 @@ def _get_dawn_memory():
         if parent not in sys.path:
             sys.path.insert(0, parent)
         from dawn_integration.memory import DawnMemory
+
         return DawnMemory()
     except Exception:
         return None
@@ -48,6 +49,7 @@ def _get_dawn_memory():
 def _get_scanner_engine(config_path: str = "config.yaml"):
     try:
         from scanner.engine import ScanEngine
+
         return ScanEngine(config_path)
     except Exception:
         return None
@@ -61,6 +63,7 @@ def cmd_scan(target: str, config_path: str = "config.yaml") -> str:
         memory.append_daily(f"SCAN_START: {target}")
     try:
         import asyncio
+
         engine = _get_scanner_engine(config_path)
         if engine is None:
             return "ERROR: scanner engine unavailable"
@@ -79,7 +82,9 @@ def cmd_scan(target: str, config_path: str = "config.yaml") -> str:
             for err in result.errors:
                 lines.append(f"  - {err}")
         if memory:
-            memory.append_daily(f"SCAN_COMPLETE: {target} — {len(result.findings)} findings ({result.critical_count} critical)")
+            memory.append_daily(
+                f"SCAN_COMPLETE: {target} — {len(result.findings)} findings ({result.critical_count} critical)"
+            )
             for f in result.findings:
                 memory.memorize_finding(f.to_dict())
         return "\n".join(lines)

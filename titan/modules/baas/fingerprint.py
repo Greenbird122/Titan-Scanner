@@ -3,6 +3,7 @@
 Runs early in the scan and feeds the hostile surface profiler / module
 selection so BaaS-specific modules are prioritized when a backend is found.
 """
+
 from __future__ import annotations
 
 from typing import Any

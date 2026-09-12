@@ -17,8 +17,6 @@ from titan.core.logger import get_logger
 logger = get_logger("estate")
 
 
-
-
 # ────────────────────────────────────────────────────────────────────────────
 # Phase 8b — Estate-wide rollup
 # ────────────────────────────────────────────────────────────────────────────
@@ -98,16 +96,18 @@ def estate_rollup(output_dir: str = "findings") -> str:
             attack_type_counts[atk] = attack_type_counts.get(atk, 0) + 1
             sev = f.get("severity", "info")
             if sev in ("critical", "high"):
-                all_findings.append({
-                    "site": site.get("target", slug),
-                    "slug": slug,
-                    "severity": sev,
-                    "attack_type": atk,
-                    "url": f.get("url", ""),
-                    "param": f.get("param", ""),
-                    "verified": f.get("verified", False),
-                    "confidence": f.get("confidence", 0),
-                })
+                all_findings.append(
+                    {
+                        "site": site.get("target", slug),
+                        "slug": slug,
+                        "severity": sev,
+                        "attack_type": atk,
+                        "url": f.get("url", ""),
+                        "param": f.get("param", ""),
+                        "verified": f.get("verified", False),
+                        "confidence": f.get("confidence", 0),
+                    }
+                )
 
     lines += [
         "## Estate overview",

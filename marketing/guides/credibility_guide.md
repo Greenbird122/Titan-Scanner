@@ -38,10 +38,12 @@ Every audit has a `test_findings.py`:
 ```python
 import requests
 
+
 def test_swagger_ui_public():
     r = requests.get("https://target.com/docs")
     assert r.status_code == 200
     assert "swagger" in r.text.lower()
+
 
 # Run: python test_findings.py
 # Result: 21/21 tests passing
@@ -64,6 +66,7 @@ Working Python/HTML files that demonstrate the vulnerability:
 ```python
 # callback_spoofer.py
 import requests
+
 r = requests.post("https://target.com/payments/callback", json={"status": "ok"})
 print(r.json())  # {"ok": true, "reference": null} — NO AUTH REQUIRED
 ```

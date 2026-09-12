@@ -19,7 +19,6 @@ Features:
      • Secrets extracted directly from client-accessible source code are 100% verified findings.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -37,7 +36,12 @@ MAX_SCRIPTS = 5
 MAX_FINDINGS = 10
 
 SECRET_PATTERNS: list[tuple[str, re.Pattern, Severity, float]] = [
-    ("GitHub Personal Access Token", re.compile(r"ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{40,}"), Severity.HIGH, 0.95),
+    (
+        "GitHub Personal Access Token",
+        re.compile(r"ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{40,}"),
+        Severity.HIGH,
+        0.95,
+    ),
     ("AWS Access Key", re.compile(r"AKIA[0-9A-Z]{16}"), Severity.HIGH, 0.95),
     ("Slack Token", re.compile(r"xox[baprs]-[0-9A-Za-z-]{10,48}"), Severity.HIGH, 0.95),
     ("Stripe Secret Key", re.compile(r"sk_(?:live|test)_[0-9a-zA-Z]{16,}"), Severity.HIGH, 0.95),
@@ -45,7 +49,14 @@ SECRET_PATTERNS: list[tuple[str, re.Pattern, Severity, float]] = [
     ("OpenAI-style API Key", re.compile(r"sk-(?:proj-)?[A-Za-z0-9_\-]{20,}"), Severity.HIGH, 0.90),
     ("Anthropic API Key", re.compile(r"sk-ant-[A-Za-z0-9_\-]{32,}"), Severity.HIGH, 0.95),
     ("Google/Firebase API Key", re.compile(r"AIza[0-9A-Za-z_-]{35}"), Severity.MEDIUM, 0.90),
-    ("Database Connection String", re.compile(r"(?:postgres|postgresql|mysql|mongodb|redis)://[a-zA-Z0-9_\-]+:[^@\s]+@[a-zA-Z0-9_\.\-]+(?::\d+)?/[a-zA-Z0-9_\-]+"), Severity.CRITICAL, 0.95),
+    (
+        "Database Connection String",
+        re.compile(
+            r"(?:postgres|postgresql|mysql|mongodb|redis)://[a-zA-Z0-9_\-]+:[^@\s]+@[a-zA-Z0-9_\.\-]+(?::\d+)?/[a-zA-Z0-9_\-]+"
+        ),
+        Severity.CRITICAL,
+        0.95,
+    ),
     ("JWT", re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"), Severity.HIGH, 0.85),
     ("Private Key Block", re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----"), Severity.HIGH, 0.98),
 ]
@@ -100,7 +111,7 @@ class SourceSecretDetector:
 
                     # 2. Source Map (.map) extraction
                     map_url = f"{script_url}.map"
-                    map_match = re.search(r'//[#@]\s*sourceMappingURL=([^\s]+)', js)
+                    map_match = re.search(r"//[#@]\s*sourceMappingURL=([^\s]+)", js)
                     if map_match:
                         map_url = urljoin(script_url, map_match.group(1))
 
@@ -134,9 +145,7 @@ class SourceSecretDetector:
                 if value in seen:
                     continue
                 seen.add(value)
-                findings.append(
-                    self._finding(target, url, label, severity, confidence, value, m.start())
-                )
+                findings.append(self._finding(target, url, label, severity, confidence, value, m.start()))
                 if len(findings) >= MAX_FINDINGS:
                     break
             if len(findings) >= MAX_FINDINGS:
@@ -151,8 +160,13 @@ class SourceSecretDetector:
                 seen.add(value)
                 findings.append(
                     self._finding(
-                        target, url, "Generic credential assignment",
-                        Severity.MEDIUM, 0.70, value, m.start(),
+                        target,
+                        url,
+                        "Generic credential assignment",
+                        Severity.MEDIUM,
+                        0.70,
+                        value,
+                        m.start(),
                     )
                 )
                 if len(findings) >= MAX_FINDINGS:
@@ -165,9 +179,13 @@ class SourceSecretDetector:
                 seen.add("firebaseConfig")
                 findings.append(
                     self._finding(
-                        target, url, "Firebase client config exposed",
-                        Severity.MEDIUM, 0.90,
-                        f"projectId={pm.group(1)}", joined.find("firebaseConfig"),
+                        target,
+                        url,
+                        "Firebase client config exposed",
+                        Severity.MEDIUM,
+                        0.90,
+                        f"projectId={pm.group(1)}",
+                        joined.find("firebaseConfig"),
                     )
                 )
 

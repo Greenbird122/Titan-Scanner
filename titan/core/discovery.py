@@ -5,7 +5,6 @@ is independent and runs concurrently via asyncio.gather; a failing
 probe degrades to its empty default.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +16,6 @@ from titan.core.crawl import _noop_api_probe, _noop_methods_probe, _noop_params_
 from titan.core.logger import get_logger
 
 logger = get_logger("discovery")
-
 
 
 class DiscoveryEngine:
@@ -52,16 +50,20 @@ class DiscoveryEngine:
             return getattr(self, method_name)(*args, **kwargs)
 
         probes = [
-            _probe('_extract_forms', page),
-            _probe('_extract_links', page, base_url),
-            _probe('_discover_apis', page, base_url) if e._deep else _noop_api_probe(),
-            _probe('_extract_apis_from_js', page, base_url),
-            _probe('_crawl_spa_routes', context, page, current),
-            _probe('_parse_swagger_spec', context, current) if e._deep else _noop_api_probe(),
-            _probe('_parse_postman_collection', context, current) if e._deep else _noop_api_probe(),
-            _probe('_discover_graphql_endpoints', context, current) if e._deep else _noop_api_probe(),
-            _probe('_brute_force_common_params', context, current, max_endpoints=5) if e._deep else _noop_params_probe(),
-            _probe('_brute_force_http_methods', context, current, max_endpoints=5) if e._deep else _noop_methods_probe(),
+            _probe("_extract_forms", page),
+            _probe("_extract_links", page, base_url),
+            _probe("_discover_apis", page, base_url) if e._deep else _noop_api_probe(),
+            _probe("_extract_apis_from_js", page, base_url),
+            _probe("_crawl_spa_routes", context, page, current),
+            _probe("_parse_swagger_spec", context, current) if e._deep else _noop_api_probe(),
+            _probe("_parse_postman_collection", context, current) if e._deep else _noop_api_probe(),
+            _probe("_discover_graphql_endpoints", context, current) if e._deep else _noop_api_probe(),
+            _probe("_brute_force_common_params", context, current, max_endpoints=5)
+            if e._deep
+            else _noop_params_probe(),
+            _probe("_brute_force_http_methods", context, current, max_endpoints=5)
+            if e._deep
+            else _noop_methods_probe(),
         ]
 
         results = await asyncio.gather(*probes, return_exceptions=True)
@@ -78,7 +80,9 @@ class DiscoveryEngine:
         # SPA signal detection
         forms, links, static_apis, js_apis, spa_routes = out[:5]
         try:
-            if (isinstance(links, list) and any("#" in l for l in links)) or (isinstance(spa_routes, list) and spa_routes):
+            if (isinstance(links, list) and any("#" in l for l in links)) or (
+                isinstance(spa_routes, list) and spa_routes
+            ):
                 e._spa_detected = True
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
@@ -92,7 +96,7 @@ class DiscoveryEngine:
 
     async def _extract_forms(self, page: Any) -> list[dict[str, Any]]:
         """Extract all forms from the page."""
-        return await page.evaluate('''() => {
+        return await page.evaluate("""() => {
             const forms = [];
             for (const f of document.querySelectorAll('form')) {
                 const inputs = [];
@@ -112,11 +116,12 @@ class DiscoveryEngine:
                 });
             }
             return forms;
-        }''')
+        }""")
 
     async def _extract_links(self, page: Any, base_url: str) -> list[str]:
         """Extract all links from the page."""
-        return await page.evaluate('''(base) => {
+        return await page.evaluate(
+            """(base) => {
             const links = new Set();
             for (const a of document.querySelectorAll('a[href]')) {
                 try {
@@ -144,19 +149,21 @@ class DiscoveryEngine:
                 } catch(e) {}
             }
             return Array.from(links);
-        }''', base_url)
+        }""",
+            base_url,
+        )
 
     async def _extract_apis_from_js(self, page: Any, base_url: str) -> list[str]:
         """Extract API URLs referenced by JS source files."""
         e = self.engine
         apis: list[str] = []
-        js_paths = await page.evaluate('''() => {
+        js_paths = await page.evaluate("""() => {
             const scripts = [];
             for (const s of document.querySelectorAll('script[src]')) {
                 scripts.push(s.getAttribute('src'));
             }
             return scripts;
-        }''')
+        }""")
 
         for js_path in js_paths:
             try:
@@ -168,10 +175,7 @@ class DiscoveryEngine:
                 if resp.status != 200:
                     continue
                 text = await resp.text()
-                apis.extend(
-                    u for u in _parse_api_patterns(text, base_url)
-                    if e._is_in_scope(u)
-                )
+                apis.extend(u for u in _parse_api_patterns(text, base_url) if e._is_in_scope(u))
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
@@ -182,37 +186,128 @@ class DiscoveryEngine:
         e = self.engine
         apis: list[str] = []
         paths = [
-            "/swagger.json", "/openapi.json", "/api-docs", "/api/docs",
-            "/graphql", "/api/graphql", "/graphiql", "/v1/graphql", "/v2/graphql",
-            "/.well-known/raml", "/api.raml", "/api/swagger.json",
-            "/api/v1/swagger.json", "/api/v2/swagger.json",
-            "/api/v1/docs", "/api/v2/docs",
-            "/products", "/categories", "/users", "/orders", "/payments",
-            "/conversations", "/messages", "/notifications", "/dashboard",
-            "/api/v1/products", "/api/v1/categories", "/api/v1/users",
-            "/api/v2/products", "/api/v2/categories", "/api/v2/users",
-            "/sales/products", "/sales/categories", "/sales/orders",
-            "/sales/users", "/sales/conversations", "/sales/messages",
-            "/health", "/healthz", "/ready", "/live", "/status", "/metrics",
-            "/api/health", "/api/status", "/api/metrics", "/api/version",
-            "/actuator", "/actuator/health", "/actuator/info",
-            "/debug", "/debug/vars", "/console", "/admin", "/administrator",
-            "/phpinfo", "/info", "/server-info", "/server-status",
-            "/.env", "/.git/config", "/.DS_Store", "/backup", "/bak",
-            "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/token",
-            "/api/v1/patients", "/api/v1/appointments", "/api/v1/facilities",
-            "/api/v1/referrals", "/api/v1/triage", "/api/v1/followup",
-            "/api/v1/voice", "/api/v1/ussd", "/api/v1/transcription",
-            "/api/v1/analytics", "/api/v1/reports", "/api/v1/audit",
-            "/api/v1/settings", "/api/v1/config", "/api/v1/notifications",
-            "/api/v1/prescriptions", "/api/v1/lab-results", "/api/v1/vitals",
-            "/sqli", "/xss", "/lfi", "/cmd", "/rce", "/ssrf", "/xxe", "/ssti",
-            "/api/user", "/api/login", "/api/data", "/hash", "/config",
-            "/search", "/login", "/register", "/upload", "/download", "/export",
-            "/admin", "/administrator", "/manager", "/dashboard", "/panel",
-            "/console", "/debug", "/test", "/dev", "/development",
-            "/api/search", "/api/login", "/api/register", "/api/upload",
-            "/api/download", "/api/export", "/api/admin", "/api/config",
+            "/swagger.json",
+            "/openapi.json",
+            "/api-docs",
+            "/api/docs",
+            "/graphql",
+            "/api/graphql",
+            "/graphiql",
+            "/v1/graphql",
+            "/v2/graphql",
+            "/.well-known/raml",
+            "/api.raml",
+            "/api/swagger.json",
+            "/api/v1/swagger.json",
+            "/api/v2/swagger.json",
+            "/api/v1/docs",
+            "/api/v2/docs",
+            "/products",
+            "/categories",
+            "/users",
+            "/orders",
+            "/payments",
+            "/conversations",
+            "/messages",
+            "/notifications",
+            "/dashboard",
+            "/api/v1/products",
+            "/api/v1/categories",
+            "/api/v1/users",
+            "/api/v2/products",
+            "/api/v2/categories",
+            "/api/v2/users",
+            "/sales/products",
+            "/sales/categories",
+            "/sales/orders",
+            "/sales/users",
+            "/sales/conversations",
+            "/sales/messages",
+            "/health",
+            "/healthz",
+            "/ready",
+            "/live",
+            "/status",
+            "/metrics",
+            "/api/health",
+            "/api/status",
+            "/api/metrics",
+            "/api/version",
+            "/actuator",
+            "/actuator/health",
+            "/actuator/info",
+            "/debug",
+            "/debug/vars",
+            "/console",
+            "/admin",
+            "/administrator",
+            "/phpinfo",
+            "/info",
+            "/server-info",
+            "/server-status",
+            "/.env",
+            "/.git/config",
+            "/.DS_Store",
+            "/backup",
+            "/bak",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/token",
+            "/api/v1/patients",
+            "/api/v1/appointments",
+            "/api/v1/facilities",
+            "/api/v1/referrals",
+            "/api/v1/triage",
+            "/api/v1/followup",
+            "/api/v1/voice",
+            "/api/v1/ussd",
+            "/api/v1/transcription",
+            "/api/v1/analytics",
+            "/api/v1/reports",
+            "/api/v1/audit",
+            "/api/v1/settings",
+            "/api/v1/config",
+            "/api/v1/notifications",
+            "/api/v1/prescriptions",
+            "/api/v1/lab-results",
+            "/api/v1/vitals",
+            "/sqli",
+            "/xss",
+            "/lfi",
+            "/cmd",
+            "/rce",
+            "/ssrf",
+            "/xxe",
+            "/ssti",
+            "/api/user",
+            "/api/login",
+            "/api/data",
+            "/hash",
+            "/config",
+            "/search",
+            "/login",
+            "/register",
+            "/upload",
+            "/download",
+            "/export",
+            "/admin",
+            "/administrator",
+            "/manager",
+            "/dashboard",
+            "/panel",
+            "/console",
+            "/debug",
+            "/test",
+            "/dev",
+            "/development",
+            "/api/search",
+            "/api/login",
+            "/api/register",
+            "/api/upload",
+            "/api/download",
+            "/api/export",
+            "/api/admin",
+            "/api/config",
         ]
 
         async def probe_get(path: str) -> list[str]:
@@ -238,13 +333,33 @@ class DiscoveryEngine:
 
         # POST-only endpoints
         post_paths = [
-            "/api/login", "/login", "/signin", "/api/signin",
-            "/api/register", "/register", "/api/signup", "/signup",
-            "/api/token", "/token", "/api/refresh", "/refresh",
-            "/api/auth/login", "/api/auth/register", "/api/auth/token",
-            "/hash", "/api/hash", "/upload", "/api/upload",
-            "/api/logout", "/api/session", "/session", "/api/verify",
-            "/api/forgot", "/api/reset", "/api/2fa", "/api/otp",
+            "/api/login",
+            "/login",
+            "/signin",
+            "/api/signin",
+            "/api/register",
+            "/register",
+            "/api/signup",
+            "/signup",
+            "/api/token",
+            "/token",
+            "/api/refresh",
+            "/refresh",
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/token",
+            "/hash",
+            "/api/hash",
+            "/upload",
+            "/api/upload",
+            "/api/logout",
+            "/api/session",
+            "/session",
+            "/api/verify",
+            "/api/forgot",
+            "/api/reset",
+            "/api/2fa",
+            "/api/otp",
         ]
 
         async def probe_post(path: str) -> str | None:
@@ -271,7 +386,7 @@ class DiscoveryEngine:
         discovered: list[str] = []
 
         try:
-            js_routes = await page.evaluate('''() => {
+            js_routes = await page.evaluate("""() => {
                 const routes = new Set();
                 const origin = window.location.origin;
                 if (window.__ROUTES__) for (const r of window.__ROUTES__) routes.add(origin + r);
@@ -292,7 +407,7 @@ class DiscoveryEngine:
                     if (val) routes.add(origin + val);
                 });
                 return Array.from(routes).slice(0, 50);
-            }''')
+            }""")
             for route in js_routes:
                 if e._is_in_scope(route):
                     discovered.append(route)
@@ -302,13 +417,13 @@ class DiscoveryEngine:
 
         if e._deep:
             try:
-                hash_routes = await page.evaluate('''() => {
+                hash_routes = await page.evaluate("""() => {
                     const routes = [];
                     const origin = window.location.origin;
                     const common = ['/', '/login', '/register', '/dashboard', '/admin', '/profile', '/settings', '/patients', '/appointments', '/referrals', '/clinical', '/triage', '/analytics', '/notifications', '/followup', '/payments', '/facilities', '/voice', '/ussd', '/transcription'];
                     for (const r of common) routes.push(origin + '#!' + r, origin + '#' + r);
                     return routes;
-                }''')
+                }""")
                 for route in hash_routes:
                     if e._is_in_scope(route):
                         discovered.append(route)
@@ -357,13 +472,15 @@ class DiscoveryEngine:
                                 schema = param.get("schema", {})
                                 props = schema.get("properties", {})
                                 params.extend(list(props.keys()))
-                        endpoints.append({
-                            "path": base_url.rstrip("/") + path,
-                            "method": method.upper(),
-                            "params": params,
-                            "summary": details.get("summary", ""),
-                            "operation_id": details.get("operationId", ""),
-                        })
+                        endpoints.append(
+                            {
+                                "path": base_url.rstrip("/") + path,
+                                "method": method.upper(),
+                                "params": params,
+                                "summary": details.get("summary", ""),
+                                "operation_id": details.get("operationId", ""),
+                            }
+                        )
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
@@ -405,12 +522,14 @@ class DiscoveryEngine:
                         params = []
 
                     if e._is_in_scope(path):
-                        endpoints.append({
-                            "path": path,
-                            "method": method,
-                            "params": params,
-                            "summary": item.get("name", ""),
-                        })
+                        endpoints.append(
+                            {
+                                "path": path,
+                                "method": method,
+                                "params": params,
+                                "summary": item.get("name", ""),
+                            }
+                        )
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
@@ -438,38 +557,112 @@ class DiscoveryEngine:
         return endpoints
 
     async def _brute_force_common_params(
-        self, context: Any, base_url: str, max_endpoints: int = 3,
+        self,
+        context: Any,
+        base_url: str,
+        max_endpoints: int = 3,
     ) -> dict[str, list[str]]:
         """Brute-force common parameter names on discovered endpoints."""
         e = self.engine
         common_params = [
-            "id", "user_id", "account_id", "profile_id", "patient_id", "client_id", "order_id",
-            "file", "file_id", "document", "image", "name", "username",
-            "email", "phone", "password", "token", "api_key", "key",
-            "url", "path", "page", "search", "query", "q",
-            "status", "type", "category", "action", "cmd", "command",
-            "country", "city", "location", "address",
-            "date", "time", "amount", "price", "quantity", "qty",
-            "message", "text", "content", "title",
-            "redirect", "callback", "next", "debug", "admin",
-            "format", "lang", "uuid", "slug", "csrf", "source",
-            "limit", "offset", "sort", "order", "filter",
-            "start_date", "end_date", "from", "to",
-            "include", "exclude", "fields", "expand",
-            "tenant", "org", "organization", "workspace",
-            "appointment_id", "referral_id", "facility_id", "visit_id",
-            "doctor_id", "nurse_id", "staff_id", "department",
-            "diagnosis", "prescription", "medication", "lab_result",
-            "vital", "symptom", "allergy", "immunization",
-            "payment_id", "invoice_id", "transaction_id", "receipt",
+            "id",
+            "user_id",
+            "account_id",
+            "profile_id",
+            "patient_id",
+            "client_id",
+            "order_id",
+            "file",
+            "file_id",
+            "document",
+            "image",
+            "name",
+            "username",
+            "email",
+            "phone",
+            "password",
+            "token",
+            "api_key",
+            "key",
+            "url",
+            "path",
+            "page",
+            "search",
+            "query",
+            "q",
+            "status",
+            "type",
+            "category",
+            "action",
+            "cmd",
+            "command",
+            "country",
+            "city",
+            "location",
+            "address",
+            "date",
+            "time",
+            "amount",
+            "price",
+            "quantity",
+            "qty",
+            "message",
+            "text",
+            "content",
+            "title",
+            "redirect",
+            "callback",
+            "next",
+            "debug",
+            "admin",
+            "format",
+            "lang",
+            "uuid",
+            "slug",
+            "csrf",
+            "source",
+            "limit",
+            "offset",
+            "sort",
+            "order",
+            "filter",
+            "start_date",
+            "end_date",
+            "from",
+            "to",
+            "include",
+            "exclude",
+            "fields",
+            "expand",
+            "tenant",
+            "org",
+            "organization",
+            "workspace",
+            "appointment_id",
+            "referral_id",
+            "facility_id",
+            "visit_id",
+            "doctor_id",
+            "nurse_id",
+            "staff_id",
+            "department",
+            "diagnosis",
+            "prescription",
+            "medication",
+            "lab_result",
+            "vital",
+            "symptom",
+            "allergy",
+            "immunization",
+            "payment_id",
+            "invoice_id",
+            "transaction_id",
+            "receipt",
         ]
         common_params.extend(getattr(e, "_platform_extra_params", []) or [])
         top_params = common_params[:25]
 
-        test_endpoints = [
-            v for v in list(e.visited)[:max_endpoints]
-            if not e._is_spa_shell(v)
-        ]
+        test_endpoints = [v for v in list(e.visited)[:max_endpoints] if not e._is_spa_shell(v)]
         if not test_endpoints:
             test_endpoints = [base_url]
 
@@ -484,7 +677,9 @@ class DiscoveryEngine:
                     if resp.status == 200:
                         baseline_resp = await context.request.get(endpoint, timeout=1500)
                         baseline_body = await baseline_resp.text()
-                        if len(body) != len(baseline_body) or (param.lower() in body.lower() and param.lower() not in baseline_body.lower()):
+                        if len(body) != len(baseline_body) or (
+                            param.lower() in body.lower() and param.lower() not in baseline_body.lower()
+                        ):
                             return param
                 except Exception as exc:
                     logger.debug(f"suppressed exception: {exc}")
@@ -499,17 +694,17 @@ class DiscoveryEngine:
         return discovered
 
     async def _brute_force_http_methods(
-        self, context: Any, base_url: str, max_endpoints: int = 3,
+        self,
+        context: Any,
+        base_url: str,
+        max_endpoints: int = 3,
     ) -> list[dict[str, Any]]:
         """Brute-force HTTP methods on discovered endpoints."""
         e = self.engine
         methods = ["OPTIONS", "PUT", "PATCH", "DELETE", "HEAD"]
         results: list[dict[str, Any]] = []
 
-        test_endpoints = [
-            v for v in list(e.visited)[:max_endpoints]
-            if not e._is_spa_shell(v)
-        ]
+        test_endpoints = [v for v in list(e.visited)[:max_endpoints] if not e._is_spa_shell(v)]
         if not test_endpoints:
             test_endpoints = [base_url]
 
@@ -540,6 +735,7 @@ class DiscoveryEngine:
 # Module-level helpers
 # ---------------------------------------------------------------------------
 
+
 def _parse_api_patterns(js_text: str, base_url: str) -> list[str]:
     """Parse JS source text for API URL patterns."""
     apis: list[str] = []
@@ -549,7 +745,7 @@ def _parse_api_patterns(js_text: str, base_url: str) -> list[str]:
         r'https?://[^\s"\'<>]+/v1/[^\s"\'<>]+',
         r'https?://[^\s"\'<>]+/v2/[^\s"\'<>]+',
         r'baseURL\s*[:=]\s*["\']([^"\']+)["\']',
-        r'axios\.create\([^)]*baseURL[^)]*\)',
+        r"axios\.create\([^)]*baseURL[^)]*\)",
         r'https?://[^\s"\'<>]+/auth/[^\s"\'<>]+',
         r'https?://[^\s"\'<>]+/login[^\s"\'<>]*',
         r'https?://[^\s"\'<>]+/register[^\s"\'<>]*',

@@ -13,7 +13,6 @@ attacker-influenced, and the scanner must never become a fetch oracle for the
 operator's own network (metadata endpoints, internal hosts).
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -41,10 +40,7 @@ def _ip_blocked(ip_str: str) -> bool:
         ip = ipaddress.ip_address(ip_str.split("%")[0])
     except ValueError:
         return False
-    return (
-        ip.is_private or ip.is_loopback or ip.is_link_local
-        or ip.is_multicast or ip.is_reserved or ip.is_unspecified
-    )
+    return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified
 
 
 def _hop_allowed(url: str) -> bool:
@@ -92,21 +88,23 @@ def cleartext_findings(profile: dict[str, Any], target: str) -> list[Finding]:
         if not row.get("cleartext"):
             continue
         for url in row.get("urls", [])[:3]:
-            findings.append(Finding(
-                target=target,
-                url=url,
-                method="GET",
-                param="script[src]",
-                location="client",
-                payload=f"Cleartext third-party resource on an https page: {url}",
-                attack_type=AttackType.AD_MITM_CLEARTEXT,
-                severity=Severity.MEDIUM,
-                verified=True,
-                confidence=0.95,
-                diffs=["adtech:tls", f"adtech:cleartext:{row['host']}"],
-                metadata={"host": row["host"], "category": row.get("category")},
-                evidence="confirmed",
-            ))
+            findings.append(
+                Finding(
+                    target=target,
+                    url=url,
+                    method="GET",
+                    param="script[src]",
+                    location="client",
+                    payload=f"Cleartext third-party resource on an https page: {url}",
+                    attack_type=AttackType.AD_MITM_CLEARTEXT,
+                    severity=Severity.MEDIUM,
+                    verified=True,
+                    confidence=0.95,
+                    diffs=["adtech:tls", f"adtech:cleartext:{row['host']}"],
+                    metadata={"host": row["host"], "category": row.get("category")},
+                    evidence="confirmed",
+                )
+            )
     return findings
 
 
@@ -120,21 +118,23 @@ def sri_findings(profile: dict[str, Any], target: str) -> list[Finding]:
         if row.get("category") not in ("ad_network", "popunder", "push_notif", "risky_ad", "miner"):
             continue
         for url in row.get("urls", [])[:3]:
-            findings.append(Finding(
-                target=target,
-                url=url,
-                method="GET",
-                param="script[integrity]",
-                location="client",
-                payload=f"Ad script loaded without Subresource Integrity (tamperable supply chain): {url}",
-                attack_type=AttackType.SRI_ABSENT,
-                severity=Severity.LOW,
-                verified=True,
-                confidence=0.9,
-                diffs=["adtech:sri", f"adtech:sri-absent:{row['host']}"],
-                metadata={"host": row["host"], "category": row.get("category")},
-                evidence="confirmed",
-            ))
+            findings.append(
+                Finding(
+                    target=target,
+                    url=url,
+                    method="GET",
+                    param="script[integrity]",
+                    location="client",
+                    payload=f"Ad script loaded without Subresource Integrity (tamperable supply chain): {url}",
+                    attack_type=AttackType.SRI_ABSENT,
+                    severity=Severity.LOW,
+                    verified=True,
+                    confidence=0.9,
+                    diffs=["adtech:sri", f"adtech:sri-absent:{row['host']}"],
+                    metadata={"host": row["host"], "category": row.get("category")},
+                    evidence="confirmed",
+                )
+            )
     return findings
 
 
@@ -143,8 +143,15 @@ def _category_findings(profile: dict[str, Any], target: str) -> list[Finding]:
     findings: list[Finding] = []
     page_url = _origin_attr(profile)
 
-    def _make(attack: AttackType, severity: Severity, payload: str, oracle: str,
-              confidence: float, metadata: dict[str, Any], verified: bool = True) -> Finding:
+    def _make(
+        attack: AttackType,
+        severity: Severity,
+        payload: str,
+        oracle: str,
+        confidence: float,
+        metadata: dict[str, Any],
+        verified: bool = True,
+    ) -> Finding:
         return Finding(
             target=target,
             url=page_url,
@@ -162,35 +169,55 @@ def _category_findings(profile: dict[str, Any], target: str) -> list[Finding]:
         )
 
     for m in profile.get("miners", []):
-        findings.append(_make(
-            AttackType.MINER_SCRIPT, Severity.HIGH,
-            f"Browser miner signature: {m['signal']}", m["oracle"], m["confidence"],
-            {"signal": m["signal"]},
-        ))
+        findings.append(
+            _make(
+                AttackType.MINER_SCRIPT,
+                Severity.HIGH,
+                f"Browser miner signature: {m['signal']}",
+                m["oracle"],
+                m["confidence"],
+                {"signal": m["signal"]},
+            )
+        )
     for c in profile.get("cloaks", []):
-        findings.append(_make(
-            AttackType.HOSTILE_CLOAK, Severity.LOW if c["severity"] == "low" else Severity.INFO,
-            f"Anti-debug cloak: {c['signal']}", c["oracle"], c["confidence"],
-            {"signal": c["signal"]},
-        ))
+        findings.append(
+            _make(
+                AttackType.HOSTILE_CLOAK,
+                Severity.LOW if c["severity"] == "low" else Severity.INFO,
+                f"Anti-debug cloak: {c['signal']}",
+                c["oracle"],
+                c["confidence"],
+                {"signal": c["signal"]},
+            )
+        )
     for p in profile.get("push", []):
-        findings.append(_make(
-            AttackType.PUSH_NOTIFICATION_ABUSE, Severity.LOW,
-            f"Push-notification pattern: {p['signal']}", p["oracle"], p["confidence"],
-            {"signal": p["signal"]},
-        ))
+        findings.append(
+            _make(
+                AttackType.PUSH_NOTIFICATION_ABUSE,
+                Severity.LOW,
+                f"Push-notification pattern: {p['signal']}",
+                p["oracle"],
+                p["confidence"],
+                {"signal": p["signal"]},
+            )
+        )
     for m in profile.get("mechanics", []):
-        findings.append(_make(
-            AttackType.CLICKBAIT, Severity.LOW,
-            f"Clickbait mechanics: {m['signal']}", m["oracle"], m["confidence"],
-            {"signal": m["signal"]},
-        ))
+        findings.append(
+            _make(
+                AttackType.CLICKBAIT,
+                Severity.LOW,
+                f"Clickbait mechanics: {m['signal']}",
+                m["oracle"],
+                m["confidence"],
+                {"signal": m["signal"]},
+            )
+        )
     return findings
 
 
-async def map_redirect_chains(session, profile: dict[str, Any], target: str,
-                              max_hops: int = MAX_HOPS,
-                              block_private: bool = True) -> list[Finding]:
+async def map_redirect_chains(
+    session, profile: dict[str, Any], target: str, max_hops: int = MAX_HOPS, block_private: bool = True
+) -> list[Finding]:
     """Follow each third-party load origin's URL chain (bounded) and classify
     the terminal (M5).
 
@@ -224,17 +251,19 @@ async def map_redirect_chains(session, profile: dict[str, Any], target: str,
                         break
                     seen.add(current)
                     resp = await asyncio.wait_for(
-                        session.get(current, timeout=8, ssl=False,
-                                    allow_redirects=False),
+                        session.get(current, timeout=8, ssl=False, allow_redirects=False),
                         timeout=10,
                     )
-                    hops.append({
-                        "url": current,
-                        "status": resp.status,
-                        "location": resp.headers.get("location", ""),
-                    })
+                    hops.append(
+                        {
+                            "url": current,
+                            "status": resp.status,
+                            "location": resp.headers.get("location", ""),
+                        }
+                    )
                     if resp.status in (301, 302, 303, 307, 308) and resp.headers.get("location"):
                         from urllib.parse import urljoin
+
                         current = urljoin(current, resp.headers["location"])
                     else:
                         break
@@ -244,30 +273,35 @@ async def map_redirect_chains(session, profile: dict[str, Any], target: str,
                 terminal = classify_terminal(current)
                 if terminal["category"] != "unknown" and terminal["confidence"] >= 0.65:
                     count += 1
-                    findings.append(Finding(
-                        target=target,
-                        url=start_url,
-                        method="GET",
-                        param="redirect",
-                        location="client",
-                        payload=f"Ad redirect chain terminates in {terminal['category']}: {current}",
-                        attack_type=AttackType.AD_PHISHING_CHAIN,
-                        severity=Severity.HIGH if terminal["category"] == "phishing" else Severity.MEDIUM,
-                        verified=True,
-                        confidence=terminal["confidence"],
-                        diffs=[f"adtech:redirect_chain:{terminal['category']}",
-                               f"adtech:terminal:{terminal['confidence']:.2f}"],
-                        metadata={"chain": hops, "terminal": terminal, "host": row["host"]},
-                        evidence="confirmed",
-                    ))
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=start_url,
+                            method="GET",
+                            param="redirect",
+                            location="client",
+                            payload=f"Ad redirect chain terminates in {terminal['category']}: {current}",
+                            attack_type=AttackType.AD_PHISHING_CHAIN,
+                            severity=Severity.HIGH if terminal["category"] == "phishing" else Severity.MEDIUM,
+                            verified=True,
+                            confidence=terminal["confidence"],
+                            diffs=[
+                                f"adtech:redirect_chain:{terminal['category']}",
+                                f"adtech:terminal:{terminal['confidence']:.2f}",
+                            ],
+                            metadata={"chain": hops, "terminal": terminal, "host": row["host"]},
+                            evidence="confirmed",
+                        )
+                    )
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
     return findings
 
 
-async def probe_referrer_gate(session, profile: dict[str, Any], target: str,
-                              block_private: bool = True) -> list[Finding]:
+async def probe_referrer_gate(
+    session, profile: dict[str, Any], target: str, block_private: bool = True
+) -> list[Finding]:
     """Detect referrer-gated ad delivery: same URL, different Referer, diff (M5).
 
     Active probe — caller must gate on consent. To avoid the rotating-ad
@@ -291,8 +325,9 @@ async def probe_referrer_gate(session, profile: dict[str, Any], target: str,
                     fps = []
                     for _ in range(2):
                         headers = {"Referer": ref} if ref else {}
-                        resp = await asyncio.wait_for(session.get(url, timeout=8, ssl=False,
-                                                                  headers=headers), timeout=10)
+                        resp = await asyncio.wait_for(
+                            session.get(url, timeout=8, ssl=False, headers=headers), timeout=10
+                        )
                         text = await resp.text(errors="replace")
                         fps.append(body_fingerprint(text[:4000]))
                     # Stable under this referer -> its fingerprint; else None.
@@ -304,55 +339,56 @@ async def probe_referrer_gate(session, profile: dict[str, Any], target: str,
             if not baseline:
                 # No stable control (content rotates) — don't guess.
                 continue
-            gated = sorted(
-                ref for ref, fp in samples.items()
-                if ref != "none" and fp and fp != baseline
-            )
+            gated = sorted(ref for ref, fp in samples.items() if ref != "none" and fp and fp != baseline)
             if gated:
-                findings.append(Finding(
-                    target=target,
-                    url=url,
-                    method="GET",
-                    param="Referer",
-                    location="client",
-                    payload=f"Ad delivery varies by Referer header (referrer-gated content: {', '.join(gated)})",
-                    attack_type=AttackType.AD_REFERRER_GATE,
-                    severity=Severity.LOW,
-                    verified=True,
-                    confidence=0.8,
-                    diffs=[f"adtech:referrer_gate:{','.join(gated)}"],
-                    metadata={"variants": samples, "host": row["host"]},
-                    evidence="confirmed",
-                ))
+                findings.append(
+                    Finding(
+                        target=target,
+                        url=url,
+                        method="GET",
+                        param="Referer",
+                        location="client",
+                        payload=f"Ad delivery varies by Referer header (referrer-gated content: {', '.join(gated)})",
+                        attack_type=AttackType.AD_REFERRER_GATE,
+                        severity=Severity.LOW,
+                        verified=True,
+                        confidence=0.8,
+                        diffs=[f"adtech:referrer_gate:{','.join(gated)}"],
+                        metadata={"variants": samples, "host": row["host"]},
+                        evidence="confirmed",
+                    )
+                )
             break
         if findings:
             break
     return findings
 
 
-def flux_findings(profile: dict[str, Any], prior_observed: dict[str, Any] | None,
-                  target: str) -> list[Finding]:
+def flux_findings(profile: dict[str, Any], prior_observed: dict[str, Any] | None, target: str) -> list[Finding]:
     """Ad-domain rotation between scans (M6). Deterministic from stored intel."""
     from titan.hostile.intel import domain_flux
+
     if not prior_observed:
         return []
     current = {r["host"]: {"category": r.get("category")} for r in profile.get("origins", [])}
     flux = domain_flux(prior_observed, current)
     findings: list[Finding] = []
     for host in flux.get("removed", []):
-        findings.append(Finding(
-            target=target,
-            url=profile.get("page_url") or target,
-            method="GET",
-            param="domain",
-            location="client",
-            payload=f"Ad/monetization origin {host} present last scan, absent now (domain rotation)",
-            attack_type=AttackType.AD_DOMAIN_FLUX,
-            severity=Severity.LOW,
-            verified=True,
-            confidence=0.85,
-            diffs=[f"adtech:domain_flux:removed:{host}"],
-            metadata={"host": host, "flux": "removed"},
-            evidence="confirmed",
-        ))
+        findings.append(
+            Finding(
+                target=target,
+                url=profile.get("page_url") or target,
+                method="GET",
+                param="domain",
+                location="client",
+                payload=f"Ad/monetization origin {host} present last scan, absent now (domain rotation)",
+                attack_type=AttackType.AD_DOMAIN_FLUX,
+                severity=Severity.LOW,
+                verified=True,
+                confidence=0.85,
+                diffs=[f"adtech:domain_flux:removed:{host}"],
+                metadata={"host": host, "flux": "removed"},
+                evidence="confirmed",
+            )
+        )
     return findings[:5]

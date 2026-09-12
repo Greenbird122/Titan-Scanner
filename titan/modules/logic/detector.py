@@ -52,7 +52,6 @@ Evidence oracles:
   • Differential Oracle: two different inputs produce same charged amount
 """
 
-
 from __future__ import annotations
 
 import json
@@ -87,11 +86,11 @@ _TYPE_CONFUSION_PROBES: tuple[tuple[str, Any, str], ...] = (
     ("false", False, "logic:boolean_false"),
     ("[]", [], "logic:empty_array"),
     ("{}", {}, "logic:empty_object"),
-    ("\"\"", "", "logic:empty_string"),
-    ("\"-1\"", "-1", "logic:string_negative"),
-    ("\"0\"", "0", "logic:string_zero"),
+    ('""', "", "logic:empty_string"),
+    ('"-1"', "-1", "logic:string_negative"),
+    ('"0"', "0", "logic:string_zero"),
     ("[1,2,3]", [1, 2, 3], "logic:array_injection"),
-    ("{\"$gt\":\"\"}", {"$gt": ""}, "logic:nosql_operator"),
+    ('{"$gt":""}', {"$gt": ""}, "logic:nosql_operator"),
 )
 
 # ── Coupon / Discount Probes ─────────────────────────────────────────
@@ -123,9 +122,20 @@ _CURRENCY_SWITCHES: tuple[tuple[str, str], ...] = (
 
 # ── Workflow State Manipulation ───────────────────────────────────────
 _WORKFLOW_STATES: tuple[str, ...] = (
-    "confirmed", "completed", "paid", "delivered", "active",
-    "approved", "verified", "published", "resolved", "closed",
-    "admin", "superadmin", "owner", "sysadmin",
+    "confirmed",
+    "completed",
+    "paid",
+    "delivered",
+    "active",
+    "approved",
+    "verified",
+    "published",
+    "resolved",
+    "closed",
+    "admin",
+    "superadmin",
+    "owner",
+    "sysadmin",
 )
 
 # ── Subscription Plan Probes ─────────────────────────────────────────
@@ -140,14 +150,42 @@ _PLAN_PROBES: tuple[tuple[str, str, str], ...] = (
 
 # ── Common Business Logic Parameters ─────────────────────────────────
 _BIZ_PARAMS = {
-    "price", "amount", "cost", "total", "subtotal", "discount",
-    "coupon", "promo", "voucher", "credit", "refund",
-    "quantity", "qty", "count", "items",
-    "currency", "plan", "tier", "role", "status",
-    "tax", "shipping", "handling", "fee",
-    "balance", "credits", "points", "rewards",
-    "user_id", "account_id", "org_id", "workspace_id",
-    "step", "phase", "state", "stage",
+    "price",
+    "amount",
+    "cost",
+    "total",
+    "subtotal",
+    "discount",
+    "coupon",
+    "promo",
+    "voucher",
+    "credit",
+    "refund",
+    "quantity",
+    "qty",
+    "count",
+    "items",
+    "currency",
+    "plan",
+    "tier",
+    "role",
+    "status",
+    "tax",
+    "shipping",
+    "handling",
+    "fee",
+    "balance",
+    "credits",
+    "points",
+    "rewards",
+    "user_id",
+    "account_id",
+    "org_id",
+    "workspace_id",
+    "step",
+    "phase",
+    "state",
+    "stage",
 }
 
 
@@ -177,28 +215,23 @@ class LogicDetector:
 
         # ── Engine 1: Parameter Tampering (negative, overflow, precision) ──
         for param_name in param_keys:
-            f = await self._test_param_tampering(
-                context, target, method, url, param_name, params
-            )
+            f = await self._test_param_tampering(context, target, method, url, param_name, params)
             if f:
                 findings.append(f)
 
         # ── Engine 2: Type Confusion ─────────────────────────────────
         for param_name in param_keys:
-            f = await self._test_type_confusion(
-                context, target, method, url, param_name, params
-            )
+            f = await self._test_type_confusion(context, target, method, url, param_name, params)
             if f:
                 findings.append(f)
 
         # ── Engine 3: Coupon / Discount Stacking ────────────────────
-        coupon_params = [p for p in param_keys if any(k in p.lower() for k in
-                        ["coupon", "discount", "promo", "voucher", "code"])]
+        coupon_params = [
+            p for p in param_keys if any(k in p.lower() for k in ["coupon", "discount", "promo", "voucher", "code"])
+        ]
         if coupon_params:
             for cp in coupon_params:
-                f = await self._test_coupon_tampering(
-                    context, target, method, url, cp, params
-                )
+                f = await self._test_coupon_tampering(context, target, method, url, cp, params)
                 if f:
                     findings.append(f)
 
@@ -206,49 +239,42 @@ class LogicDetector:
         currency_params = [p for p in param_keys if "currency" in p.lower()]
         if currency_params:
             for cp in currency_params:
-                f = await self._test_currency_switch(
-                    context, target, method, url, cp, params
-                )
+                f = await self._test_currency_switch(context, target, method, url, cp, params)
                 if f:
                     findings.append(f)
 
         # ── Engine 5: Workflow Step Bypass ───────────────────────────
-        step_params = [p for p in param_keys if any(k in p.lower() for k in
-                      ["step", "phase", "state", "stage", "status"])]
+        step_params = [
+            p for p in param_keys if any(k in p.lower() for k in ["step", "phase", "state", "stage", "status"])
+        ]
         if step_params:
             for sp in step_params:
-                f = await self._test_workflow_bypass(
-                    context, target, method, url, sp, params
-                )
+                f = await self._test_workflow_bypass(context, target, method, url, sp, params)
                 if f:
                     findings.append(f)
 
         # ── Engine 6: Subscription / Plan Manipulation ──────────────
-        plan_params = [p for p in param_keys if any(k in p.lower() for k in
-                      ["plan", "tier", "role", "level", "subscription"])]
+        plan_params = [
+            p for p in param_keys if any(k in p.lower() for k in ["plan", "tier", "role", "level", "subscription"])
+        ]
         if plan_params:
             for pp in plan_params:
-                f = await self._test_plan_manipulation(
-                    context, target, method, url, pp, params
-                )
+                f = await self._test_plan_manipulation(context, target, method, url, pp, params)
                 if f:
                     findings.append(f)
 
         # ── Engine 7: Price / Amount Direct Manipulation ─────────────
-        price_params = [p for p in param_keys if any(k in p.lower() for k in
-                       ["price", "amount", "cost", "total", "subtotal"])]
+        price_params = [
+            p for p in param_keys if any(k in p.lower() for k in ["price", "amount", "cost", "total", "subtotal"])
+        ]
         if price_params:
             for pp in price_params:
-                f = await self._test_price_manipulation(
-                    context, target, method, url, pp, params
-                )
+                f = await self._test_price_manipulation(context, target, method, url, pp, params)
                 if f:
                     findings.append(f)
 
         # ── Engine 8: Parameter Pollution ────────────────────────────
-        f = await self._test_parameter_pollution(
-            context, target, method, url, params
-        )
+        f = await self._test_parameter_pollution(context, target, method, url, params)
         if f:
             findings.append(f)
 
@@ -268,6 +294,7 @@ class LogicDetector:
         all_params: dict[str, str],
     ) -> Finding | None:
         try:
+
             def _req(val: str):
                 p = dict(all_params)
                 p[param_name] = val
@@ -288,29 +315,26 @@ class LogicDetector:
                 diffs: list[str] = []
 
                 # Oracle 1: Tampered value reflected in processed output
-                if (
-                    test_val in body
-                    and test_val not in baseline_body
-                    and resp.status == 200
-                    and len(body) > 20
-                ):
+                if test_val in body and test_val not in baseline_body and resp.status == 200 and len(body) > 20:
                     signals.append("reflect_negative")
                     diffs.append("logic:negative_value_reflected")
                     diffs.append(diff_tag)
 
                 # Oracle 2: State transition (200 → 302/303/307)
-                if (
-                    baseline_status == 200
-                    and resp.status in (302, 303, 307, 308)
-                ):
+                if baseline_status == 200 and resp.status in (302, 303, 307, 308):
                     signals.append("negative_redirect")
                     diffs.append("logic:negative_value_redirect")
                     diffs.append(diff_tag)
 
                 # Oracle 3: Error message leak
                 error_indicators = [
-                    "overflow", "truncat", "precision", "invalid number",
-                    "out of range", "numeric value", "arithmetic",
+                    "overflow",
+                    "truncat",
+                    "precision",
+                    "invalid number",
+                    "out of range",
+                    "numeric value",
+                    "arithmetic",
                 ]
                 for ei in error_indicators:
                     if ei in body.lower() and ei not in baseline_body.lower():
@@ -360,6 +384,7 @@ class LogicDetector:
         all_params: dict[str, str],
     ) -> Finding | None:
         try:
+
             def _req(val):
                 p = dict(all_params)
                 p[param_name] = val if isinstance(val, str) else json.dumps(val)
@@ -385,7 +410,11 @@ class LogicDetector:
                 # 3. Object accepted where scalar expected
                 # 4. Boolean accepted where numeric expected
                 interesting = False
-                if (test_val == "null" and resp.status == 200 and len(body) > 10) or (test_val == "[]" and resp.status == 200) or (test_val == "{}" and resp.status == 200):
+                if (
+                    (test_val == "null" and resp.status == 200 and len(body) > 10)
+                    or (test_val == "[]" and resp.status == 200)
+                    or (test_val == "{}" and resp.status == 200)
+                ):
                     interesting = True
                 elif test_val in ("true", "false") and resp.status == 200:
                     # Check if boolean was processed differently
@@ -647,8 +676,10 @@ class LogicDetector:
                 if resp.status == 200 and body != baseline_body:
                     # Check if plan was actually upgraded
                     plan_indicators = [
-                        f'"plan":"{plan}"', f'"plan":"{plan.upper()}"',
-                        f'"tier":"{plan}"', f'"tier":"{plan.upper()}"',
+                        f'"plan":"{plan}"',
+                        f'"plan":"{plan.upper()}"',
+                        f'"tier":"{plan}"',
+                        f'"tier":"{plan.upper()}"',
                         f'"role":"{plan}"',
                     ]
                     for indicator in plan_indicators:
@@ -712,8 +743,7 @@ class LogicDetector:
             if resp.status == 200 and body != baseline_body:
                 # Check if the total/charge reflects the zero amount
                 amount_patterns = re.findall(
-                    r'"?(?:total|amount|price|cost|charge|payment)"?\s*[:=]\s*"?(\d+\.?\d*)"?',
-                    body
+                    r'"?(?:total|amount|price|cost|charge|payment)"?\s*[:=]\s*"?(\d+\.?\d*)"?', body
                 )
                 for amt in amount_patterns:
                     try:
@@ -785,17 +815,16 @@ class LogicDetector:
                 qs = urlencode(polluted, doseq=True)
                 qs += f"&{param_name}=-1"
                 polluted_url = f"{url.split('?')[0]}?{qs}"
-                resp = await context.request.get(
-                    polluted_url, headers={"Referer": target}, timeout=3000
-                )
+                resp = await context.request.get(polluted_url, headers={"Referer": target}, timeout=3000)
             else:
                 # For POST, send as array or duplicate
                 polluted_data = dict(polluted)
                 polluted_data[param_name] = [original_val, "-1"]
                 resp = await context.request.post(
-                    url, data=json.dumps(polluted_data),
+                    url,
+                    data=json.dumps(polluted_data),
                     headers={"Referer": target, "Content-Type": "application/json"},
-                    timeout=3000
+                    timeout=3000,
                 )
 
             body = await resp.text()

@@ -7,6 +7,7 @@ Covers:
   Gate 5: reports with Critical/High findings carry a Disclosure status
           section; the consent row renders in the report header.
 """
+
 import json
 import sys
 from pathlib import Path
@@ -90,14 +91,26 @@ def test_report_disclosure_section_and_consent_row(tmp_consent_dir, tmp_path):
     p.write_text(json.dumps(doc), encoding="utf-8")
 
     f = Finding(
-        target="http://lab.local", url="http://lab.local/x", method="GET",
-        param="id", location="query", payload="t",
-        attack_type=AttackType.IDOR, severity=Severity.CRITICAL,
-        confidence=0.95, verified=True, evidence="confirmed", tier="confirmed",
+        target="http://lab.local",
+        url="http://lab.local/x",
+        method="GET",
+        param="id",
+        location="query",
+        payload="t",
+        attack_type=AttackType.IDOR,
+        severity=Severity.CRITICAL,
+        confidence=0.95,
+        verified=True,
+        evidence="confirmed",
+        tier="confirmed",
     )
     res = ScanResult(
-        target="http://lab.local", started_at=1780000000.0,
-        finished_at=1780000100.0, findings=[f], errors=[], config_snapshot={},
+        target="http://lab.local",
+        started_at=1780000000.0,
+        finished_at=1780000100.0,
+        findings=[f],
+        errors=[],
+        config_snapshot={},
     )
 
     from titan.reporting import SiteReportWriter

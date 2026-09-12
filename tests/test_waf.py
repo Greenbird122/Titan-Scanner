@@ -120,6 +120,7 @@ class TestPayloadReencoding:
     def test_case_variation(self):
         """Case variation changes letter case."""
         import random
+
         random.seed(42)  # deterministic for testing
         result = _case_variation("SELECT")
         assert result != "SELECT"  # at least some letters changed
@@ -179,8 +180,10 @@ class TestWAFIntegration:
         import os
 
         import yaml
-        os.chdir(os.path.join(os.path.dirname(__file__), '..'))
+
+        os.chdir(os.path.join(os.path.dirname(__file__), ".."))
         from titan.core.engine import TitanEngine
+
         with open("config.example.yaml") as f:
             config = yaml.safe_load(f)
         e = TitanEngine(config)

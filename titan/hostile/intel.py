@@ -12,7 +12,6 @@ Categories: ``ad_network``, ``popunder``, ``push_notif``, ``tracker``,
 ``miner``, ``risky_ad``.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -32,8 +31,13 @@ USER_DB_PATH = Path.home() / ".titan" / "intel_user.json"
 # Origins that must NEVER be flagged as third-party risk (CDNs / framework
 # loaders a hostile profile should not report as monetization).
 KNOWN_BENIGN = {
-    "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com", "code.jquery.com",
-    "ajax.googleapis.com", "static.cloudflareinsights.com", "www.gstatic.com",
+    "cdn.jsdelivr.net",
+    "cdnjs.cloudflare.com",
+    "unpkg.com",
+    "code.jquery.com",
+    "ajax.googleapis.com",
+    "static.cloudflareinsights.com",
+    "www.gstatic.com",
 }
 
 
@@ -144,19 +148,21 @@ class ObservedIntel:
     def __init__(self) -> None:
         self.origins: dict[str, dict[str, Any]] = {}
 
-    def record(self, url: str, kind: str = "script", integrity: bool = True,
-               cleartext: bool = False) -> None:
+    def record(self, url: str, kind: str = "script", integrity: bool = True, cleartext: bool = False) -> None:
         host = origin_of(url)
         if not host:
             return
-        entry = self.origins.setdefault(host, {
-            "host": host,
-            "kinds": set(),
-            "count": 0,
-            "cleartext": False,
-            "sri_missing": False,
-            "urls": [],
-        })
+        entry = self.origins.setdefault(
+            host,
+            {
+                "host": host,
+                "kinds": set(),
+                "count": 0,
+                "cleartext": False,
+                "sri_missing": False,
+                "urls": [],
+            },
+        )
         entry["kinds"].add(kind)
         entry["count"] += 1
         entry["cleartext"] = entry["cleartext"] or cleartext

@@ -22,6 +22,7 @@ from titan.modules.coverage.tracker import CoverageTracker
 @dataclass
 class CoverageGap:
     """A gap in coverage."""
+
     gap_type: str  # "endpoint", "attack_type", "combination"
     description: str
     reason: str
@@ -34,34 +35,78 @@ class GapIdentifier:
 
     # Effort estimation (minutes per test)
     EFFORT_MAP = {
-        "sqli": 2, "xss": 1, "idor": 1, "ssrf": 3, "rce": 4,
-        "csrf": 1, "auth_bypass": 2, "privilege_escalation": 2,
-        "business_logic": 3, "info_leak": 1, "file_upload": 2,
-        "path_traversal": 1, "open_redirect": 1, "cors": 1,
-        "headers": 1, "rate_limit": 2, "session": 2, "jwt": 2,
-        "baas_supabase": 3, "baas_firebase": 3, "baas_appwrite": 3,
-        "baas_clerk": 2, "baas_auth0": 2,
-        "ecommerce": 3, "saas": 3, "workflow": 4,
-        "content_type": 1, "method_override": 1, "header_injection": 1,
-        "post_exploit": 5, "chain": 6, "lateral_movement": 4,
-        "persistence": 3, "cover_up": 3,
+        "sqli": 2,
+        "xss": 1,
+        "idor": 1,
+        "ssrf": 3,
+        "rce": 4,
+        "csrf": 1,
+        "auth_bypass": 2,
+        "privilege_escalation": 2,
+        "business_logic": 3,
+        "info_leak": 1,
+        "file_upload": 2,
+        "path_traversal": 1,
+        "open_redirect": 1,
+        "cors": 1,
+        "headers": 1,
+        "rate_limit": 2,
+        "session": 2,
+        "jwt": 2,
+        "baas_supabase": 3,
+        "baas_firebase": 3,
+        "baas_appwrite": 3,
+        "baas_clerk": 2,
+        "baas_auth0": 2,
+        "ecommerce": 3,
+        "saas": 3,
+        "workflow": 4,
+        "content_type": 1,
+        "method_override": 1,
+        "header_injection": 1,
+        "post_exploit": 5,
+        "chain": 6,
+        "lateral_movement": 4,
+        "persistence": 3,
+        "cover_up": 3,
     }
 
     # Risk priority (higher = more important)
     RISK_PRIORITY = {
-        "sqli": 10, "rce": 10, "auth_bypass": 9,
-        "idor": 9, "ssrf": 9, "privilege_escalation": 9,
-        "xss": 8, "csrf": 8, "business_logic": 8,
-        "file_upload": 7, "path_traversal": 7,
-        "post_exploit": 8, "chain": 9, "lateral_movement": 8,
-        "persistence": 7, "cover_up": 7,
-        "info_leak": 6, "open_redirect": 5,
-        "cors": 5, "headers": 4, "rate_limit": 4,
-        "session": 6, "jwt": 6,
-        "baas_supabase": 7, "baas_firebase": 7, "baas_appwrite": 6,
-        "baas_clerk": 6, "baas_auth0": 6,
-        "ecommerce": 7, "saas": 7, "workflow": 6,
-        "content_type": 4, "method_override": 5, "header_injection": 5,
+        "sqli": 10,
+        "rce": 10,
+        "auth_bypass": 9,
+        "idor": 9,
+        "ssrf": 9,
+        "privilege_escalation": 9,
+        "xss": 8,
+        "csrf": 8,
+        "business_logic": 8,
+        "file_upload": 7,
+        "path_traversal": 7,
+        "post_exploit": 8,
+        "chain": 9,
+        "lateral_movement": 8,
+        "persistence": 7,
+        "cover_up": 7,
+        "info_leak": 6,
+        "open_redirect": 5,
+        "cors": 5,
+        "headers": 4,
+        "rate_limit": 4,
+        "session": 6,
+        "jwt": 6,
+        "baas_supabase": 7,
+        "baas_firebase": 7,
+        "baas_appwrite": 6,
+        "baas_clerk": 6,
+        "baas_auth0": 6,
+        "ecommerce": 7,
+        "saas": 7,
+        "workflow": 6,
+        "content_type": 4,
+        "method_override": 5,
+        "header_injection": 5,
     }
 
     def __init__(self, tracker: CoverageTracker):
@@ -100,23 +145,27 @@ class GapIdentifier:
         if expected:
             untested = set(expected) - tested
             for endpoint in untested:
-                gaps.append(CoverageGap(
-                    gap_type="endpoint",
-                    description=f"Endpoint not tested: {endpoint}",
-                    reason="Endpoint was discovered but not tested",
-                    severity="high",
-                    recommendation=f"Run all attack types against {endpoint}",
-                ))
+                gaps.append(
+                    CoverageGap(
+                        gap_type="endpoint",
+                        description=f"Endpoint not tested: {endpoint}",
+                        reason="Endpoint was discovered but not tested",
+                        severity="high",
+                        recommendation=f"Run all attack types against {endpoint}",
+                    )
+                )
         else:
             # No expected list — check if we have reasonable coverage
             if len(tested) < 3:
-                gaps.append(CoverageGap(
-                    gap_type="endpoint",
-                    description=f"Only {len(tested)} endpoints tested",
-                    reason="Insufficient endpoint discovery",
-                    severity="medium",
-                    recommendation="Run endpoint discovery to find more targets",
-                ))
+                gaps.append(
+                    CoverageGap(
+                        gap_type="endpoint",
+                        description=f"Only {len(tested)} endpoints tested",
+                        reason="Insufficient endpoint discovery",
+                        severity="medium",
+                        recommendation="Run endpoint discovery to find more targets",
+                    )
+                )
 
         return gaps
 
@@ -136,34 +185,40 @@ class GapIdentifier:
             untested = set(expected) - tested
             for attack_type in untested:
                 severity = "high" if attack_type in critical_types else "medium"
-                gaps.append(CoverageGap(
-                    gap_type="attack_type",
-                    description=f"Attack type not tested: {attack_type}",
-                    reason="Attack type was in scope but not executed",
-                    severity=severity,
-                    recommendation=f"Run {attack_type} tests against all endpoints",
-                ))
+                gaps.append(
+                    CoverageGap(
+                        gap_type="attack_type",
+                        description=f"Attack type not tested: {attack_type}",
+                        reason="Attack type was in scope but not executed",
+                        severity=severity,
+                        recommendation=f"Run {attack_type} tests against all endpoints",
+                    )
+                )
         else:
             # Check critical types
             for attack_type in critical_types:
                 if attack_type not in tested:
-                    gaps.append(CoverageGap(
-                        gap_type="attack_type",
-                        description=f"Critical attack type not tested: {attack_type}",
-                        reason="Critical attack type was not executed",
-                        severity="high",
-                        recommendation=f"Run {attack_type} tests against all endpoints",
-                    ))
+                    gaps.append(
+                        CoverageGap(
+                            gap_type="attack_type",
+                            description=f"Critical attack type not tested: {attack_type}",
+                            reason="Critical attack type was not executed",
+                            severity="high",
+                            recommendation=f"Run {attack_type} tests against all endpoints",
+                        )
+                    )
 
             for attack_type in high_types:
                 if attack_type not in tested:
-                    gaps.append(CoverageGap(
-                        gap_type="attack_type",
-                        description=f"High-priority attack type not tested: {attack_type}",
-                        reason="High-priority attack type was not executed",
-                        severity="medium",
-                        recommendation=f"Run {attack_type} tests against all endpoints",
-                    ))
+                    gaps.append(
+                        CoverageGap(
+                            gap_type="attack_type",
+                            description=f"High-priority attack type not tested: {attack_type}",
+                            reason="High-priority attack type was not executed",
+                            severity="medium",
+                            recommendation=f"Run {attack_type} tests against all endpoints",
+                        )
+                    )
 
         return gaps
 
@@ -191,26 +246,27 @@ class GapIdentifier:
                 endpoint_gaps[endpoint].append(attack_type)
 
             # Report top gaps
-            for endpoint, attack_types in sorted(
-                endpoint_gaps.items(),
-                key=lambda x: -len(x[1])
-            )[:5]:
-                gaps.append(CoverageGap(
-                    gap_type="combination",
-                    description=f"{endpoint} missing {len(attack_types)} attack types: {', '.join(attack_types[:5])}",
-                    reason="Endpoint was not fully tested",
-                    severity="high" if len(attack_types) >= 3 else "medium",
-                    recommendation=f"Run missing attack types against {endpoint}",
-                ))
+            for endpoint, attack_types in sorted(endpoint_gaps.items(), key=lambda x: -len(x[1]))[:5]:
+                gaps.append(
+                    CoverageGap(
+                        gap_type="combination",
+                        description=f"{endpoint} missing {len(attack_types)} attack types: {', '.join(attack_types[:5])}",
+                        reason="Endpoint was not fully tested",
+                        severity="high" if len(attack_types) >= 3 else "medium",
+                        recommendation=f"Run missing attack types against {endpoint}",
+                    )
+                )
 
             if len(endpoint_gaps) > 5:
-                gaps.append(CoverageGap(
-                    gap_type="combination",
-                    description=f"{len(endpoint_gaps) - 5} more endpoints with gaps",
-                    reason="Multiple endpoints have incomplete coverage",
-                    severity="medium",
-                    recommendation="Run full test suite against all endpoints",
-                ))
+                gaps.append(
+                    CoverageGap(
+                        gap_type="combination",
+                        description=f"{len(endpoint_gaps) - 5} more endpoints with gaps",
+                        reason="Multiple endpoints have incomplete coverage",
+                        severity="medium",
+                        recommendation="Run full test suite against all endpoints",
+                    )
+                )
 
         return gaps
 
@@ -250,12 +306,15 @@ class GapIdentifier:
             "total_effort_minutes": total_effort,
             "total_effort_hours": round(total_effort / 60, 1),
             "risk_score": risk_score,
-            "top_recommendations": [
-                gap.recommendation for gap in gaps[:5]
-            ],
+            "top_recommendations": [gap.recommendation for gap in gaps[:5]],
             "priority_order": [
-                {"gap": gap.description, "priority": self.RISK_PRIORITY.get(gap.description.split(":")[0].split(" ")[-1], 5)}
-                for gap in sorted(gaps, key=lambda g: -self.RISK_PRIORITY.get(g.description.split(":")[0].split(" ")[-1], 5))[:5]
+                {
+                    "gap": gap.description,
+                    "priority": self.RISK_PRIORITY.get(gap.description.split(":")[0].split(" ")[-1], 5),
+                }
+                for gap in sorted(
+                    gaps, key=lambda g: -self.RISK_PRIORITY.get(g.description.split(":")[0].split(" ")[-1], 5)
+                )[:5]
             ],
         }
 
@@ -285,10 +344,12 @@ class GapIdentifier:
                 if attack_type in gap.description.lower():
                     priority = self.RISK_PRIORITY[attack_type]
                     break
-            ranked.append({
-                "gap": gap.description,
-                "severity": gap.severity,
-                "risk_priority": priority,
-                "recommendation": gap.recommendation,
-            })
+            ranked.append(
+                {
+                    "gap": gap.description,
+                    "severity": gap.severity,
+                    "risk_priority": priority,
+                    "recommendation": gap.recommendation,
+                }
+            )
         return sorted(ranked, key=lambda x: -x["risk_priority"])

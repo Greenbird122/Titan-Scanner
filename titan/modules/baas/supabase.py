@@ -13,7 +13,6 @@ This module tests:
 10. Database function enumeration (call RPC functions)
 """
 
-
 from __future__ import annotations
 
 import json
@@ -35,7 +34,6 @@ from titan.modules.baas.supabase_payloads import (
 )
 
 logger = get_logger("supabase")
-
 
 
 class SupabaseTester:
@@ -83,9 +81,7 @@ class SupabaseTester:
                     endpoint = payload.endpoint.replace("{table}", table)
                     url = f"{self._supabase_url}{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, payload.headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                     if response and self._check_rls_bypass(response, payload):
                         finding = Finding(
@@ -125,9 +121,7 @@ class SupabaseTester:
             try:
                 url = f"{self._supabase_url}{payload.endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, payload.headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                 if response and self._check_auth_enumeration(response, payload):
                     finding = Finding(
@@ -178,9 +172,7 @@ class SupabaseTester:
                             else:
                                 headers[k] = v
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, headers or None
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, headers or None)
 
                     if response and self._check_edge_function(response, payload):
                         finding = Finding(
@@ -223,9 +215,7 @@ class SupabaseTester:
                     endpoint = payload.endpoint.replace("{bucket}", bucket)
                     url = f"{self._supabase_url}{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, payload.headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                     if response and self._check_storage_abuse(response, payload):
                         finding = Finding(
@@ -265,9 +255,7 @@ class SupabaseTester:
             try:
                 url = f"{self._supabase_url}{payload.endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_metadata_escalation(response, payload):
                     finding = Finding(
@@ -322,9 +310,7 @@ class SupabaseTester:
                         else:
                             headers[k] = v
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, headers or None
-                )
+                response = await self._send_request(url, payload.method, payload.payload, headers or None)
 
                 if response and self._check_jwt_manipulation(response, payload):
                     finding = Finding(
@@ -367,9 +353,7 @@ class SupabaseTester:
                     endpoint = payload.endpoint.replace("{function}", function)
                     url = f"{self._supabase_url}{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, payload.headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                     if response and self._check_db_function(response, payload):
                         finding = Finding(

@@ -100,9 +100,17 @@ async def run_pass(
     origin_rows = sorted(merged_origins.values(), key=lambda r: (-r["risk_score"], r["host"]))
     monetization_score = min(
         100,
-        sum(({"miner": 50, "risky_ad": 30, "popunder": 20, "push_notif": 12,
-              "ad_network": 6, "tracker": 3}.get(r.get("category"), 3)) for r in origin_rows) // 2
-        + len(all_cloaks) * 6 + (merged_clickbait or {}).get("score", 0) // 5
+        sum(
+            (
+                {"miner": 50, "risky_ad": 30, "popunder": 20, "push_notif": 12, "ad_network": 6, "tracker": 3}.get(
+                    r.get("category"), 3
+                )
+            )
+            for r in origin_rows
+        )
+        // 2
+        + len(all_cloaks) * 6
+        + (merged_clickbait or {}).get("score", 0) // 5
         + len(all_miners) * 15,
     )
 
@@ -126,10 +134,8 @@ async def run_pass(
 
     active_probes = bool(session) and bool(consented)
     if active_probes:
-        findings.extend(await offense.map_redirect_chains(
-            session, profile, target, block_private=block_private))
-        findings.extend(await offense.probe_referrer_gate(
-            session, profile, target, block_private=block_private))
+        findings.extend(await offense.map_redirect_chains(session, profile, target, block_private=block_private))
+        findings.extend(await offense.probe_referrer_gate(session, profile, target, block_private=block_private))
 
     return {
         "profile": profile,
@@ -155,6 +161,7 @@ def _dedupe_signals(signals: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def findings_from_dicts(rows: list[dict[str, Any]]) -> list[Finding]:
     """Rebuild Finding objects from serialized dicts (engine + CLI use this)."""
     from titan.core.models import AttackType, Severity
+
     out: list[Finding] = []
     for d in rows:
         f = Finding(

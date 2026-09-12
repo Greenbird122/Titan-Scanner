@@ -21,7 +21,6 @@ Every scan is documented under findings/<site-slug>/ (report.md, findings.json,
 scan_meta.json, dashboard.html) plus the sites.json index.
 """
 
-
 import asyncio
 import sys
 from pathlib import Path
@@ -35,9 +34,9 @@ from titan.core.engine import TitanEngine
 logger = get_logger("run")
 
 
-
 def load_config(path: str = "config.yaml") -> dict:
     import yaml
+
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
@@ -85,8 +84,14 @@ def doctor() -> int:
     import importlib
 
     required = [
-        "yaml", "playwright", "aiohttp", "flask", "jwt", "cryptography",
-        "requests", "pytest",
+        "yaml",
+        "playwright",
+        "aiohttp",
+        "flask",
+        "jwt",
+        "cryptography",
+        "requests",
+        "pytest",
     ]
     print("[+] Titan dependency pre-flight")
     bad = 0
@@ -103,6 +108,7 @@ def doctor() -> int:
     # Playwright browser binary (installed separately from the pip package).
     try:
         from playwright.sync_api import sync_playwright
+
         with sync_playwright() as p:
             exe = Path(p.chromium.executable_path)
         if exe.exists():
@@ -151,6 +157,7 @@ def cmd_dashboard(argv: list) -> int:
         if index_path.exists():
             try:
                 import json
+
                 index = json.loads(index_path.read_text(encoding="utf-8"))
                 sites = index.get("sites") or []
                 if sites:
@@ -159,8 +166,7 @@ def cmd_dashboard(argv: list) -> int:
                 logger.debug(f"suppressed exception: {exc}")
                 pass
     if not slug:
-        print("[!] No site to render. Scan a target first or pass a slug: "
-              "python run.py dashboard <slug>")
+        print("[!] No site to render. Scan a target first or pass a slug: python run.py dashboard <slug>")
         return 1
     site_dir = out_dir / slug
     if not (site_dir / "findings.json").exists():
@@ -181,6 +187,7 @@ def cmd_estate_rollup() -> int:
     python run.py --report --estate
     """
     from titan.reporting import estate_rollup
+
     out_dir = Path(_arg_value("--output-dir", "findings"))
     report = estate_rollup(str(out_dir))
     out_path = out_dir / "ESTATE-ROLLUP.md"
@@ -195,6 +202,7 @@ def cmd_remediation() -> int:
     python run.py --report --remediation
     """
     from titan.reporting import remediation_rollup
+
     out_dir = Path(_arg_value("--output-dir", "findings"))
     report = remediation_rollup(str(out_dir))
     out_path = out_dir / "REMEDIATION-ROLLUP.md"
@@ -227,8 +235,10 @@ async def main():
 
     config = apply_cli_overrides(config)
     if config.get("exploit", {}).get("enabled"):
-        print("[+] Track E enabled: verified findings will be auto-staged "
-              "(requires a signed consent file for the target — see README)")
+        print(
+            "[+] Track E enabled: verified findings will be auto-staged "
+            "(requires a signed consent file for the target — see README)"
+        )
 
     engine = TitanEngine(config)
     result = await engine.scan(target)
@@ -238,8 +248,10 @@ async def main():
     print(f"    Duration: {result.duration_seconds}s")
 
     for f in result.findings:
-        print(f"  [{f.severity.value.upper()}] {f.attack_type.value} conf={f.confidence:.2f} "
-              f"verified={'Y' if f.verified else 'N'}")
+        print(
+            f"  [{f.severity.value.upper()}] {f.attack_type.value} conf={f.confidence:.2f} "
+            f"verified={'Y' if f.verified else 'N'}"
+        )
         print(f"    {f.method} {f.url}  param={f.param} ({f.location})")
         print(f"    payload: {f.payload[:100]}")
         print()
@@ -260,6 +272,7 @@ async def main():
             print(f"    - {err}")
 
     from titan.reporting import site_slug
+
     print(f"[+] Findings documented under findings/{site_slug(target)}/")
 
 

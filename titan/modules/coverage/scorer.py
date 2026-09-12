@@ -19,6 +19,7 @@ from titan.modules.coverage.tracker import CoverageMatrix, CoverageTracker
 @dataclass
 class CoverageScore:
     """A detailed coverage score."""
+
     overall_score: float  # 0-100
     endpoint_score: float  # 0-100
     attack_type_score: float  # 0-100
@@ -44,10 +45,18 @@ class CoverageScorer:
 
     # Grade thresholds
     GRADES = {
-        "A+": 95, "A": 90, "A-": 85,
-        "B+": 80, "B": 75, "B-": 70,
-        "C+": 65, "C": 60, "C-": 55,
-        "D+": 50, "D": 45, "D-": 40,
+        "A+": 95,
+        "A": 90,
+        "A-": 85,
+        "B+": 80,
+        "B": 75,
+        "B-": 70,
+        "C+": 65,
+        "C": 60,
+        "C-": 55,
+        "D+": 50,
+        "D": 45,
+        "D-": 40,
         "F": 0,
     }
 
@@ -65,14 +74,10 @@ class CoverageScorer:
         summary = self.tracker.get_summary()
 
         # Endpoint coverage
-        endpoint_score = self._calculate_endpoint_score(
-            matrix, expected_endpoints
-        )
+        endpoint_score = self._calculate_endpoint_score(matrix, expected_endpoints)
 
         # Attack type coverage
-        attack_type_score = self._calculate_attack_type_score(
-            matrix, expected_attack_types
-        )
+        attack_type_score = self._calculate_attack_type_score(matrix, expected_attack_types)
 
         # Combination coverage
         combination_score = self._calculate_combination_score(matrix)
@@ -88,12 +93,12 @@ class CoverageScorer:
 
         # Overall score (weighted average)
         overall_score = (
-            endpoint_score * self.WEIGHTS["endpoint"] +
-            attack_type_score * self.WEIGHTS["attack_type"] +
-            combination_score * self.WEIGHTS["combination"] +
-            depth_score * self.WEIGHTS["depth"] +
-            quality_score * self.WEIGHTS["quality"] +
-            risk_score * self.WEIGHTS["risk"]
+            endpoint_score * self.WEIGHTS["endpoint"]
+            + attack_type_score * self.WEIGHTS["attack_type"]
+            + combination_score * self.WEIGHTS["combination"]
+            + depth_score * self.WEIGHTS["depth"]
+            + quality_score * self.WEIGHTS["quality"]
+            + risk_score * self.WEIGHTS["risk"]
         )
 
         # Grade
@@ -123,9 +128,7 @@ class CoverageScorer:
             },
             "depth": {
                 "score": round(depth_score, 1),
-                "avg_tests_per_combination": round(
-                    summary["total_tests"] / max(matrix.tested_combinations, 1), 1
-                ),
+                "avg_tests_per_combination": round(summary["total_tests"] / max(matrix.tested_combinations, 1), 1),
                 "weight": self.WEIGHTS["depth"],
             },
             "quality": {
@@ -262,7 +265,4 @@ class CoverageScorer:
 
     def get_history(self) -> list[dict[str, Any]]:
         """Get score history."""
-        return [
-            {"score": s.overall_score, "grade": s.grade}
-            for s in self._history
-        ]
+        return [{"score": s.overall_score, "grade": s.grade} for s in self._history]

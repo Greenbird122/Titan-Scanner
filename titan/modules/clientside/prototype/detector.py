@@ -14,7 +14,6 @@ Features:
      • Ignores static pages that always carry the property.
 """
 
-
 from __future__ import annotations
 
 import secrets
@@ -109,7 +108,9 @@ class PrototypePollutionDetector:
                     await page.wait_for_timeout(500)
                     hit = await page.evaluate(POLLUTION_READ_JS, marker)
                     if hit is not None:
-                        findings.append(self._finding(target, str(page.url or url), "__proto__", marker, probe_value, "json"))
+                        findings.append(
+                            self._finding(target, str(page.url or url), "__proto__", marker, probe_value, "json")
+                        )
                 except Exception as exc:
                     logger.debug(f"suppressed exception: {exc}")
                     pass
@@ -126,7 +127,11 @@ class PrototypePollutionDetector:
                     pass
                 hit = await page.evaluate(POLLUTION_READ_JS, marker)
                 if hit is not None:
-                    findings.append(self._finding(target, str(page.url or url), "nested.__proto__", marker, probe_value, "deep_nested"))
+                    findings.append(
+                        self._finding(
+                            target, str(page.url or url), "nested.__proto__", marker, probe_value, "deep_nested"
+                        )
+                    )
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass

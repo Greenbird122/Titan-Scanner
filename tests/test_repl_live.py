@@ -6,7 +6,6 @@ listener URL) and waits on the live queue for results. Data sessions get no
 listener; a busy port degrades to a queue-only REPL, never a crash.
 """
 
-
 import asyncio
 import base64
 import socket
@@ -20,7 +19,6 @@ from titan.exploit.session import SessionStore
 from titan_exploit_cli import _repl_listener, cmd_session_async
 
 logger = get_logger("test_repl_live")
-
 
 
 def _free_port() -> int:
@@ -37,7 +35,9 @@ async def test_repl_listener_binds_recorded_port(tmp_path: Path):
     port = _free_port()
     store = SessionStore(tmp_path / "sessions", session_id="sess-1")
     meta = store.init_meta(
-        "http://lab.local", "rce-agent", "consent/lab-local.json",
+        "http://lab.local",
+        "rce-agent",
+        "consent/lab-local.json",
         listener_url=f"http://127.0.0.1:{port}",
     )
     listener = await _repl_listener(meta, JobQueue(), store)
@@ -45,9 +45,7 @@ async def test_repl_listener_binds_recorded_port(tmp_path: Path):
         assert listener is not None
         assert listener.port == port
         # The queue is actually served over HTTP (empty poll round-trips).
-        async with ClientSession() as client, client.post(
-            f"{listener.bound_url}/poll", json={"sid": "sess-1"}
-        ) as r:
+        async with ClientSession() as client, client.post(f"{listener.bound_url}/poll", json={"sid": "sess-1"}) as r:
             assert (await r.json())["job"] is None
     finally:
         if listener:
@@ -57,9 +55,7 @@ async def test_repl_listener_binds_recorded_port(tmp_path: Path):
 async def test_repl_listener_none_for_data_session(tmp_path: Path):
     """sqli-extraction has no agent — no listener, no crash."""
     store = SessionStore(tmp_path / "sessions", session_id="sess-d")
-    meta = store.init_meta(
-        "http://lab.local", "sqli-extraction", "consent/lab-local.json"
-    )
+    meta = store.init_meta("http://lab.local", "sqli-extraction", "consent/lab-local.json")
     assert await _repl_listener(meta, JobQueue(), store) is None
 
 
@@ -71,7 +67,9 @@ async def test_repl_listener_busy_port_degrades(tmp_path: Path):
     try:
         store = SessionStore(tmp_path / "sessions", session_id="sess-b")
         meta = store.init_meta(
-            "http://lab.local", "rce-agent", "consent/lab-local.json",
+            "http://lab.local",
+            "rce-agent",
+            "consent/lab-local.json",
             listener_url=busy.bound_url,
         )
         assert await _repl_listener(meta, JobQueue(), store) is None
@@ -91,7 +89,9 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
     base = tmp_path / "findings" / "lab-local" / "sessions"
     store = SessionStore(base, session_id="sess-live")
     store.init_meta(
-        "http://lab.local", "rce-agent", "consent/lab-local.json",
+        "http://lab.local",
+        "rce-agent",
+        "consent/lab-local.json",
         listener_url=f"http://127.0.0.1:{port}",
     )
 
@@ -104,9 +104,7 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
         # and hang the test.
         while True:
             try:
-                async with ClientSession() as client, client.post(
-                    f"{listener_url}/poll", json={"sid": sid}
-                ) as r:
+                async with ClientSession() as client, client.post(f"{listener_url}/poll", json={"sid": sid}) as r:
                     resp = await r.json()
             except Exception:
                 resp = None
@@ -116,30 +114,32 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
                 continue
             out = base64.b64encode(b"uid=0(root) fake\n").decode("ascii")
             try:
-                async with ClientSession() as client, client.post(
-                    f"{listener_url}/report",
-                    json={
-                        "sid": sid,
-                        "job_id": job["job_id"],
-                        "exit_code": 0,
-                        "output": out,
-                    },
-                ) as r:
+                async with (
+                    ClientSession() as client,
+                    client.post(
+                        f"{listener_url}/report",
+                        json={
+                            "sid": sid,
+                            "job_id": job["job_id"],
+                            "exit_code": 0,
+                            "output": out,
+                        },
+                    ) as r,
+                ):
                     await r.read()
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass
             await asyncio.sleep(0.05)
 
-    repl_task = asyncio.create_task(
-        cmd_session_async(["sess-live", "--store", str(tmp_path / "findings")])
-    )
+    repl_task = asyncio.create_task(cmd_session_async(["sess-live", "--store", str(tmp_path / "findings")]))
     # Wait for the REPL's listener to come up on the recorded port.
     for _ in range(100):
         try:
-            async with ClientSession() as client, client.get(
-                f"http://127.0.0.1:{port}/agent.sh", params={"sid": "x"}
-            ) as r:
+            async with (
+                ClientSession() as client,
+                client.get(f"http://127.0.0.1:{port}/agent.sh", params={"sid": "x"}) as r,
+            ):
                 if r.status == 200:
                     break
         except Exception as exc:
@@ -147,9 +147,7 @@ async def test_cmd_session_live_agent_roundtrip(tmp_path: Path, monkeypatch, cap
             pass
         await asyncio.sleep(0.05)
 
-    agent_task = asyncio.create_task(
-        fake_agent(f"http://127.0.0.1:{port}", "sess-live")
-    )
+    agent_task = asyncio.create_task(fake_agent(f"http://127.0.0.1:{port}", "sess-live"))
     try:
         await asyncio.wait_for(repl_task, timeout=30)
     finally:

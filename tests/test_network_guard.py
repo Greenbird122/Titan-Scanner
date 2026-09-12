@@ -3,6 +3,7 @@
 Without these, the autouse fixture in conftest.py is an unverified claim: it
 could be silently absent and every other test would still pass.
 """
+
 import socket
 
 import pytest

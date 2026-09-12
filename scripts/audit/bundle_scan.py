@@ -11,6 +11,7 @@ Usage:
 Prints findings to stdout; writes the estate map JSON when --out is given.
 Consent: read-only — no consent file required, but flags are printed if present.
 """
+
 import argparse
 import json
 import os
@@ -67,6 +68,7 @@ def fetch(url, timeout=30):
 def find_bundles(html_body, base_url):
     """Extract JS asset URLs from script/link tags."""
     from urllib.parse import urljoin
+
     urls = []
     for m in re.finditer(r'<script[^>]+src=["\']([^"\']+)["\']', html_body):
         urls.append(urljoin(base_url, m.group(1)))
@@ -93,15 +95,33 @@ def main():
     args = ap.parse_args()
 
     target = args.target.rstrip("/")
-    estate = {"target": target, "status": None, "headers": {}, "bundles": [],
-              "secrets": [], "integrations": [], "api_endpoints": []}
+    estate = {
+        "target": target,
+        "status": None,
+        "headers": {},
+        "bundles": [],
+        "secrets": [],
+        "integrations": [],
+        "api_endpoints": [],
+    }
 
     st, headers, body = fetch(target)
     estate["status"] = st
-    estate["headers"] = {k: v for k, v in headers.items()
-                         if k.lower() in ("server", "x-powered-by", "x-generator",
-                                          "x-vercel-id", "x-nextjs-cache", "cf-ray",
-                                          "set-cookie", "content-security-policy")}
+    estate["headers"] = {
+        k: v
+        for k, v in headers.items()
+        if k.lower()
+        in (
+            "server",
+            "x-powered-by",
+            "x-generator",
+            "x-vercel-id",
+            "x-nextjs-cache",
+            "cf-ray",
+            "set-cookie",
+            "content-security-policy",
+        )
+    }
     print(f"[bundle_scan] {target} -> {st}")
     print(f"  server: {headers.get('Server', headers.get('server', '-'))}")
 

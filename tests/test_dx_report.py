@@ -28,20 +28,34 @@ def _result(findings):
 
 def _weak_lfi():
     return Finding(
-        target="https://example.com", url="https://example.com/a", method="GET",
-        param="page", location="query", payload="../../etc/passwd",
-        attack_type=AttackType.LFI, severity=Severity.HIGH, verified=False,
-        confidence=0.4, evidence="indicative",
+        target="https://example.com",
+        url="https://example.com/a",
+        method="GET",
+        param="page",
+        location="query",
+        payload="../../etc/passwd",
+        attack_type=AttackType.LFI,
+        severity=Severity.HIGH,
+        verified=False,
+        confidence=0.4,
+        evidence="indicative",
     )
 
 
 def _confirmed_xss():
     return Finding(
-        target="https://example.com", url="https://example.com/search?q=x",
-        method="GET", param="q", location="query",
-        payload="<script>alert(1)</script>", attack_type=AttackType.XSS,
-        severity=Severity.CRITICAL, verified=True, confidence=0.9,
-        evidence="confirmed", diffs=["xss:marker_reflected:TITANXSS1234"],
+        target="https://example.com",
+        url="https://example.com/search?q=x",
+        method="GET",
+        param="q",
+        location="query",
+        payload="<script>alert(1)</script>",
+        attack_type=AttackType.XSS,
+        severity=Severity.CRITICAL,
+        verified=True,
+        confidence=0.9,
+        evidence="confirmed",
+        diffs=["xss:marker_reflected:TITANXSS1234"],
         metadata={"affected_urls": ["https://example.com/search?q=x", "https://example.com/s"]},
     )
 
@@ -85,6 +99,7 @@ class TestReportShape:
 def _chromium_installed() -> bool:
     try:
         from playwright.sync_api import sync_playwright
+
         with sync_playwright() as p:
             return Path(p.chromium.executable_path).exists()
     except Exception:
@@ -96,8 +111,7 @@ class TestDoctor:
         """The pip-level deps the doctor pre-flights must import in any venv."""
         import importlib
 
-        for mod in ("yaml", "playwright", "aiohttp", "flask", "jwt",
-                    "cryptography", "requests", "pytest"):
+        for mod in ("yaml", "playwright", "aiohttp", "flask", "jwt", "cryptography", "requests", "pytest"):
             importlib.import_module(mod)
 
     def test_doctor_passes_in_project_venv(self):
@@ -108,4 +122,5 @@ class TestDoctor:
         if not _chromium_installed():
             pytest.skip("Playwright Chromium binary not installed (CI installs pip deps only)")
         import run as run_module
+
         assert run_module.doctor() == 0, "doctor must pass in the project venv"

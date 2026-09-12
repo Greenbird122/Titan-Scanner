@@ -14,6 +14,7 @@ The inference engine does NOT run new probes.  It reasons over the
 existing finding graph and produces inference records that the report
 renders as chained attack paths.
 """
+
 from __future__ import annotations
 
 import logging
@@ -129,35 +130,43 @@ class CrossDataInferenceEngine:
     def infer(self, findings: list[Any]) -> list[Inference]:
         inferences: list[Inference] = []
         finding_map = {str(getattr(f, "id", "")): f for f in findings}
-        finding_types = {str(getattr(f, "id", "")): (getattr(getattr(f, "attack_type", None), "value", "") or "") for f in findings}
+        finding_types = {
+            str(getattr(f, "id", "")): (getattr(getattr(f, "attack_type", None), "value", "") or "") for f in findings
+        }
         finding_caps = {str(getattr(f, "id", "")): (getattr(f, "capabilities", []) or []) for f in findings}
 
         for rule in self._rules:
             primary = self._find_matching(findings, rule.get("require", {}), finding_map, finding_types, finding_caps)
             if not primary:
                 continue
-            secondary = self._find_matching(findings, rule.get("co_require", {}), finding_map, finding_types, finding_caps)
+            secondary = self._find_matching(
+                findings, rule.get("co_require", {}), finding_map, finding_types, finding_caps
+            )
             if not secondary:
                 continue
             # Ensure primary and secondary are different findings
-            secondary = [s for s in secondary if str(getattr(s, "id", "")) not in {str(getattr(p, "id", "")) for p in primary}]
+            secondary = [
+                s for s in secondary if str(getattr(s, "id", "")) not in {str(getattr(p, "id", "")) for p in primary}
+            ]
             if not secondary:
                 continue
 
             source_ids = [str(getattr(f, "id", "")) for f in primary + secondary]
-            inferences.append(Inference(
-                inference_type=rule["id"],
-                severity=rule["severity"],
-                confidence=rule["confidence"],
-                source_findings=source_ids,
-                description=rule["description"],
-                remediation=rule["remediation"],
-                metadata={
-                    "rule": rule["name"],
-                    "primary_count": len(primary),
-                    "secondary_count": len(secondary),
-                },
-            ))
+            inferences.append(
+                Inference(
+                    inference_type=rule["id"],
+                    severity=rule["severity"],
+                    confidence=rule["confidence"],
+                    source_findings=source_ids,
+                    description=rule["description"],
+                    remediation=rule["remediation"],
+                    metadata={
+                        "rule": rule["name"],
+                        "primary_count": len(primary),
+                        "secondary_count": len(secondary),
+                    },
+                )
+            )
 
         return inferences
 

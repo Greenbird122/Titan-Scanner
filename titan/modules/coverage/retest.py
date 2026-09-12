@@ -25,6 +25,7 @@ from titan.modules.coverage.tracker import CoverageTracker
 @dataclass
 class RetestResult:
     """Result of a retest execution."""
+
     total_retests: int
     successful_retests: int
     failed_retests: int
@@ -173,7 +174,5 @@ class AutoRetester:
             "coverage_change": round(result.coverage_after - result.coverage_before, 1),
             "gaps_closed": len(result.gaps_closed),
             "gaps_remaining": len(result.gaps_remaining),
-            "success_rate": round(
-                result.successful_retests / max(result.total_retests, 1) * 100, 1
-            ),
+            "success_rate": round(result.successful_retests / max(result.total_retests, 1) * 100, 1),
         }

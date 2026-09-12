@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 """Local extraction of secrets / URLs / sinks from archived JS bundles."""
+
 import json
 import re
 from pathlib import Path
 
 BUNDLES = [
-    Path("findings/database-tulia-vercel-app/archive/assets/0002_database-tulia-vercel-app-assets-index-DEx6ECuL-js.js"),
+    Path(
+        "findings/database-tulia-vercel-app/archive/assets/0002_database-tulia-vercel-app-assets-index-DEx6ECuL-js.js"
+    ),
     Path("findings/git-vizor-vercel-app/archive/assets/0002_git-vizor-vercel-app-js-gatekeeper-js.js"),
 ]
 
 URL_RE = re.compile(r"https?://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+")
 AIZA_RE = re.compile(r"AIza[0-9A-Za-z_-]{20,}")
-FIREBASE_RE = re.compile(r"(tulia-tag|firebaseio\.com|firestore\.googleapis|identitytoolkit|firebaseapp\.com|\.web\.app|railway\.app|googleapis\.com)", re.I)
-SINK_RE = re.compile(r".{0,80}(innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function|dangerouslySetInnerHTML).{0,80}")
+FIREBASE_RE = re.compile(
+    r"(tulia-tag|firebaseio\.com|firestore\.googleapis|identitytoolkit|firebaseapp\.com|\.web\.app|railway\.app|googleapis\.com)",
+    re.I,
+)
+SINK_RE = re.compile(
+    r".{0,80}(innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function|dangerouslySetInnerHTML).{0,80}"
+)
 
 
 def extract(path: Path) -> dict:

@@ -8,8 +8,6 @@ evidence grade + demotion logic; scoring in the engine only touches
 confirmed findings.
 """
 
-
-
 from titan.core.models import AttackType, Finding, Severity
 from titan.verify.oracles import enforce_evidence
 
@@ -35,6 +33,7 @@ def _finding(**overrides):
 # ---------------------------------------------------------------------------
 # Tier assignment
 # ---------------------------------------------------------------------------
+
 
 def test_injection_confirmed_with_strong_marker():
     f = _finding()  # verified + sanity_pair strong marker
@@ -89,11 +88,13 @@ def test_strong_marker_on_unverified_is_suspicious_not_confirmed():
 
 
 def test_suspicious_count_stat():
-    stats = enforce_evidence([
-        _finding(),  # confirmed
-        _finding(diffs=["reflection"]),  # demoted -> suspicious
-        _finding(verified=False, confidence=0.5, diffs=["reflection"]),  # suspicious
-    ])
+    stats = enforce_evidence(
+        [
+            _finding(),  # confirmed
+            _finding(diffs=["reflection"]),  # demoted -> suspicious
+            _finding(verified=False, confidence=0.5, diffs=["reflection"]),  # suspicious
+        ]
+    )
     assert stats["suspicious"] == 2
 
 
@@ -101,12 +102,13 @@ def test_suspicious_count_stat():
 # Scoring gate (engine-level behavior, no network)
 # ---------------------------------------------------------------------------
 
+
 def test_engine_scores_only_confirmed(tmp_path, monkeypatch):
     """The scan() scoring loop wipes CVSS/PoC on anything not confirmed —
     suspicious findings must never carry a score as if proven."""
     from titan.core.engine import TitanEngine
 
-    confirmed = _finding()          # will tier confirmed
+    confirmed = _finding()  # will tier confirmed
     suspicious = _finding(url="http://lab.local/x?id=2", diffs=["reflection"])
     enforce_evidence([confirmed, suspicious])
 
@@ -118,6 +120,7 @@ def test_engine_scores_only_confirmed(tmp_path, monkeypatch):
 
     from titan.core.cvss import CVSSScorer
     from titan.core.poc import PoCGenerator
+
     for f in (confirmed, suspicious):
         if f.tier != "confirmed":
             f.cvss_score = None
@@ -140,6 +143,7 @@ def test_engine_scores_only_confirmed(tmp_path, monkeypatch):
 
 def test_summary_has_confirmed_and_suspicious_counts():
     from titan.core.models import ScanResult
+
     findings = [
         _finding(),
         _finding(url="http://lab.local/x?id=2", diffs=["reflection"]),
@@ -155,6 +159,7 @@ def test_summary_has_confirmed_and_suspicious_counts():
 # ---------------------------------------------------------------------------
 # Report + dashboard surface the tier
 # ---------------------------------------------------------------------------
+
 
 def test_report_renders_tier_line(tmp_path):
     from titan.core.models import ScanResult

@@ -4,6 +4,7 @@ Traces BaasDetector.scan/_sweep_on_origin to find why the on-origin sweep
 cache stays empty inside the real engine flow (the module matrix fires,
 other modules run, but the sweep never populates its dedupe cache).
 """
+
 import asyncio
 import sys
 from pathlib import Path
@@ -17,10 +18,32 @@ from titan.modules.baas.detector import BaasDetector
 TARGET = "https://acme-store-adversarial.vercel.app"
 
 # Names of every module in ModuleRunner.run_attack_modules' matrix
-MODULES = ["sqli", "xss", "ssrf", "auth", "idor", "lfi", "rce", "nosqli",
-           "ssti", "xxe", "upload", "logic", "cors", "headers", "crypto",
-           "deser", "race", "cache", "smuggling", "fuzzer", "parserdiff",
-           "sourcesecret", "apixss", "baas"]
+MODULES = [
+    "sqli",
+    "xss",
+    "ssrf",
+    "auth",
+    "idor",
+    "lfi",
+    "rce",
+    "nosqli",
+    "ssti",
+    "xxe",
+    "upload",
+    "logic",
+    "cors",
+    "headers",
+    "crypto",
+    "deser",
+    "race",
+    "cache",
+    "smuggling",
+    "fuzzer",
+    "parserdiff",
+    "sourcesecret",
+    "apixss",
+    "baas",
+]
 
 
 async def main() -> int:
@@ -54,6 +77,7 @@ async def main() -> int:
             return out
         except Exception as exc:
             import traceback
+
             print(f"[trace] scan RAISED {type(exc).__name__}: {exc}", flush=True)
             traceback.print_exc()
             return []

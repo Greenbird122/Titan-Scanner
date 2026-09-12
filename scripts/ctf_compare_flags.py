@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exact comparison: live flag values vs the other agent's claimed flags."""
+
 import re
 import sys
 import urllib.request

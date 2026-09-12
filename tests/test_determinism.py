@@ -22,9 +22,11 @@ class TestSeededRandomness:
         identical across two scans of the SAME target, and differ across
         different targets. The detector reads the GLOBAL RNG, so this pins
         the engine's scan()-time seeding contract."""
+
         def markers_for(target):
             # Replicate the exact seeding the engine does at scan() start.
             import hashlib
+
             random.seed(hashlib.sha256(target.encode("utf-8")).hexdigest())
             return [f"TITANXSS{random.randint(1000, 9999)}" for _ in range(3)]
 
@@ -38,15 +40,29 @@ class TestSeededRandomness:
 class TestCompareScans:
     def test_identical_verdicts_pass(self, tmp_path):
         from scripts.compare_scans import compare
+
         finding = {
-            "target": "https://x", "url": "https://x/a?id=1&q=test", "method": "GET",
-            "param": "id", "location": "query", "payload": "' OR 1=1--",
-            "attack_type": "SQLi", "severity": "high", "verified": True,
-            "confidence": 0.85, "body": "noise-A",
+            "target": "https://x",
+            "url": "https://x/a?id=1&q=test",
+            "method": "GET",
+            "param": "id",
+            "location": "query",
+            "payload": "' OR 1=1--",
+            "attack_type": "SQLi",
+            "severity": "high",
+            "verified": True,
+            "confidence": 0.85,
+            "body": "noise-A",
         }
-        f1 = {"target": "https://x", "started_at": 1.0, "finished_at": 2.0,
-              "duration_seconds": 1.0, "errors": [], "findings": [finding],
-              "summary": {"total": 1, "verified": 1, "critical": 0, "high": 1, "chains": 0}}
+        f1 = {
+            "target": "https://x",
+            "started_at": 1.0,
+            "finished_at": 2.0,
+            "duration_seconds": 1.0,
+            "errors": [],
+            "findings": [finding],
+            "summary": {"total": 1, "verified": 1, "critical": 0, "high": 1, "chains": 0},
+        }
         f2 = json.loads(json.dumps(f1))  # deep copy
         f2["started_at"], f2["finished_at"] = 99.0, 100.0
         f2["findings"][0]["body"] = "noise-B"
@@ -60,14 +76,28 @@ class TestCompareScans:
         from scripts.compare_scans import compare
 
         def mk(payload, verified):
-            return {"target": "https://x", "started_at": 1.0, "finished_at": 2.0,
-                    "duration_seconds": 1.0, "errors": [], "findings": [
-                        {"target": "https://x", "url": "https://x/b", "method": "GET",
-                         "param": "page", "location": "query", "payload": payload,
-                         "attack_type": "LFI", "severity": "critical", "verified": verified,
-                         "confidence": 0.97},
-                    ], "summary": {"total": 1, "verified": 1 if verified else 0,
-                                   "critical": 1, "high": 0, "chains": 0}}
+            return {
+                "target": "https://x",
+                "started_at": 1.0,
+                "finished_at": 2.0,
+                "duration_seconds": 1.0,
+                "errors": [],
+                "findings": [
+                    {
+                        "target": "https://x",
+                        "url": "https://x/b",
+                        "method": "GET",
+                        "param": "page",
+                        "location": "query",
+                        "payload": payload,
+                        "attack_type": "LFI",
+                        "severity": "critical",
+                        "verified": verified,
+                        "confidence": 0.97,
+                    },
+                ],
+                "summary": {"total": 1, "verified": 1 if verified else 0, "critical": 1, "high": 0, "chains": 0},
+            }
 
         a = tmp_path / "a.json"
         b = tmp_path / "b.json"

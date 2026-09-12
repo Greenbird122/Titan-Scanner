@@ -23,6 +23,7 @@ from titan.ai.waf_profiles import (
 @dataclass
 class PayloadResult:
     """Track the result of a payload attempt."""
+
     payload: str
     attack_type: str
     status: int
@@ -35,6 +36,7 @@ class PayloadResult:
 @dataclass
 class WAFProfile:
     """WAF-specific bypass rules and learned patterns."""
+
     name: str
     bypass_techniques: list[str] = field(default_factory=list)
     blocked_patterns: list[str] = field(default_factory=list)
@@ -46,13 +48,14 @@ class WAFProfile:
 @dataclass
 class TargetProfile:
     """Target-specific payload preferences learned during scan."""
+
     url: str
     tech_stack: list[str] = field(default_factory=list)
     waf: str | None = None
     baas_type: str | None = None  # supabase, firebase, appwrite
     auth_type: str | None = None  # jwt, session, oauth, clerk
     framework: str | None = None  # react, vue, next, django, flask
-    language: str | None = None   # python, javascript, php, java
+    language: str | None = None  # python, javascript, php, java
     blocked_patterns: list[str] = field(default_factory=list)
     successful_patterns: list[str] = field(default_factory=list)
     error_patterns: list[str] = field(default_factory=list)
@@ -99,7 +102,7 @@ class ResponseAnalyzer:
                 analysis["blocked_position"] = {
                     "start": idx,
                     "end": idx + len(pattern),
-                    "context": payload[max(0, idx-10):idx+len(pattern)+10],
+                    "context": payload[max(0, idx - 10) : idx + len(pattern) + 10],
                 }
 
         # Suggest bypass based on blocked pattern
@@ -210,6 +213,7 @@ class PayloadChainGenerator:
         # Chain 1: URL → Base64
         import base64
         from urllib.parse import quote
+
         url_encoded = quote(payload, safe="")
         b64_of_url = base64.b64encode(url_encoded.encode()).decode()
         chains.append(b64_of_url)
@@ -283,6 +287,7 @@ class PayloadChainGenerator:
 @dataclass
 class InjectionContext:
     """Context of where the injection is happening."""
+
     location: str  # query, body, header, cookie, path
     injection_point: str  # html_attribute, js_string, sql_query, template, json_value
     content_type: str  # text/html, application/json, text/plain
@@ -335,7 +340,7 @@ class ContextAwarePayloadSelector:
                 "'-alert(1)-'",
                 '"-alert(1)-"',
                 "\\';alert(1);//",
-                "\";alert(1);//",
+                '";alert(1);//',
                 "`-alert(1)-`",
                 "${alert(1)}",
             ]
@@ -440,9 +445,7 @@ class PayloadPrioritizer:
         scored = []
 
         for payload in payloads:
-            score = PayloadPrioritizer._score_payload(
-                payload, target_profile, waf_profile, error_dialect
-            )
+            score = PayloadPrioritizer._score_payload(payload, target_profile, waf_profile, error_dialect)
             scored.append((score, payload))
 
         # Sort by score (highest first)
@@ -461,7 +464,11 @@ class PayloadPrioritizer:
 
         # Boost if payload matches target's dialect
         if error_dialect:
-            if (error_dialect == "mysql" and "mysql" in payload.lower()) or (error_dialect == "postgresql" and "pg_" in payload.lower()) or (error_dialect == "mssql" and "waitfor" in payload.lower()):
+            if (
+                (error_dialect == "mysql" and "mysql" in payload.lower())
+                or (error_dialect == "postgresql" and "pg_" in payload.lower())
+                or (error_dialect == "mssql" and "waitfor" in payload.lower())
+            ):
                 score += 0.2
 
         # Boost if payload is short (less likely to be blocked)
@@ -481,5 +488,3 @@ class PayloadPrioritizer:
             score += 0.3
 
         return max(0.0, min(1.0, score))
-
-

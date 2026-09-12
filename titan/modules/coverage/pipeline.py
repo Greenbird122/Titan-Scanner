@@ -8,7 +8,6 @@ The final piece: a unified pipeline that:
 5. Generates reports with proof
 """
 
-
 from __future__ import annotations
 
 import time
@@ -31,10 +30,10 @@ from titan.modules.coverage.tracker import CoverageTracker
 logger = get_logger("pipeline")
 
 
-
 @dataclass
 class PipelineResult:
     """Result of a full coverage pipeline run."""
+
     target: str
     scan_id: str
     duration_seconds: float
@@ -93,9 +92,7 @@ class CoveragePipeline:
                         pass
 
         # Step 3: Create snapshot
-        self.comparator.create_snapshot(
-            self.tracker, scan_id, target_url
-        )
+        self.comparator.create_snapshot(self.tracker, scan_id, target_url)
 
         # Step 4: Check gate
         gate_result = self.gate.check()

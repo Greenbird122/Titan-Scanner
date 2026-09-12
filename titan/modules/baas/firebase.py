@@ -11,7 +11,6 @@ This module tests:
 8. Token manipulation (decode, modify claims, test refresh)
 """
 
-
 from __future__ import annotations
 
 import json
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("firebase")
 
 
-
 @dataclass
 class FirebasePayload:
     """A Firebase-specific test payload."""
+
     name: str
     category: str
     endpoint: str
@@ -389,9 +388,7 @@ class FirebaseTester:
                     endpoint = endpoint.replace("{collection}", collection)
                     url = f"https://firestore.googleapis.com{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, payload.headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                     if response and self._check_firestore_rules(response, payload):
                         finding = Finding(
@@ -431,9 +428,7 @@ class FirebaseTester:
             try:
                 url = f"https://identitytoolkit.googleapis.com{payload.endpoint}?key={self._api_key}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, payload.headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                 if response and self._check_auth_settings(response, payload):
                     finding = Finding(
@@ -476,9 +471,7 @@ class FirebaseTester:
                     endpoint = payload.endpoint.replace("{bucket}", bucket)
                     url = f"https://storage.googleapis.com{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, payload.headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                     if response and self._check_storage_rules(response, payload):
                         finding = Finding(
@@ -519,9 +512,7 @@ class FirebaseTester:
                 endpoint = payload.endpoint.replace("{database}", self._firebase_url or "")
                 url = f"https://{endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, payload.headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, payload.headers)
 
                 if response and self._check_realtime_db(response, payload):
                     finding = Finding(

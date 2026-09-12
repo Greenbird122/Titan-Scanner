@@ -22,6 +22,7 @@ from titan.modules.coverage.tracker import CoverageTracker, TestRecord
 @dataclass
 class ScanSnapshot:
     """A snapshot of coverage at a point in time."""
+
     scan_id: str
     timestamp: str
     target: str
@@ -35,6 +36,7 @@ class ScanSnapshot:
 @dataclass
 class ComparisonResult:
     """Result of comparing two scans."""
+
     scan_a_id: str
     scan_b_id: str
     overall_change: float  # positive = improved

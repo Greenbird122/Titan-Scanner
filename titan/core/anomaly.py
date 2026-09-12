@@ -16,13 +16,15 @@ from urllib.parse import urlparse
 
 # ── Anomaly types ──────────────────────────────────────────────────────
 
+
 @dataclass
 class Anomaly:
     """A detected anomaly on a crawled route."""
+
     url: str
-    kind: str          # "status_500", "body_drift", "new_cookie", "new_header", "redirect_shift"
-    detail: str        # human-readable description
-    boost: int = 10    # score boost when promoting to front of queue
+    kind: str  # "status_500", "body_drift", "new_cookie", "new_header", "redirect_shift"
+    detail: str  # human-readable description
+    boost: int = 10  # score boost when promoting to front of queue
 
 
 @dataclass
@@ -32,6 +34,7 @@ class AnomalyTracker:
     Maintains a baseline of "normal" behaviour (status codes, body hashes,
     cookies, headers) and flags deviations as anomalies.
     """
+
     # Baseline: status code per hostname (most routes return 200)
     _baseline_status: dict[str, int] = field(default_factory=dict)
     # All status codes seen per hostname
@@ -118,10 +121,17 @@ class AnomalyTracker:
 
         # ── 4. New interesting headers ───────────────────────────────
         interesting_headers = {
-            "x-debug", "x-debug-token", "x-debug-path",
-            "x-backend", "x-upstream", "x-real-ip",
-            "x-powered-by", "x-aspnet-version", "x-runtime",
-            "server", "x-frame-options",
+            "x-debug",
+            "x-debug-token",
+            "x-debug-path",
+            "x-backend",
+            "x-upstream",
+            "x-real-ip",
+            "x-powered-by",
+            "x-aspnet-version",
+            "x-runtime",
+            "server",
+            "x-frame-options",
         }
         if headers:
             for h in headers:
@@ -160,15 +170,16 @@ def _normalize_body(body: str) -> str:
     Removes: timestamps, CSRF tokens, nonces, session IDs, random strings.
     """
     import re
+
     # Remove common dynamic tokens
-    normalized = re.sub(r'csrf[_-]?token["\s:=]+["\']?[a-zA-Z0-9+/=]{16,}', '', body, flags=re.IGNORECASE)
-    normalized = re.sub(r'nonce["\s:=]+["\']?[a-f0-9]{16,}', '', normalized, flags=re.IGNORECASE)
-    normalized = re.sub(r'session["\s:=]+["\']?[a-zA-Z0-9]{20,}', '', normalized, flags=re.IGNORECASE)
-    normalized = re.sub(r'__\w+__\s*=\s*["\']?[a-f0-9]{16,}', '', normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r'csrf[_-]?token["\s:=]+["\']?[a-zA-Z0-9+/=]{16,}', "", body, flags=re.IGNORECASE)
+    normalized = re.sub(r'nonce["\s:=]+["\']?[a-f0-9]{16,}', "", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r'session["\s:=]+["\']?[a-zA-Z0-9]{20,}', "", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r'__\w+__\s*=\s*["\']?[a-f0-9]{16,}', "", normalized, flags=re.IGNORECASE)
     # Remove timestamps (epoch and ISO)
-    normalized = re.sub(r'\b1[67]\d{8,10}\b', 'TIMESTAMP', normalized)
-    normalized = re.sub(r'20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}', 'TIMESTAMP', normalized)
+    normalized = re.sub(r"\b1[67]\d{8,10}\b", "TIMESTAMP", normalized)
+    normalized = re.sub(r"20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}", "TIMESTAMP", normalized)
     # Remove Vue/React hydration data (large JSON blobs)
-    normalized = re.sub(r'__NUXT__\s*=\s*\{[^}]{200,}', '__NUXT__={}', normalized)
-    normalized = re.sub(r'__NEXT_DATA__\s*=\s*\{[^}]{200,}', '__NEXT_DATA__={}', normalized)
+    normalized = re.sub(r"__NUXT__\s*=\s*\{[^}]{200,}", "__NUXT__={}", normalized)
+    normalized = re.sub(r"__NEXT_DATA__\s*=\s*\{[^}]{200,}", "__NEXT_DATA__={}", normalized)
     return normalized

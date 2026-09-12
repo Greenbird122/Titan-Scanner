@@ -11,6 +11,7 @@ differing from the nonsense control path is a real exposure.
 Also pins the modules_runner wiring: the baas module dispatches to
 BaasDetector (the class that exists), not the renamed SupabaseAuditModule.
 """
+
 import asyncio
 
 from titan.modules.baas.detector import BaasDetector
@@ -228,5 +229,6 @@ def test_modules_runner_wiring_target_exists():
     """modules_runner._run_baas imports BaasDetector — not the renamed
     SupabaseAuditModule that never existed post-modularization."""
     import titan.modules.baas.detector as det
+
     assert hasattr(det, "BaasDetector")
     assert not hasattr(det, "SupabaseAuditModule")

@@ -36,10 +36,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Probe:
     """A planned probe to execute."""
+
     target: str
-    module: str           # Which detector module to use
-    attack_type: str      # What we're testing
-    priority: float       # 0.0 - 1.0 (higher = more valuable)
+    module: str  # Which detector module to use
+    attack_type: str  # What we're testing
+    priority: float  # 0.0 - 1.0 (higher = more valuable)
     payload: dict = field(default_factory=dict)
     metadata: dict = field(default_factory=dict)
 
@@ -47,6 +48,7 @@ class Probe:
 @dataclass
 class ProbeResult:
     """Result of executing a probe."""
+
     probe: Probe
     finding: dict | None = None
     verified: bool = False
@@ -58,6 +60,7 @@ class ProbeResult:
 @dataclass
 class BrainResult:
     """Final result of the brain loop."""
+
     findings: list[dict] = field(default_factory=list)
     chains: list[dict] = field(default_factory=list)
     mutations: list[dict] = field(default_factory=list)
@@ -109,6 +112,7 @@ class BrainLoop:
         """Lazy-init the Thompson Sampling strategy."""
         if self._strategy is None:
             from titan.brain.strategy import ProbeStrategy
+
             self._strategy = ProbeStrategy()
         return self._strategy
 
@@ -131,10 +135,7 @@ class BrainLoop:
         self._start_time = time.time()
         iteration = 0
 
-        logger.info(
-            f"Brain loop starting: target={self.target}, "
-            f"budget={budget}s, max_iter={max_iterations}"
-        )
+        logger.info(f"Brain loop starting: target={self.target}, budget={budget}s, max_iter={max_iterations}")
 
         while iteration < max_iterations:
             # Check budget
@@ -252,13 +253,15 @@ class BrainLoop:
                 reverse=True,
             )[:5]:
                 if (finding.get("cvss_score") or 0) >= 7.0:
-                    probes.append(Probe(
-                        target=self.target,
-                        module="exploit",
-                        attack_type=finding.get("type", "unknown"),
-                        priority=0.95,
-                        payload={"finding": finding},
-                    ))
+                    probes.append(
+                        Probe(
+                            target=self.target,
+                            module="exploit",
+                            attack_type=finding.get("type", "unknown"),
+                            priority=0.95,
+                            payload={"finding": finding},
+                        )
+                    )
 
             # Also continue exploring with remaining budget
             if not probes:
@@ -282,13 +285,15 @@ class BrainLoop:
                 if chain.get("status") == "incomplete":
                     missing_flow = chain.get("missing_flow")
                     if missing_flow:
-                        probes.append(Probe(
-                            target=self.target,
-                            module=self._flow_to_module(missing_flow),
-                            attack_type=missing_flow,
-                            priority=0.9,
-                            payload={"chain": chain},
-                        ))
+                        probes.append(
+                            Probe(
+                                target=self.target,
+                                module=self._flow_to_module(missing_flow),
+                                attack_type=missing_flow,
+                                priority=0.9,
+                                payload={"chain": chain},
+                            )
+                        )
 
             # If no chain gaps, keep exploring
             if not probes:
@@ -340,11 +345,14 @@ class BrainLoop:
                 elif self.transport:
                     # Use transport layer directly
                     from titan.transport import AttackRequest, RequestMethod
-                    response = await self.transport.send(AttackRequest(
-                        url=probe.target,
-                        method=RequestMethod.GET,
-                        timeout=15.0,
-                    ))
+
+                    response = await self.transport.send(
+                        AttackRequest(
+                            url=probe.target,
+                            method=RequestMethod.GET,
+                            timeout=15.0,
+                        )
+                    )
                     result = ProbeResult(
                         probe=probe,
                         raw_response=response,
@@ -362,17 +370,21 @@ class BrainLoop:
                 self._probe_history.append(result)
 
             except asyncio.TimeoutError:
-                results.append(ProbeResult(
-                    probe=probe,
-                    elapsed=time.time() - start,
-                    error="Probe timed out",
-                ))
+                results.append(
+                    ProbeResult(
+                        probe=probe,
+                        elapsed=time.time() - start,
+                        error="Probe timed out",
+                    )
+                )
             except Exception as e:
-                results.append(ProbeResult(
-                    probe=probe,
-                    elapsed=time.time() - start,
-                    error=str(e),
-                ))
+                results.append(
+                    ProbeResult(
+                        probe=probe,
+                        elapsed=time.time() - start,
+                        error=str(e),
+                    )
+                )
 
         return results
 
@@ -441,9 +453,7 @@ class BrainLoop:
                             if result.finding not in chain.get("steps", []):
                                 chain["steps"].append(result.finding)
                                 chain["status"] = "complete"
-                                chain["confidence"] = min(
-                                    chain.get("confidence", 0.5) + 0.15, 0.99
-                                )
+                                chain["confidence"] = min(chain.get("confidence", 0.5) + 0.15, 0.99)
                                 extended = True
                                 break
 
@@ -454,9 +464,7 @@ class BrainLoop:
                             "attack_goal": goal,
                             "steps": [result.finding],
                             "status": "incomplete",
-                            "missing_flow": self._find_missing_flow(
-                                required_flows, finding_flows
-                            ),
+                            "missing_flow": self._find_missing_flow(required_flows, finding_flows),
                             "confidence": 0.5,
                         }
                         if chain["missing_flow"] is None:
@@ -498,10 +506,7 @@ class BrainLoop:
                 mutations.append(mutation)
                 self.mutations.append(mutation)
 
-                logger.info(
-                    f"Mutation harvested: {finding_type} "
-                    f"(from {module}, severity={mutation['severity']})"
-                )
+                logger.info(f"Mutation harvested: {finding_type} (from {module}, severity={mutation['severity']})")
 
         return mutations
 
@@ -518,13 +523,41 @@ class BrainLoop:
     def _get_available_modules(self) -> list[str]:
         """List of all available detector modules."""
         return [
-            "headers", "sqli", "xss", "ssrf", "lfi", "rce",
-            "nosqli", "ssti", "xxe", "idor", "bola", "massassignment",
-            "jwt", "sessionfix", "auth", "cors", "redirect", "upload",
-            "race", "cache", "smuggling", "logic", "crypto", "deser",
-            "fuzzer", "parserdiff", "sourcesecret", "apixss",
-            "domxss", "postmessage", "prototype", "thirdparty", "csp",
-            "cloud_control", "supplychain",
+            "headers",
+            "sqli",
+            "xss",
+            "ssrf",
+            "lfi",
+            "rce",
+            "nosqli",
+            "ssti",
+            "xxe",
+            "idor",
+            "bola",
+            "massassignment",
+            "jwt",
+            "sessionfix",
+            "auth",
+            "cors",
+            "redirect",
+            "upload",
+            "race",
+            "cache",
+            "smuggling",
+            "logic",
+            "crypto",
+            "deser",
+            "fuzzer",
+            "parserdiff",
+            "sourcesecret",
+            "apixss",
+            "domxss",
+            "postmessage",
+            "prototype",
+            "thirdparty",
+            "csp",
+            "cloud_control",
+            "supplychain",
         ]
 
     def _module_to_attack_type(self, module: str) -> str:

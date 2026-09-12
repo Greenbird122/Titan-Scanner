@@ -1,6 +1,5 @@
 """Verification subsystem for Titan Scanner."""
 
-
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +12,6 @@ from typing import Any
 from titan.core.logger import get_logger
 
 logger = get_logger("__init__")
-
 
 
 class ConfirmationOracle:
@@ -30,7 +28,16 @@ class ConfirmationOracle:
     }
 
     @classmethod
-    def score(cls, diffs: list[str], attack_type: str, payload: str, baseline: str, test: str, status: int, baseline_status: int) -> tuple[float, bool]:
+    def score(
+        cls,
+        diffs: list[str],
+        attack_type: str,
+        payload: str,
+        baseline: str,
+        test: str,
+        status: int,
+        baseline_status: int,
+    ) -> tuple[float, bool]:
         score = 0.0
         verified = False
 
@@ -52,16 +59,26 @@ class ConfirmationOracle:
                 score += cls.ORACLE_WEIGHTS["content_hash"]
 
         # Strong evidence overrides
-        if attack_type == "SQLi" and any(sig in test.lower() for sig in ["sql syntax", "mysql", "ora-", "postgresql", "syntax error"]):
+        if attack_type == "SQLi" and any(
+            sig in test.lower() for sig in ["sql syntax", "mysql", "ora-", "postgresql", "syntax error"]
+        ):
             verified = True
             score = max(score, 0.9)
         elif attack_type == "XSS" and payload in test and ("<script>" in test.lower() or "onerror" in test.lower()):
             verified = True
             score = max(score, 0.85)
-        elif attack_type == "LFI" and any(ind in test.lower() for ind in ["root:", "daemon:", "etc/passwd", "windows", "system32"]):
+        elif attack_type == "LFI" and any(
+            ind in test.lower() for ind in ["root:", "daemon:", "etc/passwd", "windows", "system32"]
+        ):
             verified = True
             score = max(score, 0.9)
-        elif (attack_type == "RCE" and any(ind in test.lower() for ind in ["root:", "uid=", "gid=", "directory of", "volume serial"])) or (attack_type == "SSRF" and any(ind in test.lower() for ind in ["ami-id", "meta-data", "root:", "internal", "127.0.0.1"])):
+        elif (
+            attack_type == "RCE"
+            and any(ind in test.lower() for ind in ["root:", "uid=", "gid=", "directory of", "volume serial"])
+        ) or (
+            attack_type == "SSRF"
+            and any(ind in test.lower() for ind in ["ami-id", "meta-data", "root:", "internal", "127.0.0.1"])
+        ):
             verified = True
             score = max(score, 0.95)
         elif attack_type == "IDOR" and "json:" in " ".join(diffs):
@@ -101,9 +118,16 @@ class BaselineAnalyzer:
             diffs.append("payload_reflected")
 
         error_signatures = [
-            "sql syntax", "mysql_fetch_array", "ora-", "postgresql",
-            "warning: mysql", "syntax error", "sqlstate", "odbc driver",
-            "unclosed quotation mark", "quoted string not properly terminated",
+            "sql syntax",
+            "mysql_fetch_array",
+            "ora-",
+            "postgresql",
+            "warning: mysql",
+            "syntax error",
+            "sqlstate",
+            "odbc driver",
+            "unclosed quotation mark",
+            "quoted string not properly terminated",
         ]
         for sig in error_signatures:
             if sig in i_lower and sig not in b_lower:
@@ -202,7 +226,9 @@ class BlindDetector:
                 # jar, so auth is conveyed automatically.
                 if location == "query":
                     inject_key = param_name or (next(iter(params), "q") if params else "q")
-                    await context.request.get(url, params={**params, inject_key: payload}, headers=headers, timeout=10000)
+                    await context.request.get(
+                        url, params={**params, inject_key: payload}, headers=headers, timeout=10000
+                    )
                 elif location == "body":
                     inject_key = param_name or (next(iter(data), "q") if data else "q")
                     await context.request.post(url, data={**data, inject_key: payload}, headers=headers, timeout=10000)
@@ -269,6 +295,7 @@ class OOBDetector:
     async def register(self) -> bool:
         try:
             import aiohttp
+
             url = f"{self.server}/register"
             payload = {"correlation-id": self.correlation_id, "format": "json"}
             async with aiohttp.ClientSession() as session:
@@ -280,6 +307,7 @@ class OOBDetector:
     async def poll(self, timeout: int = 30) -> list[dict[str, Any]]:
         try:
             import aiohttp
+
             url = f"{self.server}/poll?id={self.correlation_id}&format=json"
             async with aiohttp.ClientSession() as session, session.get(url, timeout=timeout) as resp:
                 if resp.status == 200:

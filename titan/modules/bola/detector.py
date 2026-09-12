@@ -16,7 +16,6 @@ Features:
      • Eliminates shared records where both users share the same data.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -27,7 +26,6 @@ from titan.core.models import AttackType, Finding, Severity
 from titan.verify.identity_oracles import markers_present, unique_owner_markers
 
 logger = get_logger("detector")
-
 
 
 class BOLADetector:
@@ -61,18 +59,14 @@ class BOLADetector:
         # ── Engine 1: Query & Body Parameters ─────────────────────────
         param_candidates = list(params.keys()) if params else ["id"]
         for param_name in param_candidates:
-            f = await self._test_bola_param(
-                context, target, method, url, param_name, params, owner, attacker
-            )
+            f = await self._test_bola_param(context, target, method, url, param_name, params, owner, attacker)
             if f:
                 findings.append(f)
                 break
 
         # ── Engine 2: URL Path ID Segments ────────────────────────────
         if not findings:
-            path_finding = await self._test_bola_path(
-                context, target, method, url, params, owner, attacker
-            )
+            path_finding = await self._test_bola_path(context, target, method, url, params, owner, attacker)
             if path_finding:
                 findings.append(path_finding)
 
@@ -147,7 +141,10 @@ class BOLADetector:
                 status=cross_status,
                 headers=dict(getattr(cross_resp, "headers", {})),
                 body=cross_body[:2000],
-                diffs=[f"bola:cross_identity_markers:{','.join(present[:3])}", f"bola:{param_name}:{owner_name}->{attacker_name}"],
+                diffs=[
+                    f"bola:cross_identity_markers:{','.join(present[:3])}",
+                    f"bola:{param_name}:{owner_name}->{attacker_name}",
+                ],
                 baseline_body=own_body[:2000],
                 baseline_status=getattr(own_resp, "status", 200),
                 verification_body=cross_body[:2000],
@@ -189,10 +186,16 @@ class BOLADetector:
                     # Build attacker own URL
                     attacker_segments = list(segments)
                     attacker_segments[idx] = attacker_val
-                    attacker_own_url = urlunparse((
-                        parsed.scheme, parsed.netloc, "/".join(attacker_segments),
-                        parsed.params, parsed.query, parsed.fragment
-                    ))
+                    attacker_own_url = urlunparse(
+                        (
+                            parsed.scheme,
+                            parsed.netloc,
+                            "/".join(attacker_segments),
+                            parsed.params,
+                            parsed.query,
+                            parsed.fragment,
+                        )
+                    )
 
                     # 1. Owner requests own URL
                     owner_resp = await self._request(context, owner, method, url, params)
@@ -212,7 +215,12 @@ class BOLADetector:
                     if cross_status != 200 or cross_body == own_body:
                         continue
 
-                    ignored = [owner_val, attacker_val, str(getattr(attacker, "name", "")), str(getattr(owner, "name", ""))]
+                    ignored = [
+                        owner_val,
+                        attacker_val,
+                        str(getattr(attacker, "name", "")),
+                        str(getattr(owner, "name", "")),
+                    ]
                     markers = unique_owner_markers(owner_body, own_body, ignored)
                     if not markers:
                         continue
@@ -238,12 +246,18 @@ class BOLADetector:
                         status=cross_status,
                         headers=dict(getattr(cross_resp, "headers", {})),
                         body=cross_body[:2000],
-                        diffs=[f"bola:path_segment:{owner_val}->{attacker_val}", f"bola:markers:{','.join(present[:3])}"],
+                        diffs=[
+                            f"bola:path_segment:{owner_val}->{attacker_val}",
+                            f"bola:markers:{','.join(present[:3])}",
+                        ],
                         baseline_body=own_body[:2000],
                         baseline_status=getattr(own_resp, "status", 200),
                         verification_body=cross_body[:2000],
                         verification_status=cross_status,
-                        metadata={"identities": {"owner": owner_name, "attacker": attacker_name}, "markers": present[:5]},
+                        metadata={
+                            "identities": {"owner": owner_name, "attacker": attacker_name},
+                            "markers": present[:5],
+                        },
                         tags=[f"identity:{attacker_name}", f"owner:{owner_name}"],
                     )
         except Exception as exc:

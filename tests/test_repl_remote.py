@@ -163,10 +163,7 @@ async def test_cmd_session_remote_join(tmp_path: Path, capsys):
     agent = asyncio.create_task(_fake_agent(listener.bound_url, "s-rem"))
     try:
         code = await asyncio.wait_for(
-            cmd_session_async(
-                ["s-rem", "--store", str(tmp_path / "findings"),
-                 "--listener-url", listener.bound_url]
-            ),
+            cmd_session_async(["s-rem", "--store", str(tmp_path / "findings"), "--listener-url", listener.bound_url]),
             timeout=30,
         )
         assert code == 0
@@ -191,8 +188,7 @@ async def test_cmd_session_remote_join_dead_listener_fails_soft(tmp_path: Path, 
     try:
         code = await asyncio.wait_for(
             cmd_session_async(
-                ["s-dead", "--store", str(tmp_path / "findings"),
-                 "--listener-url", f"http://127.0.0.1:{port}"]
+                ["s-dead", "--store", str(tmp_path / "findings"), "--listener-url", f"http://127.0.0.1:{port}"]
             ),
             timeout=30,
         )

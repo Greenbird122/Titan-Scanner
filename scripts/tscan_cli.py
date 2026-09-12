@@ -5,6 +5,7 @@ This file lives OUTSIDE the titan/ namespace, so CWD shadowing can't
 redirect it to a local titan-lab/titan/ copy.  It rewrites sys.path
 before importing anything from titan.
 """
+
 import os
 import sys
 

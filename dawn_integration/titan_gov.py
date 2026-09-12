@@ -6,7 +6,6 @@ Wraps the Titan Gov proposal pipeline for scan approval:
 Also provides SQLite-backed audit logging.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -94,6 +93,7 @@ async def request_scan_approval(target: str, aggression: str, scope: dict[str, l
             sys.path.insert(0, titan_gov_parent)
 
         import importlib
+
         gov_graph = importlib.import_module("titan_gov.graph")
 
         if gov_graph.is_blocked(target):

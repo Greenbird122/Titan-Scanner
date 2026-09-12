@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SARIFFinding:
     """A finding from SAST analysis (Semgrep, CodeQL, etc. in SARIF format)."""
-    rule_id: str          # CWE number (e.g., "CWE-89")
+
+    rule_id: str  # CWE number (e.g., "CWE-89")
     message: str
     file_path: str
     line_start: int
@@ -28,9 +29,10 @@ class SARIFFinding:
 @dataclass
 class CorrelatedFinding:
     """A finding correlated from both SAST and DAST sources."""
+
     cwe: str
     title: str
-    confidence: float       # 0.0 - 1.0
+    confidence: float  # 0.0 - 1.0
     sast_source: SARIFFinding | None = None
     dast_finding: dict | None = None
     code_location: str = ""
@@ -113,11 +115,12 @@ class CorrelationEngine:
                     correlated.append(correlation)
 
                     logger.info(
-                        f"Correlated: {sast_cwe} at {sast.file_path}:{sast.line_start} "
-                        f"with DAST finding: {titan_type}"
+                        f"Correlated: {sast_cwe} at {sast.file_path}:{sast.line_start} with DAST finding: {titan_type}"
                     )
 
-        logger.info(f"Correlated {len(correlated)} findings from {len(sast_findings)} SAST + {len(titan_findings)} DAST")
+        logger.info(
+            f"Correlated {len(correlated)} findings from {len(sast_findings)} SAST + {len(titan_findings)} DAST"
+        )
         return correlated
 
     def _generate_patch_suggestion(self, finding: SARIFFinding) -> str:

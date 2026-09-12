@@ -43,9 +43,7 @@ def finalize_coverage(
     elif not cov.get("queue_exhausted"):
         if cov.get("capped_max_pages"):
             cov["status"] = "partial"
-            cov["reason"] = (
-                f"max_pages cap ({max_pages}) reached before the crawl queue drained"
-            )
+            cov["reason"] = f"max_pages cap ({max_pages}) reached before the crawl queue drained"
         else:
             cov["status"] = "partial"
             cov["reason"] = "crawl ended with URLs still queued (aborted early)"
