@@ -13,6 +13,8 @@ duplication is only safe while a checker proves the copies did not drift.
 
 Exit code 0  = every canonical block matches its embedded copy
 Exit code 1  = drift / missing anchors / missing markers (each printed)
+Exit code 2  = skipped: the skills shelf is absent (it is gitignored), so
+               nothing was verified — this is NOT a pass
 
 Adding a new shared block:
   1. Author the block once in its canonical home (the skill that owns the
@@ -160,6 +162,16 @@ def check_block(cfg):
 
 
 def main():
+    # The shelf is gitignored, so a fresh clone has no .agents/. Refuse to
+    # report "clean" there: "files absent" and "no drift" are different
+    # verdicts, and conflating them is a false negative (probe-techniques §8).
+    if not os.path.isdir(SKILLS):
+        print(
+            "[check_skills_consistency] SKIPPED: skills shelf not present at "
+            f"{os.path.relpath(SKILLS, ROOT)!r} (gitignored). Nothing verified."
+        )
+        return 2
+
     problems = []
     ok_count = 0
     for cfg in BLOCKS:
