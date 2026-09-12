@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 import sys
 
-from titan.core.logger import get_logger
+from titan.core.logger import get_logger, install_crash_hook
 
 # ── CWD SHADOW FIX ──────────────────────────────────────────────────────
 # When tscan runs from a directory that contains a `titan/` folder (e.g.
@@ -445,4 +445,5 @@ def main():
 
 
 if __name__ == "__main__":
+    install_crash_hook()
     main()
