@@ -9,7 +9,6 @@ This is the differential-confirmation layer: the payload is a *hypothesis*,
 the oracles produce *evidence*, and the score decides how much to trust it.
 """
 
-
 from __future__ import annotations
 
 import html
@@ -32,37 +31,79 @@ logger = get_logger("oracles")
 
 ERROR_CLASSES: dict[str, list[str]] = {
     "sql": [
-        r"sql\s+syntax", r"mysql_fetch", r"ora-\d{4,5}", r"postgresql",
-        r"sqlstate", r"unclosed quotation mark", r"quoted string not properly terminated",
-        r"you have an error in your sql syntax", r"warning:\s+mysql",
-        r"pg_query", r"sqlite3\.", r"operationalerror", r"npsql",
+        r"sql\s+syntax",
+        r"mysql_fetch",
+        r"ora-\d{4,5}",
+        r"postgresql",
+        r"sqlstate",
+        r"unclosed quotation mark",
+        r"quoted string not properly terminated",
+        r"you have an error in your sql syntax",
+        r"warning:\s+mysql",
+        r"pg_query",
+        r"sqlite3\.",
+        r"operationalerror",
+        r"npsql",
     ],
     "filesystem": [
-        r"errno\s+\d+", r"no such file or directory", r"file not found",
-        r"cannot open", r"permission denied", r"access is denied",
-        r"system cannot find", r"filenotfounderror", r"permissionerror",
-        r"isadirectoryerror", r"path does not exist", r"no such file",
-        r"not a directory", r"directory not found",
+        r"errno\s+\d+",
+        r"no such file or directory",
+        r"file not found",
+        r"cannot open",
+        r"permission denied",
+        r"access is denied",
+        r"system cannot find",
+        r"filenotfounderror",
+        r"permissionerror",
+        r"isadirectoryerror",
+        r"path does not exist",
+        r"no such file",
+        r"not a directory",
+        r"directory not found",
     ],
     "xml": [
-        r"parser error", r"not well-formed", r"xml parsing",
-        r"javax\.xml", r"org\.xml", r"libxml", r"entity expansion",
-        r"saxparseexception", r"failed to parse xml", r"xml\s+error",
+        r"parser error",
+        r"not well-formed",
+        r"xml parsing",
+        r"javax\.xml",
+        r"org\.xml",
+        r"libxml",
+        r"entity expansion",
+        r"saxparseexception",
+        r"failed to parse xml",
+        r"xml\s+error",
     ],
     "java": [
-        r"java\.lang\.[a-z]+exception", r"exception in thread",
-        r"at\s+[a-z_][\w.$]*\.\w+\(", r"servlet", r"springframework",
-        r"stacktrace", r"stack trace", r"catalina",
+        r"java\.lang\.[a-z]+exception",
+        r"exception in thread",
+        r"at\s+[a-z_][\w.$]*\.\w+\(",
+        r"servlet",
+        r"springframework",
+        r"stacktrace",
+        r"stack trace",
+        r"catalina",
     ],
     "python": [
-        r"traceback \(most recent call last\)", r"filenotfounderror",
-        r"valueerror", r"typeerror", r"attributeerror", r"keyerror",
-        r"indexerror", r"zerodivisionerror", r"\bline \d+.*\berror",
+        r"traceback \(most recent call last\)",
+        r"filenotfounderror",
+        r"valueerror",
+        r"typeerror",
+        r"attributeerror",
+        r"keyerror",
+        r"indexerror",
+        r"zerodivisionerror",
+        r"\bline \d+.*\berror",
     ],
     "generic": [
-        r"internal server error", r"500 internal", r"server error",
-        r"unhandled exception", r"exception occurred", r"nullreferenceexception",
-        r"stack trace", r"segmentation fault", r"fatal error",
+        r"internal server error",
+        r"500 internal",
+        r"server error",
+        r"unhandled exception",
+        r"exception occurred",
+        r"nullreferenceexception",
+        r"stack trace",
+        r"segmentation fault",
+        r"fatal error",
     ],
 }
 
@@ -128,6 +169,7 @@ def is_baseline_identical(baseline_body: str, test_body: str) -> bool:
 
 
 # ─── Structural JSON differential ────────────────────────────────────────────
+
 
 def json_differential(baseline_body: str, test_body: str) -> list[str]:
     """Structural diff between two JSON documents.
@@ -212,27 +254,33 @@ def json_value_changes(baseline_body: str, test_body: str) -> list[tuple[str, An
 # signals raises confidence without ever crossing into "verified" on its own.
 
 WEIGHTS: dict[str, float] = {
-    "oob_confirmed": 1.0,       # out-of-band callback observed — conclusive
-    "content_leak": 0.9,        # known file/secret content appeared in body
-    "sanity_pair": 0.85,        # positive vs negative control differ → boolean oracle
-    "time_delay": 0.85,         # statistical timing deviation
-    "error:sql": 0.9,           # parameter reached a SQL interpreter
-    "error:filesystem": 0.8,    # parameter reached a filesystem sink
-    "error:xml": 0.8,           # parameter reached an XML parser
+    "oob_confirmed": 1.0,  # out-of-band callback observed — conclusive
+    "content_leak": 0.9,  # known file/secret content appeared in body
+    "sanity_pair": 0.85,  # positive vs negative control differ → boolean oracle
+    "time_delay": 0.85,  # statistical timing deviation
+    "error:sql": 0.9,  # parameter reached a SQL interpreter
+    "error:filesystem": 0.8,  # parameter reached a filesystem sink
+    "error:xml": 0.8,  # parameter reached an XML parser
     "error:java": 0.7,
     "error:python": 0.65,
     "error:generic": 0.5,
-    "reflection": 0.6,          # payload echoed back (injection point confirmed)
-    "xss_unescaped": 0.9,       # <script> payload echoed with raw angle brackets — direct XSS
-    "json_structure": 0.6,      # structural change across two identifiers (IDOR)
-    "error:template": 0.75,     # template engine error class (jinja2, twig, freemarker, ...)
+    "reflection": 0.6,  # payload echoed back (injection point confirmed)
+    "xss_unescaped": 0.9,  # <script> payload echoed with raw angle brackets — direct XSS
+    "json_structure": 0.6,  # structural change across two identifiers (IDOR)
+    "error:template": 0.75,  # template engine error class (jinja2, twig, freemarker, ...)
     "status_500": 0.45,
-    "content_change": 0.25,     # weak: body differs, nothing specific
+    "content_change": 0.25,  # weak: body differs, nothing specific
 }
 
 STRONG_SIGNALS = {
-    "oob_confirmed", "content_leak", "sanity_pair", "time_delay",
-    "error:sql", "error:filesystem", "error:xml", "xss_unescaped",
+    "oob_confirmed",
+    "content_leak",
+    "sanity_pair",
+    "time_delay",
+    "error:sql",
+    "error:filesystem",
+    "error:xml",
+    "xss_unescaped",
 }
 
 # After stripping the echoed payload/opposite from two response bodies, how
@@ -407,18 +455,41 @@ def score_signals(signals: Iterable[str]) -> tuple[float, bool, list[str]]:
 # "verified" label is trusted. Every other class (headers, crypto, idor,
 # cors, ...) verifies through its own typed evidence and is graded but never
 # auto-demoted.
-INJECTION_ATTACK_TYPES = frozenset({
-    "LFI", "SQLi", "NoSQLi", "SSRF", "XSS", "RCE", "SSTI", "XXE",
-    "Request Smuggling", "Open Redirect", "OOB", "Deserialization",
-})
+INJECTION_ATTACK_TYPES = frozenset(
+    {
+        "LFI",
+        "SQLi",
+        "NoSQLi",
+        "SSRF",
+        "XSS",
+        "RCE",
+        "SSTI",
+        "XXE",
+        "Request Smuggling",
+        "Open Redirect",
+        "OOB",
+        "Deserialization",
+    }
+)
 
 # Substrings that identify a strong oracle marker inside a finding's diff
 # list. Verified but missing all of these = weak evidence.
 STRONG_DIFF_MARKERS = (
-    "content_leak", "content:", "sanity_pair", "boolean_confirmed",
-    "time_delay", "marker_reflected", "math_eval", "xss_unescaped",
-    "error:sql", "error:filesystem", "error:xml", "error_class:sql",
-    "error_class:filesystem", "error_class:xml", "oob",
+    "content_leak",
+    "content:",
+    "sanity_pair",
+    "boolean_confirmed",
+    "time_delay",
+    "marker_reflected",
+    "math_eval",
+    "xss_unescaped",
+    "error:sql",
+    "error:filesystem",
+    "error:xml",
+    "error_class:sql",
+    "error_class:filesystem",
+    "error_class:xml",
+    "oob",
 )
 
 
@@ -440,10 +511,7 @@ def grade_finding(finding) -> str:
     """
     joined = " ".join(finding.diffs or []).lower()
     strong = any(m in joined for m in STRONG_DIFF_MARKERS)
-    is_injection = (
-        finding.attack_type is not None
-        and finding.attack_type.value in INJECTION_ATTACK_TYPES
-    )
+    is_injection = finding.attack_type is not None and finding.attack_type.value in INJECTION_ATTACK_TYPES
     if not is_injection:
         # Non-injection classes have their own typed evidence standard — the
         # verified flag is ``confirmed`` by construction, never "corroborated"
@@ -471,6 +539,7 @@ def enforce_evidence(findings: list) -> dict[str, int]:
     verifies. Returns ``{"graded": n, "demoted": n, "capped": n}``.
     """
     from titan.core.models import Severity
+
     stats: dict[str, int] = {"graded": 0, "demoted": 0, "capped": 0, "suspicious": 0}
     for f in findings:
         grade = grade_finding(f)
@@ -484,9 +553,7 @@ def enforce_evidence(findings: list) -> dict[str, int]:
             and grade != "confirmed"
         ):
             f.verified = False
-            f.metadata["evidence_demotion"] = (
-                f"verified but diffs name no strong oracle marker (grade={grade})"
-            )
+            f.metadata["evidence_demotion"] = f"verified but diffs name no strong oracle marker (grade={grade})"
             stats["demoted"] += 1
             demoted = True
             if f.severity in (Severity.CRITICAL, Severity.HIGH):

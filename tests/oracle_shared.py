@@ -4,7 +4,81 @@ Extracted from tests/test_oracle_detectors.py so the oracle test suite
 stays readable. Imported back via ``from oracle_shared import *``.
 """
 
-__all__ = ['PASSWD_SNIPPET', 'ROOT', 'USERS', 'AttackType', 'FakeLabContext', 'FakeRequest', 'FakeResponse', 'Flask', 'Path', 'PayloadForge', 'Response', 'StubSmith', '_race_counter', '_scan', '_scan_post', 'asyncio', 'cache_echo', 'cache_poisonable', 'cache_private_no_cache', 'client', 'context', 'crypto_aws', 'crypto_aws_bare', 'crypto_aws_env', 'crypto_clean', 'crypto_secret', 'deser_clean', 'deser_java', 'json', 'lfi_double_encoded_echo', 'lfi_echo', 'lfi_encoded_echo', 'lfi_errno', 'lfi_real', 'lfi_soft404', 'lfi_stub', 'logic_negative_accepted', 'logic_static_form', 'mini', 'nosqli', 'nosqli_echo', 'pytest', 'quote', 'quote_plus', 'race_counter', 'race_get', 'race_noise', 'race_post', 'request', 'smuggle_encoded_echo', 'smuggle_stub', 'sqli_dynamic_no_reflect', 'sqli_echo', 'sqli_encoded_echo', 'ssrf', 'ssrf_double_encoded_echo', 'ssrf_echo', 'ssrf_encoded_echo', 'ssti', 'ssti_49_in_hash', 'ssti_603729', 'ssti_7777777', 'ssti_counter', 'ssti_echo', 'sys', 'urlparse', 'xss_attr', 'xss_error', 'xss_escaped', 'xss_json', 'xxe', 'xxe_echo', 'xxe_parser']
+__all__ = [
+    "PASSWD_SNIPPET",
+    "ROOT",
+    "USERS",
+    "AttackType",
+    "FakeLabContext",
+    "FakeRequest",
+    "FakeResponse",
+    "Flask",
+    "Path",
+    "PayloadForge",
+    "Response",
+    "StubSmith",
+    "_race_counter",
+    "_scan",
+    "_scan_post",
+    "asyncio",
+    "cache_echo",
+    "cache_poisonable",
+    "cache_private_no_cache",
+    "client",
+    "context",
+    "crypto_aws",
+    "crypto_aws_bare",
+    "crypto_aws_env",
+    "crypto_clean",
+    "crypto_secret",
+    "deser_clean",
+    "deser_java",
+    "json",
+    "lfi_double_encoded_echo",
+    "lfi_echo",
+    "lfi_encoded_echo",
+    "lfi_errno",
+    "lfi_real",
+    "lfi_soft404",
+    "lfi_stub",
+    "logic_negative_accepted",
+    "logic_static_form",
+    "mini",
+    "nosqli",
+    "nosqli_echo",
+    "pytest",
+    "quote",
+    "quote_plus",
+    "race_counter",
+    "race_get",
+    "race_noise",
+    "race_post",
+    "request",
+    "smuggle_encoded_echo",
+    "smuggle_stub",
+    "sqli_dynamic_no_reflect",
+    "sqli_echo",
+    "sqli_encoded_echo",
+    "ssrf",
+    "ssrf_double_encoded_echo",
+    "ssrf_echo",
+    "ssrf_encoded_echo",
+    "ssti",
+    "ssti_49_in_hash",
+    "ssti_603729",
+    "ssti_7777777",
+    "ssti_counter",
+    "ssti_echo",
+    "sys",
+    "urlparse",
+    "xss_attr",
+    "xss_error",
+    "xss_escaped",
+    "xss_json",
+    "xxe",
+    "xxe_echo",
+    "xxe_parser",
+]
 
 """Evidence-scoring oracle tests for the five upgraded detectors.
 
@@ -195,6 +269,7 @@ def ssti_echo():
 @mini.route("/xss_escaped")
 def xss_escaped():
     from markupsafe import escape
+
     return f"<h1>Hello {escape(request.args.get('name', ''))}</h1>"
 
 
@@ -205,6 +280,7 @@ def xss_attr():
     # The marker renders as plain text and can never execute — this tests the
     # attribute-context inert echo guard.
     from markupsafe import escape as _e
+
     val = str(_e(request.args.get("name", "")))
     return f'<input value="{val}">'
 
@@ -214,8 +290,9 @@ def xss_json():
     # Returns the input inside JSON with correct content-type — raw marker
     # but no HTML context; the XSS detector must not fire.
     import json
+
     body = json.dumps({"echo": request.args.get("name", "")})
-    return Response(body, mimetype='application/json')
+    return Response(body, mimetype="application/json")
 
 
 @mini.route("/xss_error")
@@ -299,10 +376,7 @@ def sqli_encoded_echo():
     # WordPress sites produce verified SQLi storms (the payload is echoed as
     # %27+OR+1%3D1--, not as the raw string).
     raw = request.query_string.decode("utf-8", "replace")
-    return (
-        "<html><title>Page not found</title>"
-        f"404 - the requested URL /sqli_encoded_echo?{raw} was not found</html>"
-    )
+    return f"<html><title>Page not found</title>404 - the requested URL /sqli_encoded_echo?{raw} was not found</html>"
 
 
 @mini.route("/sqli_dynamic_no_reflect")
@@ -312,11 +386,8 @@ def sqli_dynamic_no_reflect():
     # ctflearn's /user/login produce verified SQLi: the sanity-pair oracle
     # saw token noise as a boolean differential.
     import random
-    return (
-        "<html><h1>Login</h1>"
-        f"<input type='hidden' name='csrf' value='tok{random.randint(0, 10**9)}'>"
-        "</html>"
-    )
+
+    return f"<html><h1>Login</h1><input type='hidden' name='csrf' value='tok{random.randint(0, 10**9)}'></html>"
 
 
 # ─── routes for the five newly-wired modules ─────────────────────────────────
@@ -336,10 +407,12 @@ def logic_static_form():
     # or processes it. A detector that fires on "200 + body" verifies a HIGH
     # business-logic finding off a static page.
     request.args.get("custom-amount-field", "")
-    return "<html><head><title>Donate</title></head><body>" \
-        "<form action='/donate' method='post'>" \
-        "<input name='custom-amount-field' value='{amt}'>" \
+    return (
+        "<html><head><title>Donate</title></head><body>"
+        "<form action='/donate' method='post'>"
+        "<input name='custom-amount-field' value='{amt}'>"
         "<button>Donate</button></form><p>Support our work</p></body></html>"
+    )
 
 
 @mini.route("/logic_negative_accepted")
@@ -348,8 +421,9 @@ def logic_negative_accepted():
     # echoed into the order total — the evidence the oracle must require.
     amt = request.args.get("amount", "0")
     total = 100 + int(amt)
-    return f"<html><body><h1>Order</h1><p>Subtotal: $100</p>" \
-        f"<p>Adjustment: ${amt}</p><p>Total: ${total}</p></body></html>"
+    return (
+        f"<html><body><h1>Order</h1><p>Subtotal: $100</p><p>Adjustment: ${amt}</p><p>Total: ${total}</p></body></html>"
+    )
 
 
 @mini.route("/cache_private_no_cache")
@@ -400,10 +474,7 @@ def crypto_aws():
 @mini.route("/crypto_aws_bare")
 def crypto_aws_bare():
     # A bare AKIA mention in prose/docs — no credential assignment context.
-    return (
-        "<p>See the AWS docs example key " + AWS_DOCS_EXAMPLE_ACCESS_KEY_ID + " in our "
-        "getting-started guide.</p>"
-    )
+    return "<p>See the AWS docs example key " + AWS_DOCS_EXAMPLE_ACCESS_KEY_ID + " in our getting-started guide.</p>"
 
 
 @mini.route("/crypto_aws_env")
@@ -455,6 +526,7 @@ def race_noise():
     # not a TOCTOU counter — the hellboundhackers login/register shape that
     # produced 15 false 'Race Condition' findings.
     import secrets
+
     return f"<html><input name='csrf' value='tok{secrets.token_hex(8)}'>status ok</html>"
 
 
@@ -479,9 +551,11 @@ def smuggle_encoded_echo():
     # echo (the github.com MEDIUM smuggling FP).
     val = request.args.get("return_to", "")
     encoded = quote_plus(val, safe="")
-    return f"<html><body><form action='/login' method='post'>" \
-        f"<input type='hidden' name='return_to' value='{encoded}'>" \
+    return (
+        f"<html><body><form action='/login' method='post'>"
+        f"<input type='hidden' name='return_to' value='{encoded}'>"
         "</form></body></html>"
+    )
 
 
 @mini.route("/nosqli_echo")
@@ -572,17 +646,22 @@ def context(client):
 
 async def _scan(detector, context, path, params):
     return await detector.scan(
-        context, "http://localhost:5000", "GET",
-        f"http://localhost:5000{path}", params,
+        context,
+        "http://localhost:5000",
+        "GET",
+        f"http://localhost:5000{path}",
+        params,
     )
 
 
 async def _scan_post(detector, context, path, params):
     return await detector.scan(
-        context, "http://localhost:5000", "POST",
-        f"http://localhost:5000{path}", params,
+        context,
+        "http://localhost:5000",
+        "POST",
+        f"http://localhost:5000{path}",
+        params,
     )
 
 
 # ─── XSS ──────────────────────────────────────────────────────────────────────
-

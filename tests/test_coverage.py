@@ -10,7 +10,6 @@ The verdict logic lives in titan.verify.coverage.finalize_coverage (pure), so
 these tests pin the REAL function the engine calls — never a copy.
 """
 
-
 from titan.core.models import AttackType, Finding, ScanResult, Severity
 from titan.reporting import SiteReportWriter
 from titan.verify.coverage import finalize_coverage
@@ -50,6 +49,7 @@ def _verdict(**coverage):
 # Verdict logic
 # ---------------------------------------------------------------------------
 
+
 def test_complete_when_queue_drained_and_nothing_capped():
     cov = _verdict()
     assert cov["status"] == "complete"
@@ -69,9 +69,7 @@ def test_crawl_timeout_is_partial_with_reason():
 
 
 def test_driver_death_is_partial_with_reason():
-    cov = finalize_coverage(
-        _coverage(), driver_dead=True, max_pages=5, max_depth=2
-    )
+    cov = finalize_coverage(_coverage(), driver_dead=True, max_pages=5, max_depth=2)
     assert cov["status"] == "partial"
     assert "driver" in cov["reason"]
 
@@ -113,6 +111,7 @@ def test_counters_ride_along_auditable():
 # Report surface
 # ---------------------------------------------------------------------------
 
+
 def _result_with_coverage(coverage):
     f = Finding(
         target="http://lab.local",
@@ -133,9 +132,7 @@ def _result_with_coverage(coverage):
     result = ScanResult(target="http://lab.local", started_at=0, finished_at=5, findings=[f])
     # Mirror the engine: the verdict is computed from the counters before the
     # report writer ever sees the dict.
-    result.coverage = finalize_coverage(
-        _coverage(**coverage), driver_dead=False, max_pages=5, max_depth=2
-    )
+    result.coverage = finalize_coverage(_coverage(**coverage), driver_dead=False, max_pages=5, max_depth=2)
     return result
 
 

@@ -12,7 +12,6 @@ This module:
 6. Data exfiltration via WS
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class WebSocketPayload:
     """A WebSocket test payload."""
+
     name: str
     category: str
     message: str
@@ -325,6 +324,7 @@ class WebSocketTester:
         """Connect to WebSocket endpoint."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(endpoint, headers=headers or {}) as ws:
                     return {"connected": True, "protocols": ws.protocols}
@@ -340,6 +340,7 @@ class WebSocketTester:
         """Send message to WebSocket endpoint."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.ws_connect(endpoint, headers=headers or {}) as ws:
                     await ws.send_str(message)

@@ -8,7 +8,6 @@ This module goes beyond simple signature detection to:
 5. Generate adaptive bypass payloads
 """
 
-
 from __future__ import annotations
 
 import re
@@ -20,10 +19,10 @@ from titan.core.logger import get_logger
 logger = get_logger("waf_fingerprint")
 
 
-
 @dataclass
 class WAFFingerprint:
     """Detailed WAF fingerprint."""
+
     name: str
     version: str | None = None
     tier: str | None = None  # free, enterprise, custom
@@ -62,8 +61,14 @@ class WAFFingerprinter:
             "tiers": {
                 "free": {"headers": ["cf-ray"], "body": ["checking your browser"]},
                 "pro": {"headers": ["cf-ray", "cf-cache-status"], "body": ["checking your browser", "ray id"]},
-                "business": {"headers": ["cf-ray", "cf-cache-status", "cdn-loop"], "body": ["checking your browser", "ray id", "challenge-platform"]},
-                "enterprise": {"headers": ["cf-ray", "cf-cache-status", "cdn-loop", "cf-connecting-ip"], "body": ["checking your browser", "ray id", "challenge-platform", "managed challenge"]},
+                "business": {
+                    "headers": ["cf-ray", "cf-cache-status", "cdn-loop"],
+                    "body": ["checking your browser", "ray id", "challenge-platform"],
+                },
+                "enterprise": {
+                    "headers": ["cf-ray", "cf-cache-status", "cdn-loop", "cf-connecting-ip"],
+                    "body": ["checking your browser", "ray id", "challenge-platform", "managed challenge"],
+                },
             },
         },
         "akamai": {
@@ -406,13 +411,15 @@ class WAFFingerprinter:
         for probe in [sql_probe, xss_probe, traversal_probe, cmd_probe, ssrf_probe]:
             try:
                 response = await response_func(target_url, probe["payload"], probe["headers"])
-                probes.append({
-                    "probe": probe["name"],
-                    "payload": probe["payload"],
-                    "status": response.get("status", 0),
-                    "body": response.get("body", ""),
-                    "headers": response.get("headers", {}),
-                })
+                probes.append(
+                    {
+                        "probe": probe["name"],
+                        "payload": probe["payload"],
+                        "status": response.get("status", 0),
+                        "body": response.get("body", ""),
+                        "headers": response.get("headers", {}),
+                    }
+                )
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
@@ -476,13 +483,11 @@ class WAFFingerprinter:
 
             for tier_name, tier_sigs in tiers.items():
                 header_match = all(
-                    any(re.search(sig, f"{hk}: {hv}", re.IGNORECASE)
-                        for hk, hv in headers.items())
+                    any(re.search(sig, f"{hk}: {hv}", re.IGNORECASE) for hk, hv in headers.items())
                     for sig in tier_sigs.get("headers", [])
                 )
                 body_match = all(
-                    any(re.search(sig, body, re.IGNORECASE) for _ in [1])
-                    for sig in tier_sigs.get("body", [])
+                    any(re.search(sig, body, re.IGNORECASE) for _ in [1]) for sig in tier_sigs.get("body", [])
                 )
 
                 if header_match and body_match:

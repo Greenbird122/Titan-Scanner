@@ -211,7 +211,7 @@ def _candidate_pool(verified: list[Finding], required: set) -> list[Finding]:
     rest = sorted(
         (f for f in verified if required.intersection(f.flows) and id(f) not in seen),
         key=lambda f: (-_sev_rank(f.severity), f.url),
-    )[:_MAX_POOL - len(pool)]
+    )[: _MAX_POOL - len(pool)]
     pool.extend(rest)
     return pool
 
@@ -256,7 +256,9 @@ class ChainAnalyzer:
                     if not all(required.intersection(f.flows) for f in combo):
                         continue
                     chain = AttackChain(goal, _order_hops(list(combo), goal["order"]))
-                    if best is None or _combo_key(chain, goal.get("prefer_types", ())) > _combo_key(best, goal.get("prefer_types", ())):
+                    if best is None or _combo_key(chain, goal.get("prefer_types", ())) > _combo_key(
+                        best, goal.get("prefer_types", ())
+                    ):
                         best = chain
             if best is not None:
                 chains.append(best)

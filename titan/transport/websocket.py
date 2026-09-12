@@ -14,7 +14,6 @@ Features:
 Requirements: pip install aiohttp
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -56,7 +55,7 @@ class WebSocketTransport(Transport):
         self.timeout = timeout
         self._identity = TransportIdentity(protocol="websocket")
         self._connections: dict[str, Any] = {}  # host -> aiohttp.ClientWebSocketResponse
-        self._sessions: dict[str, Any] = {}     # host -> aiohttp.ClientSession
+        self._sessions: dict[str, Any] = {}  # host -> aiohttp.ClientSession
 
     @property
     def identity(self) -> TransportIdentity:
@@ -86,11 +85,14 @@ class WebSocketTransport(Transport):
 
         try:
             timeout_obj = aiohttp.ClientTimeout(total=self.timeout)
-            async with aiohttp.ClientSession(timeout=timeout_obj) as session, session.ws_connect(
-                ws_url,
-                headers=request.headers,
-                timeout=timeout_obj,
-            ) as ws:
+            async with (
+                aiohttp.ClientSession(timeout=timeout_obj) as session,
+                session.ws_connect(
+                    ws_url,
+                    headers=request.headers,
+                    timeout=timeout_obj,
+                ) as ws,
+            ):
                 # Send the message
                 message = request.body or b""
                 if isinstance(message, str):

@@ -76,7 +76,9 @@ def _consent(tmp_path: Path, flags=("persistence",)):
 def _store(tmp_path: Path, session_id: str, channel: str, extra=None) -> SessionStore:
     store = SessionStore(tmp_path / "findings" / "lab-local" / "sessions", session_id=session_id)
     store.init_meta(
-        "http://lab.local", channel, "consent/lab-local.json",
+        "http://lab.local",
+        channel,
+        "consent/lab-local.json",
         listener_url="http://127.0.0.1:9999",
         extra=extra,
     )
@@ -142,7 +144,9 @@ async def test_reattach_agent_reuses_same_sid_and_new_listener(tmp_path: Path):
     rce, runner, captured = await _rce_endpoint()
     try:
         store = _store(
-            tmp_path, "s-2", "http-poll",
+            tmp_path,
+            "s-2",
+            "http-poll",
             extra={"finding": {"url": f"{rce}/cmd?host=x", "method": "GET", "param": "host"}},
         )
         key = _consent(tmp_path)
@@ -221,11 +225,19 @@ async def test_reattach_no_sessions(tmp_path: Path):
 
 async def test_reattach_scope_ignores_other_targets_and_sid_filter(tmp_path: Path):
     other = SessionStore(tmp_path / "findings" / "evil-com" / "sessions", session_id="s-other")
-    other.init_meta("http://evil.com", "webshell", "consent/evil-com.json",
-                    listener_url="http://127.0.0.1:9999",
-                    extra={"webshell_url": "http://evil.com/x.php"})
-    _store(tmp_path, "s-keep", "http-poll",
-                  extra={"finding": {"url": "http://lab.local/cmd", "method": "GET", "param": "host"}})
+    other.init_meta(
+        "http://evil.com",
+        "webshell",
+        "consent/evil-com.json",
+        listener_url="http://127.0.0.1:9999",
+        extra={"webshell_url": "http://evil.com/x.php"},
+    )
+    _store(
+        tmp_path,
+        "s-keep",
+        "http-poll",
+        extra={"finding": {"url": "http://lab.local/cmd", "method": "GET", "param": "host"}},
+    )
     _consent(tmp_path)
     sessions = list_target_sessions(tmp_path / "findings", "http://lab.local")
     assert [s["session_id"] for s in sessions] == ["s-keep"]
@@ -265,8 +277,7 @@ async def test_reattach_verify_ping_unconfirmed(tmp_path: Path):
     listener = ExploitListener(host="127.0.0.1", port=0)
     await listener.start()
     try:
-        _store(tmp_path, "s-3", "http-poll",
-               extra={"finding": {"url": f"{rce}/cmd", "method": "GET", "param": "host"}})
+        _store(tmp_path, "s-3", "http-poll", extra={"finding": {"url": f"{rce}/cmd", "method": "GET", "param": "host"}})
         key = _consent(tmp_path)
         summary = await reattach_target(
             "http://lab.local",
@@ -300,10 +311,17 @@ async def test_cmd_reattach_listener_url_mode(tmp_path: Path):
         _store(tmp_path, "s-cli", "webshell", extra={"webshell_url": f"{ws}/u.php"})
         _consent(tmp_path)
         code = await cmd_reattach_async(
-            ["http://lab.local", "--listener-url", "http://127.0.0.1:19999",
-             "--store", str(tmp_path / "findings"),
-             "--consent-dir", str(tmp_path / "consent"),
-             "--key-path", str(tmp_path / "k.pem")]
+            [
+                "http://lab.local",
+                "--listener-url",
+                "http://127.0.0.1:19999",
+                "--store",
+                str(tmp_path / "findings"),
+                "--consent-dir",
+                str(tmp_path / "consent"),
+                "--key-path",
+                str(tmp_path / "k.pem"),
+            ]
         )
         assert code == 0
     finally:

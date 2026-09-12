@@ -39,14 +39,17 @@ def main() -> int:
     from titan.core.engine import TitanEngine
 
     engine = TitanEngine(config)
-    print(f"[bench] target={args.target} profile={args.profile} "
-          f"stealth={engine.stealth.min_delay}/{engine.stealth.max_delay}s "
-          f"concurrency={config.get('crawl', {}).get('module_concurrency', 8)}")
+    print(
+        f"[bench] target={args.target} profile={args.profile} "
+        f"stealth={engine.stealth.min_delay}/{engine.stealth.max_delay}s "
+        f"concurrency={config.get('crawl', {}).get('module_concurrency', 8)}"
+    )
 
     t0 = time.monotonic()
     result = None
     try:
         import asyncio
+
         result = asyncio.run(engine.scan(args.target))
     except Exception as exc:  # pragma: no cover - harness
         print(f"[bench] scan failed: {exc}")
@@ -54,9 +57,11 @@ def main() -> int:
     elapsed = time.monotonic() - t0
 
     print(f"[bench] duration={elapsed:.1f}s")
-    print(f"[bench] findings={len(result.findings)} "
-          f"verified={sum(1 for f in result.findings if f.verified)} "
-          f"critical={sum(1 for f in result.findings if str(getattr(f, 'severity', '')).startswith('Severity.CRITICAL'))}")
+    print(
+        f"[bench] findings={len(result.findings)} "
+        f"verified={sum(1 for f in result.findings if f.verified)} "
+        f"critical={sum(1 for f in result.findings if str(getattr(f, 'severity', '')).startswith('Severity.CRITICAL'))}"
+    )
     if result.errors:
         print(f"[bench] errors={result.errors}")
     return 0

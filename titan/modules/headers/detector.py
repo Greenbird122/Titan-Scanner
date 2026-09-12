@@ -122,7 +122,7 @@ class HeadersDetector:
             if not hsts:
                 missing.append("Strict-Transport-Security")
             else:
-                max_age_match = re.search(r'max-age=(\d+)', hsts, re.I)
+                max_age_match = re.search(r"max-age=(\d+)", hsts, re.I)
                 if max_age_match and int(max_age_match.group(1)) < 10886400:
                     weak.append("Strict-Transport-Security (max-age < 126 days)")
 
@@ -151,7 +151,13 @@ class HeadersDetector:
 
         if missing or weak:
             diffs = ["headers:missing"] + [f"missing:{h}" for h in missing] + [f"weak:{h}" for h in weak]
-            severity = Severity.MEDIUM if any(h in missing for h in ["Content-Security-Policy", "X-Frame-Options", "Strict-Transport-Security"]) else Severity.LOW
+            severity = (
+                Severity.MEDIUM
+                if any(
+                    h in missing for h in ["Content-Security-Policy", "X-Frame-Options", "Strict-Transport-Security"]
+                )
+                else Severity.LOW
+            )
             payload_desc = f"Missing: {', '.join(missing)}; Weak: {', '.join(weak)}"
 
             return Finding(
@@ -195,28 +201,30 @@ class HeadersDetector:
             if hdr_key in headers:
                 val = headers[hdr_key]
                 # Check if it leaks a specific version number (digits/dots)
-                if re.search(r'\d+\.\d+', val):
-                    findings.append(Finding(
-                        target=target,
-                        url=str(getattr(resp, "url", None) or url),
-                        method="GET",
-                        param=hdr_key,
-                        location="header",
-                        payload=f"{desc}: {val}",
-                        attack_type=AttackType.INFO_LEAK,
-                        severity=Severity.LOW,
-                        verified=True,
-                        confidence=0.90,
-                        status=status,
-                        headers=headers,
-                        body="",
-                        diffs=["headers:info_leak", f"leaked_header:{hdr_key}"],
-                        baseline_body="",
-                        baseline_status=None,
-                        verification_body="",
-                        verification_status=status,
-                        metadata={"header": hdr_key, "value": val},
-                    ))
+                if re.search(r"\d+\.\d+", val):
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=str(getattr(resp, "url", None) or url),
+                            method="GET",
+                            param=hdr_key,
+                            location="header",
+                            payload=f"{desc}: {val}",
+                            attack_type=AttackType.INFO_LEAK,
+                            severity=Severity.LOW,
+                            verified=True,
+                            confidence=0.90,
+                            status=status,
+                            headers=headers,
+                            body="",
+                            diffs=["headers:info_leak", f"leaked_header:{hdr_key}"],
+                            baseline_body="",
+                            baseline_status=None,
+                            verification_body="",
+                            verification_status=status,
+                            metadata={"header": hdr_key, "value": val},
+                        )
+                    )
 
         return findings
 
@@ -250,25 +258,27 @@ class HeadersDetector:
             cookie_issues.append("missing 'SameSite' attribute")
 
         if cookie_issues:
-            findings.append(Finding(
-                target=target,
-                url=str(getattr(resp, "url", None) or url),
-                method="GET",
-                param="Set-Cookie",
-                location="header",
-                payload=f"Insecure Cookie Flags: {', '.join(cookie_issues)}",
-                attack_type=AttackType.INFO_LEAK,
-                severity=Severity.LOW,
-                verified=True,
-                confidence=0.85,
-                status=status,
-                headers=headers,
-                body="",
-                diffs=["headers:cookie_security"] + [f"cookie_issue:{issue}" for issue in cookie_issues],
-                baseline_body="",
-                baseline_status=None,
-                verification_body="",
-                verification_status=status,
-            ))
+            findings.append(
+                Finding(
+                    target=target,
+                    url=str(getattr(resp, "url", None) or url),
+                    method="GET",
+                    param="Set-Cookie",
+                    location="header",
+                    payload=f"Insecure Cookie Flags: {', '.join(cookie_issues)}",
+                    attack_type=AttackType.INFO_LEAK,
+                    severity=Severity.LOW,
+                    verified=True,
+                    confidence=0.85,
+                    status=status,
+                    headers=headers,
+                    body="",
+                    diffs=["headers:cookie_security"] + [f"cookie_issue:{issue}" for issue in cookie_issues],
+                    baseline_body="",
+                    baseline_status=None,
+                    verification_body="",
+                    verification_status=status,
+                )
+            )
 
         return findings

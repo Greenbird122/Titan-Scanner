@@ -19,7 +19,6 @@ Usage:
         print(f"{obs.type}: {obs.data}")
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -43,8 +42,10 @@ logger = logging.getLogger(__name__)
 # Observation types
 # ---------------------------------------------------------------------------
 
+
 class ObservationType(str, Enum):
     """Types of kernel/system observations."""
+
     TLS_PLAINTEXT_OUT = "tls_plaintext_out"
     TLS_PLAINTEXT_IN = "tls_plaintext_in"
     PROCESS_EXEC = "process_exec"
@@ -62,19 +63,21 @@ class ObservationType(str, Enum):
 
 class EvidenceTier(str, Enum):
     """Evidence quality tiers (ascending)."""
-    SUSPICION = "suspicion"         # Tier 0 — heuristic, no confirmation
-    REFLECTION = "reflection"       # Tier 1 — payload reflected
-    BEHAVIORAL = "behavioral"       # Tier 2 — timing/behavior anomaly
-    DIFFERENTIAL = "differential"   # Tier 3 — structural diff confirmed
-    FLOW_TYPED = "flow_typed"       # Tier 4 — chain of verified findings
-    KERNEL = "kernel"               # Tier 5 — observed by kernel hooks
-    SYSCALL = "syscall"             # Tier 5b — observed by process/network monitoring
-    EXPLOIT = "exploit"             # Tier 6 — proved by data extraction
+
+    SUSPICION = "suspicion"  # Tier 0 — heuristic, no confirmation
+    REFLECTION = "reflection"  # Tier 1 — payload reflected
+    BEHAVIORAL = "behavioral"  # Tier 2 — timing/behavior anomaly
+    DIFFERENTIAL = "differential"  # Tier 3 — structural diff confirmed
+    FLOW_TYPED = "flow_typed"  # Tier 4 — chain of verified findings
+    KERNEL = "kernel"  # Tier 5 — observed by kernel hooks
+    SYSCALL = "syscall"  # Tier 5b — observed by process/network monitoring
+    EXPLOIT = "exploit"  # Tier 6 — proved by data extraction
 
 
 @dataclass
 class KernelObservation:
     """A single observation from kernel/system monitoring."""
+
     type: ObservationType
     evidence_tier: EvidenceTier
     data: dict[str, Any] = field(default_factory=dict)
@@ -102,6 +105,7 @@ class KernelObservation:
 @dataclass
 class KernelSession:
     """An active observation session attached to a process."""
+
     pid: int
     mode: str  # "ebpf", "strace", "network", "process"
     started_at: float = field(default_factory=time.time)
@@ -128,6 +132,7 @@ class KernelSession:
 # eBPF observer (Linux, root required)
 # ---------------------------------------------------------------------------
 
+
 class EBPFKernelObserver:
     """eBPF-based kernel observation using bcc/libbpf.
 
@@ -137,27 +142,18 @@ class EBPFKernelObserver:
 
     # Minimal viable uprobes — these 6 cover the most ground
     UPROBES = [
-        ("openssl", "SSL_write", ObservationType.TLS_PLAINTEXT_OUT,
-         "TLS plaintext before encryption"),
-        ("openssl", "SSL_read", ObservationType.TLS_PLAINTEXT_IN,
-         "TLS plaintext after decryption"),
-        ("libc", "execve", ObservationType.PROCESS_EXEC,
-         "Process execution (RCE proof)"),
-        ("libc", "fork", ObservationType.PROCESS_FORK,
-         "Process fork"),
-        ("libc", "open", ObservationType.FILE_OPEN,
-         "File open (LFI/XXE ground truth)"),
-        ("libc", "read", ObservationType.FILE_READ,
-         "File read"),
+        ("openssl", "SSL_write", ObservationType.TLS_PLAINTEXT_OUT, "TLS plaintext before encryption"),
+        ("openssl", "SSL_read", ObservationType.TLS_PLAINTEXT_IN, "TLS plaintext after decryption"),
+        ("libc", "execve", ObservationType.PROCESS_EXEC, "Process execution (RCE proof)"),
+        ("libc", "fork", ObservationType.PROCESS_FORK, "Process fork"),
+        ("libc", "open", ObservationType.FILE_OPEN, "File open (LFI/XXE ground truth)"),
+        ("libc", "read", ObservationType.FILE_READ, "File read"),
     ]
 
     KPROBES = [
-        ("tcp_v4_connect", ObservationType.OUTBOUND_CONNECTION,
-         "Outbound TCP connection (SSRF proof)"),
-        ("tcp_sendmsg", ObservationType.OUTBOUND_DATA,
-         "Outbound data (exfiltration proof)"),
-        ("sys_connect", ObservationType.OUTBOUND_CONNECTION,
-         "Socket connect syscall"),
+        ("tcp_v4_connect", ObservationType.OUTBOUND_CONNECTION, "Outbound TCP connection (SSRF proof)"),
+        ("tcp_sendmsg", ObservationType.OUTBOUND_DATA, "Outbound data (exfiltration proof)"),
+        ("sys_connect", ObservationType.OUTBOUND_CONNECTION, "Socket connect syscall"),
     ]
 
     @staticmethod
@@ -169,9 +165,11 @@ class EBPFKernelObserver:
             return False
         try:
             import subprocess
+
             result = subprocess.run(
                 ["bpftool", "version"],
-                capture_output=True, timeout=5,
+                capture_output=True,
+                timeout=5,
             )
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired, PermissionError):
@@ -233,16 +231,18 @@ class EBPFKernelObserver:
             def _handle_event(cpu, data, size):
                 event = b["events"].event(data)
                 obs_type = ObservationType.PROCESS_EXEC if "exec" in str(event.comm) else ObservationType.FILE_OPEN
-                session.add(KernelObservation(
-                    type=obs_type,
-                    evidence_tier=EvidenceTier.KERNEL,
-                    data={
-                        "pid": event.pid,
-                        "comm": event.comm.decode("utf-8", errors="replace"),
-                        "filename": event.fname.decode("utf-8", errors="replace"),
-                    },
-                    metadata={"source": "ebpf", "probe": "bcc"},
-                ))
+                session.add(
+                    KernelObservation(
+                        type=obs_type,
+                        evidence_tier=EvidenceTier.KERNEL,
+                        data={
+                            "pid": event.pid,
+                            "comm": event.comm.decode("utf-8", errors="replace"),
+                            "filename": event.fname.decode("utf-8", errors="replace"),
+                        },
+                        metadata={"source": "ebpf", "probe": "bcc"},
+                    )
+                )
 
             b["events"].open_perf_buffer(_handle_event, page_cnt=64)
 
@@ -250,9 +250,7 @@ class EBPFKernelObserver:
             end_time = time.time() + duration
             while time.time() < end_time and session.active:
                 try:
-                    await asyncio.get_event_loop().run_in_executor(
-                        None, b.perf_buffer_poll, 100
-                    )
+                    await asyncio.get_event_loop().run_in_executor(None, b.perf_buffer_poll, 100)
                 except Exception:
                     break
 
@@ -267,6 +265,7 @@ class EBPFKernelObserver:
 # ---------------------------------------------------------------------------
 # Fallback: network + process observation (any OS)
 # ---------------------------------------------------------------------------
+
 
 class FallbackKernelObserver:
     """Network/process-based observation — works without eBPF.
@@ -318,16 +317,18 @@ class FallbackKernelObserver:
                             key = (conn.laddr, conn.raddr if conn.raddr else None)
                             current_connections.add(key)
                             if key not in initial_connections:
-                                session.add(KernelObservation(
-                                    type=ObservationType.OUTBOUND_CONNECTION,
-                                    evidence_tier=EvidenceTier.SYSCALL,
-                                    data={
-                                        "local": str(conn.laddr),
-                                        "remote": str(conn.raddr) if conn.raddr else "none",
-                                        "status": conn.status,
-                                    },
-                                    metadata={"source": "psutil", "pid": pid},
-                                ))
+                                session.add(
+                                    KernelObservation(
+                                        type=ObservationType.OUTBOUND_CONNECTION,
+                                        evidence_tier=EvidenceTier.SYSCALL,
+                                        data={
+                                            "local": str(conn.laddr),
+                                            "remote": str(conn.raddr) if conn.raddr else "none",
+                                            "status": conn.status,
+                                        },
+                                        metadata={"source": "psutil", "pid": pid},
+                                    )
+                                )
                         initial_connections = current_connections
                     except (psutil.AccessDenied, psutil.NoSuchProcess) as exc:
                         logger.debug(f"suppressed exception: {exc}")
@@ -339,12 +340,14 @@ class FallbackKernelObserver:
                             fd_dir = f"/proc/{pid}/fd"
                             fds = os.listdir(fd_dir)
                             # Count open files
-                            session.add(KernelObservation(
-                                type=ObservationType.FILE_ACCESS,
-                                evidence_tier=EvidenceTier.SYSCALL,
-                                data={"open_fds": len(fds)},
-                                metadata={"source": "/proc", "pid": pid},
-                            ))
+                            session.add(
+                                KernelObservation(
+                                    type=ObservationType.FILE_ACCESS,
+                                    evidence_tier=EvidenceTier.SYSCALL,
+                                    data={"open_fds": len(fds)},
+                                    metadata={"source": "/proc", "pid": pid},
+                                )
+                            )
                         except (OSError, PermissionError) as exc:
                             logger.debug(f"suppressed exception: {exc}")
                             pass
@@ -358,12 +361,14 @@ class FallbackKernelObserver:
         except ImportError:
             logger.warning("psutil not installed — using basic observation")
             # Ultra-basic fallback: just record process existence
-            session.add(KernelObservation(
-                type=ObservationType.PROCESS_LIST,
-                evidence_tier=EvidenceTier.SYSCALL,
-                data={"pid": pid, "mode": "basic"},
-                metadata={"source": "os", "note": "psutil not available"},
-            ))
+            session.add(
+                KernelObservation(
+                    type=ObservationType.PROCESS_LIST,
+                    evidence_tier=EvidenceTier.SYSCALL,
+                    data={"pid": pid, "mode": "basic"},
+                    metadata={"source": "os", "note": "psutil not available"},
+                )
+            )
         except Exception as e:
             logger.warning(f"Fallback observation failed: {e}")
 
@@ -373,6 +378,7 @@ class FallbackKernelObserver:
 # ---------------------------------------------------------------------------
 # Main observer — auto-selects best available method
 # ---------------------------------------------------------------------------
+
 
 class KernelObserver:
     """Kernel observer — auto-selects eBPF or fallback.
@@ -425,12 +431,14 @@ class KernelObserver:
         else:
             # No observation method available — return empty session
             session = KernelSession(pid=pid, mode="none")
-            session.add(KernelObservation(
-                type=ObservationType.PROCESS_LIST,
-                evidence_tier=EvidenceTier.SUSPICION,
-                data={"pid": pid, "mode": "none", "note": "No kernel observation available"},
-                metadata={"source": "none"},
-            ))
+            session.add(
+                KernelObservation(
+                    type=ObservationType.PROCESS_LIST,
+                    evidence_tier=EvidenceTier.SUSPICION,
+                    data={"pid": pid, "mode": "none", "note": "No kernel observation available"},
+                    metadata={"source": "none"},
+                )
+            )
             return session
 
     async def observe_target_process(
@@ -487,70 +495,82 @@ class KernelObserver:
                 # Filter out benign system processes
                 if any(bad in filename for bad in ["bash", "sh", "python", "node"]):
                     # Suspicious — could be command injection
-                    findings.append({
-                        "type": "kernel_process_execution",
-                        "severity": "high",
-                        "title": f"Process Execution Observed: {filename}",
-                        "evidence": (
-                            f"execve('{filename}') observed via {obs.metadata.get('source', 'kernel')} "
-                            f"on pid {obs.data.get('pid', '?')}"
-                        ),
-                        "oracle": "kernel_execve_observation",
-                        "tier": "confirmed",
-                        "flow_types": ["code_exec"],
-                        "cvss_score": 8.0,
-                        "metadata": {
-                            "source": obs.metadata.get("source"),
-                            "tier": obs.evidence_tier.value,
-                        },
-                    })
+                    findings.append(
+                        {
+                            "type": "kernel_process_execution",
+                            "severity": "high",
+                            "title": f"Process Execution Observed: {filename}",
+                            "evidence": (
+                                f"execve('{filename}') observed via {obs.metadata.get('source', 'kernel')} "
+                                f"on pid {obs.data.get('pid', '?')}"
+                            ),
+                            "oracle": "kernel_execve_observation",
+                            "tier": "confirmed",
+                            "flow_types": ["code_exec"],
+                            "cvss_score": 8.0,
+                            "metadata": {
+                                "source": obs.metadata.get("source"),
+                                "tier": obs.evidence_tier.value,
+                            },
+                        }
+                    )
 
             # File access observed
             if obs.type in (ObservationType.FILE_OPEN, ObservationType.FILE_READ):
                 filename = obs.data.get("filename", "")
                 if filename:
                     # Check for sensitive file access
-                    sensitive = ["/etc/passwd", "/etc/shadow", "/proc/self",
-                                "id_rsa", "credentials", "secret", "key", "token"]
+                    sensitive = [
+                        "/etc/passwd",
+                        "/etc/shadow",
+                        "/proc/self",
+                        "id_rsa",
+                        "credentials",
+                        "secret",
+                        "key",
+                        "token",
+                    ]
                     if any(s in filename.lower() for s in sensitive):
-                        findings.append({
-                            "type": "kernel_sensitive_file_access",
-                            "severity": "critical",
-                            "title": f"Sensitive File Access Observed: {filename}",
-                            "evidence": (
-                                f"File access to '{filename}' observed via "
-                                f"{obs.metadata.get('source', 'kernel')}"
-                            ),
-                            "oracle": "kernel_file_access_observation",
-                            "tier": "confirmed",
-                            "flow_types": ["file_read", "data_leak"],
-                            "cvss_score": 9.0,
-                            "metadata": {
-                                "source": obs.metadata.get("source"),
-                                "tier": obs.evidence_tier.value,
-                            },
-                        })
+                        findings.append(
+                            {
+                                "type": "kernel_sensitive_file_access",
+                                "severity": "critical",
+                                "title": f"Sensitive File Access Observed: {filename}",
+                                "evidence": (
+                                    f"File access to '{filename}' observed via {obs.metadata.get('source', 'kernel')}"
+                                ),
+                                "oracle": "kernel_file_access_observation",
+                                "tier": "confirmed",
+                                "flow_types": ["file_read", "data_leak"],
+                                "cvss_score": 9.0,
+                                "metadata": {
+                                    "source": obs.metadata.get("source"),
+                                    "tier": obs.evidence_tier.value,
+                                },
+                            }
+                        )
 
             # Outbound connection (potential SSRF data exfil)
             if obs.type == ObservationType.OUTBOUND_CONNECTION:
                 remote = obs.data.get("remote", "")
                 if remote and remote != "none":
-                    findings.append({
-                        "type": "kernel_outbound_connection",
-                        "severity": "medium",
-                        "title": f"Outbound Connection Observed: {remote}",
-                        "evidence": (
-                            f"TCP connection to {remote} observed via "
-                            f"{obs.metadata.get('source', 'kernel')}"
-                        ),
-                        "oracle": "kernel_connection_observation",
-                        "tier": "confirmed",
-                        "flow_types": ["url_fetch"],
-                        "cvss_score": 5.0,
-                        "metadata": {
-                            "source": obs.metadata.get("source"),
-                            "tier": obs.evidence_tier.value,
-                        },
-                    })
+                    findings.append(
+                        {
+                            "type": "kernel_outbound_connection",
+                            "severity": "medium",
+                            "title": f"Outbound Connection Observed: {remote}",
+                            "evidence": (
+                                f"TCP connection to {remote} observed via {obs.metadata.get('source', 'kernel')}"
+                            ),
+                            "oracle": "kernel_connection_observation",
+                            "tier": "confirmed",
+                            "flow_types": ["url_fetch"],
+                            "cvss_score": 5.0,
+                            "metadata": {
+                                "source": obs.metadata.get("source"),
+                                "tier": obs.evidence_tier.value,
+                            },
+                        }
+                    )
 
         return findings

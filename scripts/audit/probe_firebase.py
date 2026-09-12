@@ -19,6 +19,7 @@ Example:
 Note: consent is keyed by the VERCEL/APP domain (what the operator signed),
 not the firebase project name.
 """
+
 import argparse
 import json
 import os
@@ -62,8 +63,10 @@ def probe_reads(project, paths):
         url = f"{STORE.format(project=project)}/{bucket}/"
         st, _ = http("GET", url, headers={"X-Firebase-Storage-Version": "2"})
         # 404 = bucket does not exist (boilerplate config); 403 = exists, denied
-        print(f"  storage bucket {bucket} -> {st} "
-              f"({'does not exist' if st == 404 else 'exists' if st in (400, 403, 401) else '?'})")
+        print(
+            f"  storage bucket {bucket} -> {st} "
+            f"({'does not exist' if st == 404 else 'exists' if st in (400, 403, 401) else '?'})"
+        )
 
 
 def probe_write(project, target, paths):
@@ -79,8 +82,7 @@ def probe_write(project, target, paths):
         ok = st2 == 200 and MARKER in body
         print(f"  GET read-back -> {st2}  marker_visible={ok}")
         st3, _ = http("DELETE", url)
-        print(f"  DELETE -> {st3}  "
-              f"({'CLEAN' if st3 == 200 else 'RESIDUE — remove /{p}/{MARKER}.json manually'})")
+        print(f"  DELETE -> {st3}  ({'CLEAN' if st3 == 200 else 'RESIDUE — remove /{p}/{MARKER}.json manually'})")
 
 
 def main():

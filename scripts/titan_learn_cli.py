@@ -15,6 +15,7 @@ the system flags so similar sites get compared.
 (bench/manifests/estate.json) from the ledger — every audited site with its
 expected attack types as benchmark challenges.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -54,8 +55,10 @@ def _cmd_estate_manifest(args) -> int:
     p = write_estate_manifest(manifest, out_path=args.output)
     estate = sum(1 for s in manifest["sites"] if s["estate"])
     challenges = sum(len(s["challenges"]) for s in manifest["sites"])
-    print(f"[+] Estate corpus: {len(manifest['sites'])} sites "
-          f"({estate} owned estate) · {challenges} expected-finding challenges")
+    print(
+        f"[+] Estate corpus: {len(manifest['sites'])} sites "
+        f"({estate} owned estate) · {challenges} expected-finding challenges"
+    )
     print(f"[+] Wrote {p}")
     return 0
 
@@ -73,8 +76,9 @@ def main() -> int:
     e = sub.add_parser("estate-manifest", help="regenerate the estate benchmark corpus")
     e.add_argument("--output", default="bench/manifests/estate.json")
     e.add_argument("--findings", default="findings")
-    e.add_argument("--include-practice", action="store_true",
-                   help="also include practice/third-party hosts from the ledger")
+    e.add_argument(
+        "--include-practice", action="store_true", help="also include practice/third-party hosts from the ledger"
+    )
     e.set_defaults(fn=_cmd_estate_manifest)
 
     args = parser.parse_args()

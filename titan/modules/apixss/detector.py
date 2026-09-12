@@ -78,17 +78,55 @@ SINK_PATTERNS: list[tuple] = [
 # Property fields that are provably numeric (length, counts, ids, status)
 # never carry HTML — a sink referencing them alone is not a finding.
 NUMERIC_FIELDS = {
-    "length", "count", "total", "size", "id", "index", "number", "status",
-    "stargazers_count", "forks_count", "open_issues_count", "watchers_count",
-    "position", "offset", "year", "month", "day", "timestamp", "page",
-    "per_page", "limit", "width", "height", "top", "left",
+    "length",
+    "count",
+    "total",
+    "size",
+    "id",
+    "index",
+    "number",
+    "status",
+    "stargazers_count",
+    "forks_count",
+    "open_issues_count",
+    "watchers_count",
+    "position",
+    "offset",
+    "year",
+    "month",
+    "day",
+    "timestamp",
+    "page",
+    "per_page",
+    "limit",
+    "width",
+    "height",
+    "top",
+    "left",
 }
 
 # Fields that routinely hold attacker-influenced strings.
 STRINGISH_FIELDS = {
-    "description", "name", "title", "message", "text", "language",
-    "html_url", "clone_url", "url", "href", "src", "value", "username",
-    "login", "email", "error", "label", "content", "body", "subject",
+    "description",
+    "name",
+    "title",
+    "message",
+    "text",
+    "language",
+    "html_url",
+    "clone_url",
+    "url",
+    "href",
+    "src",
+    "value",
+    "username",
+    "login",
+    "email",
+    "error",
+    "label",
+    "content",
+    "body",
+    "subject",
 }
 
 # Bounded fixed-point passes for assignment transitivity.
@@ -117,16 +155,77 @@ CATCH_RE = re.compile(r"""catch\s*\(\s*([A-Za-z_$][\w$]*)\s*\)""")
 # every ``value="..."`` attribute or ``url:`` key look tainted. The F6 class
 # needs specific names (``repo.description``), not collisions.
 GENERIC_NAMES = {
-    "value", "url", "href", "src", "id", "name", "key", "data", "text",
-    "title", "body", "type", "status", "length", "count", "size", "index",
-    "top", "left", "width", "height", "el", "node", "html", "json",
-    "item", "items", "current", "target", "onclick", "innerHTML",
-    "outerHTML", "className", "blob", "dataStr", "download", "btn", "lang",
-    "pid", "sortBy", "searchTerm", "inputVal", "currentLang", "langVal",
-    "resetDate", "apiStatusDiv", "scanBtn", "repoSearch", "themeStatus",
-    "currentIdx", "breachCount", "aPinned", "bPinned", "targetUpper",
-    "innerText", "e", "i", "j", "k", "n", "x", "y", "fn", "cb", "res",
-    "req", "err", "a", "b", "r", "l",
+    "value",
+    "url",
+    "href",
+    "src",
+    "id",
+    "name",
+    "key",
+    "data",
+    "text",
+    "title",
+    "body",
+    "type",
+    "status",
+    "length",
+    "count",
+    "size",
+    "index",
+    "top",
+    "left",
+    "width",
+    "height",
+    "el",
+    "node",
+    "html",
+    "json",
+    "item",
+    "items",
+    "current",
+    "target",
+    "onclick",
+    "innerHTML",
+    "outerHTML",
+    "className",
+    "blob",
+    "dataStr",
+    "download",
+    "btn",
+    "lang",
+    "pid",
+    "sortBy",
+    "searchTerm",
+    "inputVal",
+    "currentLang",
+    "langVal",
+    "resetDate",
+    "apiStatusDiv",
+    "scanBtn",
+    "repoSearch",
+    "themeStatus",
+    "currentIdx",
+    "breachCount",
+    "aPinned",
+    "bPinned",
+    "targetUpper",
+    "innerText",
+    "e",
+    "i",
+    "j",
+    "k",
+    "n",
+    "x",
+    "y",
+    "fn",
+    "cb",
+    "res",
+    "req",
+    "err",
+    "a",
+    "b",
+    "r",
+    "l",
 }
 
 
@@ -135,9 +234,7 @@ class ApiXssDetector:
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(
-        self, context, target: str, method: str, url: str, params: dict[str, str]
-    ) -> list[Finding]:
+    async def scan(self, context, target: str, method: str, url: str, params: dict[str, str]) -> list[Finding]:
         try:
             resp = await context.request.get(url, timeout=4000)
             body = (await resp.text()) or ""
@@ -167,9 +264,7 @@ class ApiXssDetector:
         findings: list[Finding] = []
         for js, chunk_url in chunks:
             for sink_name, snippet, source in self._analyze_chunk(js):
-                findings.append(
-                    self._finding(target, url, chunk_url, sink_name, source, snippet)
-                )
+                findings.append(self._finding(target, url, chunk_url, sink_name, source, snippet))
                 if len(findings) >= MAX_FINDINGS:
                     return findings
         return findings
@@ -197,7 +292,7 @@ class ApiXssDetector:
         # Catch handlers next to network code can render server/URL-derived
         # error text — taint the catch param as the "error" source.
         for m in CATCH_RE.finditer(js):
-            window = js[max(0, m.start() - 400): m.end()]
+            window = js[max(0, m.start() - 400) : m.end()]
             if re.search(r"fetch\(|axios|XMLHttpRequest|\bresponse\b|\.value\b", window):
                 seed(m.group(1), "error")
 
@@ -220,7 +315,7 @@ class ApiXssDetector:
             # Generic .then(cb => ...) after a tainted promise chain.
             for m in CALLBACK_RE.finditer(js):
                 param = m.group(1)
-                if param not in tainted and self._taint_source(js[max(0, m.start() - 120): m.start()], tainted):
+                if param not in tainted and self._taint_source(js[max(0, m.start() - 120) : m.start()], tainted):
                     tainted[param] = "api"
                     changed = True
             if not changed:
@@ -233,7 +328,7 @@ class ApiXssDetector:
                 source = self._arg_source(arg, tainted)
                 if source:
                     start = max(0, m.start() - 60)
-                    snippet = js[start:min(len(js), m.end() + 60)].replace("\n", " ")[:220]
+                    snippet = js[start : min(len(js), m.end() + 60)].replace("\n", " ")[:220]
                     hits.append((sink_name, snippet, source))
         return hits
 
@@ -293,9 +388,7 @@ class ApiXssDetector:
             # bare reference to a user-input seed (e.g. a URL fragment used
             # directly) or an error object (renders .message) is a sink hit;
             # bare references to API objects are "[object Object]" noise.
-            if source in ("param", "error") and re.search(
-                rf"(?<![\w$.]){re.escape(name)}(?![\w$])", code
-            ):
+            if source in ("param", "error") and re.search(rf"(?<![\w$.]){re.escape(name)}(?![\w$])", code):
                 return source
         return ""
 

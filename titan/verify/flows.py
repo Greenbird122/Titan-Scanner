@@ -100,15 +100,11 @@ def infer_flows(finding: Finding) -> list[str]:
         return []
 
     base = list(_VERIFIED_FLOWS.get(finding.attack_type, []))
-    if finding.attack_type == AttackType.SSRF and any(
-        m in (finding.payload or "") for m in _METADATA_MARKERS
-    ):
+    if finding.attack_type == AttackType.SSRF and any(m in (finding.payload or "") for m in _METADATA_MARKERS):
         if "creds" not in base:
             base.append("creds")
 
-    if finding.attack_type == AttackType.XXE and any(
-        m in (finding.payload or "") for m in ("file://", "expect://")
-    ):
+    if finding.attack_type == AttackType.XXE and any(m in (finding.payload or "") for m in ("file://", "expect://")):
         if "file_read" not in base:
             base.append("file_read")
 

@@ -36,8 +36,7 @@ def render_scorecard(benchmark: dict[str, Any]) -> str:
     lines = [
         f"# Benchmark — {benchmark.get('target', '')}",
         "",
-        f"- **Scanned** {benchmark.get('scanned_at', 'n/a')} · "
-        f"{benchmark.get('scan_seconds', 0)}s",
+        f"- **Scanned** {benchmark.get('scanned_at', 'n/a')} · {benchmark.get('scan_seconds', 0)}s",
         f"- **Pass rate** {s.get('pass_rate', 0)}% · "
         f"{s.get('hits', 0)}/{s.get('reachable', 0)} reachable challenges captured",
         f"- **Hits** {s.get('hits', 0)} · **Suspicious** {s.get('suspicious', 0)} · "
@@ -61,9 +60,7 @@ def write_scorecard(benchmark: dict[str, Any], out_dir: str = "bench/results") -
     """Persist scorecard.md + scorecard.json atomically. Returns the dir."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    (out / "scorecard.md").write_text(
-        render_scorecard(benchmark), encoding="utf-8"
-    )
+    (out / "scorecard.md").write_text(render_scorecard(benchmark), encoding="utf-8")
     tmp = out / "scorecard.json.tmp"
     tmp.write_text(json.dumps(benchmark, indent=2), encoding="utf-8")
     tmp.replace(out / "scorecard.json")

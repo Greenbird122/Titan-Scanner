@@ -17,6 +17,7 @@ async def request_scan_approval(target: str, aggression: str) -> bool:
             sys.path.insert(0, titan_gov_parent)
 
         import importlib
+
         gov_graph = importlib.import_module("titan_gov.graph")
 
         if gov_graph.is_blocked(target):
@@ -48,6 +49,7 @@ async def _prompt_approval(desc: str) -> bool:
 def get_recent_audit(limit: int = 20) -> list[dict[str, str]]:
     try:
         import sqlite3
+
         audit_db = os.path.expanduser("~/.kilo/dawn/scanner/audit.db")
         conn = sqlite3.connect(audit_db)
         conn.row_factory = sqlite3.Row

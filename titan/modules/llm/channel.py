@@ -17,7 +17,9 @@ DEFAULT_TIMEOUT = 15
 
 
 class LLMChannel:
-    def __init__(self, timeout: float = DEFAULT_TIMEOUT, model: str = "gpt-4o-mini", headers: dict[str, str] | None = None):
+    def __init__(
+        self, timeout: float = DEFAULT_TIMEOUT, model: str = "gpt-4o-mini", headers: dict[str, str] | None = None
+    ):
         self.timeout = timeout
         self.model = model
         self.headers = {"Content-Type": "application/json"}
@@ -55,6 +57,7 @@ class LLMChannel:
     async def _post_json(self, endpoint: str, payload: dict[str, Any], prefer: str = "") -> str | None:
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.post(endpoint, json=payload, headers=self.headers, timeout=self.timeout) as resp:
                     if resp.status >= 400:

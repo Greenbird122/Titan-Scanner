@@ -14,8 +14,6 @@ from titan.core.logger import get_logger
 logger = get_logger("remediation")
 
 
-
-
 # ────────────────────────────────────────────────────────────────────────────
 # Phase 8c — Auto-generated remediation patches
 # ────────────────────────────────────────────────────────────────────────────
@@ -181,8 +179,13 @@ def generate_remediation(finding) -> str:
     Returns a markdown-formatted remediation block, or a generic message
     if the finding type is not in the remediation map.
     """
-    atk = (finding.attack_type.value if hasattr(finding, 'attack_type') and finding.attack_type
-           else finding.get("attack_type", "unknown") if isinstance(finding, dict) else "unknown")
+    atk = (
+        finding.attack_type.value
+        if hasattr(finding, "attack_type") and finding.attack_type
+        else finding.get("attack_type", "unknown")
+        if isinstance(finding, dict)
+        else "unknown"
+    )
 
     # Try exact match first, then partial match
     patch = REMEDIATION_MAP.get(atk)
@@ -199,14 +202,10 @@ def generate_remediation(finding) -> str:
             f"Review the finding details and apply manual remediation.\n"
         )
 
-    url = finding.url if hasattr(finding, 'url') else finding.get("url", "")
-    param = finding.param if hasattr(finding, 'param') else finding.get("param", "")
+    url = finding.url if hasattr(finding, "url") else finding.get("url", "")
+    param = finding.param if hasattr(finding, "param") else finding.get("param", "")
 
-    return (
-        f"### Remediation: {patch['title']}\n\n"
-        f"**Finding:** `{param}` at `{url}`\n\n"
-        f"```\n{patch['fix']}\n```\n"
-    )
+    return f"### Remediation: {patch['title']}\n\n**Finding:** `{param}` at `{url}`\n\n```\n{patch['fix']}\n```\n"
 
 
 def remediation_rollup(output_dir: str = "findings") -> str:

@@ -8,6 +8,7 @@ and:
   3. tags findings with platform context for the report
   4. adjusts module selection based on platform-known sinks
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

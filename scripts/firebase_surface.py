@@ -15,6 +15,7 @@ The API key must be supplied via the FIREBASE_API_KEY env var — it is never
 committed in source. Run with FIREBASE_API_KEY set (and FIREBASE_PROJECT for
 non-default projects).
 """
+
 import asyncio
 import json
 import os
@@ -94,7 +95,6 @@ async def main():
         print("\n[Hosting]")
         await get(s, f"https://{PROJECT}.web.app", "webapp")
         await get(s, f"https://{PROJECT}.firebaseapp.com", "firebaseapp")
-
 
         print("\n[Identity extras]")
         await post(

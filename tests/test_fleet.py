@@ -32,6 +32,7 @@ from titan.fleet.coordinator import (
 # Agent type tests
 # ---------------------------------------------------------------------------
 
+
 class TestAgentType:
     def test_all_types_exist(self):
         assert AgentType.RECON.value == "recon"
@@ -65,6 +66,7 @@ class TestAgentType:
 # AgentResult tests
 # ---------------------------------------------------------------------------
 
+
 class TestAgentResult:
     def test_defaults(self):
         result = AgentResult(agent_type=AgentType.RECON, target="http://test.com")
@@ -87,6 +89,7 @@ class TestAgentResult:
 # ---------------------------------------------------------------------------
 # FindingMerger tests
 # ---------------------------------------------------------------------------
+
 
 class TestFindingMerger:
     def test_add_single_finding(self):
@@ -182,6 +185,7 @@ class TestFindingMerger:
 # MergedFinding tests
 # ---------------------------------------------------------------------------
 
+
 class TestMergedFinding:
     def test_not_corroborated(self):
         f = MergedFinding(type="sqli", url="a", param="x", severity="high", evidence="test", sources=["recon"])
@@ -189,7 +193,9 @@ class TestMergedFinding:
         assert f.effective_confidence == f.confidence
 
     def test_corroborated(self):
-        f = MergedFinding(type="sqli", url="a", param="x", severity="high", evidence="test", sources=["recon", "identity"])
+        f = MergedFinding(
+            type="sqli", url="a", param="x", severity="high", evidence="test", sources=["recon", "identity"]
+        )
         assert f.is_corroborated is True
         assert f.effective_confidence > f.confidence
 
@@ -197,6 +203,7 @@ class TestMergedFinding:
 # ---------------------------------------------------------------------------
 # Agent runner tests
 # ---------------------------------------------------------------------------
+
 
 class TestAgentRunners:
     @pytest.mark.asyncio
@@ -225,6 +232,7 @@ class TestAgentRunners:
 # ---------------------------------------------------------------------------
 # FleetCoordinator tests
 # ---------------------------------------------------------------------------
+
 
 class TestFleetCoordinator:
     @pytest.fixture

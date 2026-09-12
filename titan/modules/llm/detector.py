@@ -86,11 +86,21 @@ class LLMDetector:
                 trials.append(judge_marker(reply, marker))
             verdict = consensus(trials, self.min_agree)
             if verdict["verified"]:
-                return [self._finding(
-                    target, endpoint, AttackType.PROMPT_INJECTION, Severity.HIGH, 0.85,
-                    spec["probe"], trials, verdict, replies,
-                    param="messages", note="model executed an attacker instruction and echoed the marker",
-                )]
+                return [
+                    self._finding(
+                        target,
+                        endpoint,
+                        AttackType.PROMPT_INJECTION,
+                        Severity.HIGH,
+                        0.85,
+                        spec["probe"],
+                        trials,
+                        verdict,
+                        replies,
+                        param="messages",
+                        note="model executed an attacker instruction and echoed the marker",
+                    )
+                ]
         return []
 
     async def _check_system_leak(self, target: str, endpoint: str) -> list[Finding]:
@@ -102,11 +112,21 @@ class LLMDetector:
                 trials.append(judge_system_leak(reply))
             verdict = consensus(trials, self.min_agree)
             if verdict["verified"]:
-                return [self._finding(
-                    target, endpoint, AttackType.SYSTEM_LEAK, Severity.MEDIUM, 0.75,
-                    probe, trials, verdict, replies,
-                    param="messages", note="model revealed system-prompt structure when ordered",
-                )]
+                return [
+                    self._finding(
+                        target,
+                        endpoint,
+                        AttackType.SYSTEM_LEAK,
+                        Severity.MEDIUM,
+                        0.75,
+                        probe,
+                        trials,
+                        verdict,
+                        replies,
+                        param="messages",
+                        note="model revealed system-prompt structure when ordered",
+                    )
+                ]
         return []
 
     async def _check_data_exfil(self, target: str, endpoint: str) -> list[Finding]:
@@ -130,11 +150,21 @@ class LLMDetector:
                 trials.append(judge_oob(fired))
             verdict = consensus(trials, self.min_agree)
             if verdict["verified"]:
-                return [self._finding(
-                    target, endpoint, AttackType.LLM_EXFIL, Severity.CRITICAL, 0.9,
-                    probe, trials, verdict, replies,
-                    param="messages", note="model fetched an attacker-controlled URL (OOB-confirmed)",
-                )]
+                return [
+                    self._finding(
+                        target,
+                        endpoint,
+                        AttackType.LLM_EXFIL,
+                        Severity.CRITICAL,
+                        0.9,
+                        probe,
+                        trials,
+                        verdict,
+                        replies,
+                        param="messages",
+                        note="model fetched an attacker-controlled URL (OOB-confirmed)",
+                    )
+                ]
         return []
 
     async def _check_agency(self, target: str, endpoint: str) -> list[Finding]:
@@ -147,11 +177,21 @@ class LLMDetector:
                 trials.append(judge_agency(reply))
             verdict = consensus(trials, self.min_agree)
             if verdict["verified"]:
-                return [self._finding(
-                    target, endpoint, AttackType.LLM_AGENCY, Severity.HIGH, 0.8,
-                    probe, trials, verdict, replies,
-                    param="messages", note="model invoked a tool on attacker-supplied arguments",
-                )]
+                return [
+                    self._finding(
+                        target,
+                        endpoint,
+                        AttackType.LLM_AGENCY,
+                        Severity.HIGH,
+                        0.8,
+                        probe,
+                        trials,
+                        verdict,
+                        replies,
+                        param="messages",
+                        note="model invoked a tool on attacker-supplied arguments",
+                    )
+                ]
         return []
 
     # ── finding construction ─────────────────────────────────────────────────

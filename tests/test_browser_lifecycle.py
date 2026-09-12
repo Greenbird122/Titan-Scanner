@@ -15,12 +15,14 @@ from titan.core.engine import TitanEngine
 
 
 def _engine() -> TitanEngine:
-    return TitanEngine({
-        "target": "http://localhost:5000",
-        "headless": True,
-        "browser": "auto",
-        "stealth": {"min_delay": 0.01, "max_delay": 0.01},
-    })
+    return TitanEngine(
+        {
+            "target": "http://localhost:5000",
+            "headless": True,
+            "browser": "auto",
+            "stealth": {"min_delay": 0.01, "max_delay": 0.01},
+        }
+    )
 
 
 def _run(coro):
@@ -30,6 +32,7 @@ def _run(coro):
 # ---------------------------------------------------------------------------
 # Redirect capture
 # ---------------------------------------------------------------------------
+
 
 class _Req:
     def __init__(self, url):
@@ -72,6 +75,7 @@ class TestRecordRedirect:
 # Driver-death classification
 # ---------------------------------------------------------------------------
 
+
 class TestIsDriverDeath:
     def test_playwright_driver_death_message(self):
         engine = _engine()
@@ -88,6 +92,7 @@ class TestIsDriverDeath:
 # ---------------------------------------------------------------------------
 # Page hardening
 # ---------------------------------------------------------------------------
+
 
 class TestHardenPage:
     def test_registers_popup_dialog_download_and_response_handlers(self):
@@ -107,6 +112,7 @@ class TestHardenPage:
 # ---------------------------------------------------------------------------
 # Crawler launch
 # ---------------------------------------------------------------------------
+
 
 class _FakeChromium:
     def __init__(self, fail_first=False):
@@ -156,11 +162,13 @@ class TestLaunchCrawler:
         assert "channel" not in second.kwargs
 
     def test_bundled_mode_never_sets_channel(self):
-        engine = TitanEngine({
-            "target": "http://localhost:5000",
-            "headless": True,
-            "browser": "bundled",
-        })
+        engine = TitanEngine(
+            {
+                "target": "http://localhost:5000",
+                "headless": True,
+                "browser": "bundled",
+            }
+        )
         pw = _FakePlaywright()
         _run(engine._launch_crawler(pw, "http://localhost:5000"))
         assert "channel" not in pw.chromium.launch.call_args.kwargs
@@ -169,6 +177,7 @@ class TestLaunchCrawler:
 # ---------------------------------------------------------------------------
 # Teardown + popup/dialog/download suppression
 # ---------------------------------------------------------------------------
+
 
 class TestTeardown:
     def test_close_crawler_closes_browser_handle(self):

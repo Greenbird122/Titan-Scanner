@@ -4,6 +4,7 @@ Loads config.yaml unchanged except repointing target + auth so nothing
 touches the default config target. Consent for
 acme-store-adversarial.vercel.app is on record (ownership, full flags).
 """
+
 import asyncio
 import sys
 from pathlib import Path
@@ -31,14 +32,17 @@ async def main() -> int:
     engine = TitanEngine(config)
     result = await engine.scan(TARGET)
 
-    print(f"\n[+] Scan complete: {len(result.findings)} findings "
-          f"({result.verified_count} verified)")
-    print(f"    Critical: {result.critical_count}, High: {result.high_count}, "
-          f"Chains: {result.chain_count}, Duration: {result.duration_seconds}s")
+    print(f"\n[+] Scan complete: {len(result.findings)} findings ({result.verified_count} verified)")
+    print(
+        f"    Critical: {result.critical_count}, High: {result.high_count}, "
+        f"Chains: {result.chain_count}, Duration: {result.duration_seconds}s"
+    )
 
     for f in sorted(result.findings, key=lambda x: (x.severity.value, x.attack_type.value)):
-        print(f"  [{f.severity.value.upper()}] {f.attack_type.value} "
-              f"conf={f.confidence:.2f} verified={'Y' if f.verified else 'N'} tier={f.tier}")
+        print(
+            f"  [{f.severity.value.upper()}] {f.attack_type.value} "
+            f"conf={f.confidence:.2f} verified={'Y' if f.verified else 'N'} tier={f.tier}"
+        )
         print(f"    {f.method} {f.url}  param={f.param} ({f.location})")
         note = (f.notes or "")[:120]
         if note:
@@ -49,8 +53,10 @@ async def main() -> int:
         for err in result.errors[:20]:
             print(f"    - {err}")
 
-    print(f"\n[+] BaaS on-origin sweep cache size: "
-          f"{len(__import__('titan.modules.baas.detector', fromlist=['BaasDetector']).BaasDetector._SWEPT_ORIGINS)}")
+    print(
+        f"\n[+] BaaS on-origin sweep cache size: "
+        f"{len(__import__('titan.modules.baas.detector', fromlist=['BaasDetector']).BaasDetector._SWEPT_ORIGINS)}"
+    )
     return 0
 
 

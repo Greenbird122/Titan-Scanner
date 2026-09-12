@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Independent verification of another agent's Hacker101 Magical Image Gallery solution."""
+
 import re
 import urllib.error
 import urllib.request

@@ -14,7 +14,6 @@ devtools window-size detection — all deterministic JS text, all detectable
 without executing anything.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -147,9 +146,7 @@ _CLICKBAIT_MECHANICS: list[dict[str, Any]] = [
     {
         "name": "popunder window.open juggling",
         "oracle": "clickbait:popunder",
-        "regex": re.compile(
-            r"window\.open\([^)]*(width\s*=|height\s*=|left\s*=|top\s*=|location\s*=)", re.I
-        ),
+        "regex": re.compile(r"window\.open\([^)]*(width\s*=|height\s*=|left\s*=|top\s*=|location\s*=)", re.I),
         "severity": "medium",
         "confidence": 0.8,
     },
@@ -163,7 +160,9 @@ _CLICKBAIT_MECHANICS: list[dict[str, Any]] = [
     {
         "name": "fake play button overlay",
         "oracle": "clickbait:fake-play",
-        "regex": re.compile(r"(play now|click (here|to) play|watch free)[^<]{0,80}onclick\s*=\s*['\"]window\.open", re.I),
+        "regex": re.compile(
+            r"(play now|click (here|to) play|watch free)[^<]{0,80}onclick\s*=\s*['\"]window\.open", re.I
+        ),
         "severity": "low",
         "confidence": 0.7,
     },
@@ -171,19 +170,50 @@ _CLICKBAIT_MECHANICS: list[dict[str, Any]] = [
 
 # Sensational headline / thumbnail-bait words for the clickbait index.
 _CLICKBAIT_WORDS = [
-    "shocking", "you won't believe", "wont believe", "mind blown", "secret",
-    "they don't want you", "dont want you", "click here", "must watch",
-    "billion", "million", "free now", "limited time", "act now", "exposed",
-    "leaked", "viral", "insane", "crazy", "never seen", "turns out", "what happens",
-    "number 1", "top 10", "guaranteed", "miracle", "doctors hate", "this one trick",
+    "shocking",
+    "you won't believe",
+    "wont believe",
+    "mind blown",
+    "secret",
+    "they don't want you",
+    "dont want you",
+    "click here",
+    "must watch",
+    "billion",
+    "million",
+    "free now",
+    "limited time",
+    "act now",
+    "exposed",
+    "leaked",
+    "viral",
+    "insane",
+    "crazy",
+    "never seen",
+    "turns out",
+    "what happens",
+    "number 1",
+    "top 10",
+    "guaranteed",
+    "miracle",
+    "doctors hate",
+    "this one trick",
 ]
 
 _TERMINAL_KEYWORDS: dict[str, list[str]] = {
-    "phishing": ["verify", "secure-", "account-suspended", "unusual-login",
-                 "update-payment", "confirm-identity", "myaccount", "login",
-                 "password-reset", "restore-account"],
-    "fake_download": ["download", ".exe", ".apk", "setup", "installer", ".zip",
-                      "download.php", "get-file", "dl.php"],
+    "phishing": [
+        "verify",
+        "secure-",
+        "account-suspended",
+        "unusual-login",
+        "update-payment",
+        "confirm-identity",
+        "myaccount",
+        "login",
+        "password-reset",
+        "restore-account",
+    ],
+    "fake_download": ["download", ".exe", ".apk", "setup", "installer", ".zip", "download.php", "get-file", "dl.php"],
     "adult": ["adult", "cam", "porn", "xxx", "hot-single", "meet-local"],
     "casino": ["casino", "jackpot", "slot", "bet", "poker", "roulette"],
     "sweepstakes": ["prize", "winner", "claim", "sweepstakes", "lucky"],
@@ -195,12 +225,14 @@ def _signals_from_patterns(html: str, patterns: list[dict[str, Any]]) -> list[di
     for p in patterns:
         try:
             if p["regex"].search(html or ""):
-                found.append({
-                    "signal": p["name"],
-                    "oracle": p["oracle"],
-                    "severity": p["severity"],
-                    "confidence": p["confidence"],
-                })
+                found.append(
+                    {
+                        "signal": p["name"],
+                        "oracle": p["oracle"],
+                        "severity": p["severity"],
+                        "confidence": p["confidence"],
+                    }
+                )
         except Exception as exc:
             logger.debug(f"variant failed, continuing: {exc}")
             continue
@@ -219,12 +251,14 @@ def detect_miners(html: str) -> list[dict[str, Any]]:
         if re.search(re.escape(host), (html or ""), re.I) and not any(
             s["oracle"] == "miner:host:" + host for s in found
         ):
-            found.append({
-                "signal": f"known miner origin ({host})",
-                "oracle": "miner:host:" + host,
-                "severity": "high",
-                "confidence": 0.95,
-            })
+            found.append(
+                {
+                    "signal": f"known miner origin ({host})",
+                    "oracle": "miner:host:" + host,
+                    "severity": "high",
+                    "confidence": 0.95,
+                }
+            )
     return found
 
 

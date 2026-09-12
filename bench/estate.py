@@ -45,8 +45,8 @@ def _consent_roster(consent_dir: str) -> set:
 
 def _host_norm(host: str) -> str:
     host = host.split("://")[-1]  # strip scheme
-    host = host.split("/")[0]     # strip path
-    host = host.split(":")[0]     # strip port
+    host = host.split("/")[0]  # strip path
+    host = host.split(":")[0]  # strip port
     return host.replace(".", "-").replace("_", "-")
 
 
@@ -69,8 +69,9 @@ def _is_estate_site(slug: str, target: str, meta: dict[str, Any], index: dict[st
     return False
 
 
-def build_estate_manifest(findings_root: str = "findings", include_practice: bool = False,
-                          consent_dir: str = "consent") -> dict[str, Any]:
+def build_estate_manifest(
+    findings_root: str = "findings", include_practice: bool = False, consent_dir: str = "consent"
+) -> dict[str, Any]:
     """Pure: build the estate corpus from the findings/ ledger.
 
     Returns ``{"manifest", "generated_at", "sites": [{slug, target, estate,
@@ -131,29 +132,33 @@ def build_estate_manifest(findings_root: str = "findings", include_practice: boo
         challenges = []
         for atk, n in top:
             cid = f"{slug}-{atk.lower().replace(' ', '-')}"
-            challenges.append({
-                "id": cid,
-                "name": f"{atk} ({n} records: {counts.get(atk, 0)} scan + {mined.get(atk, 0)} mined)",
-                "endpoint": target,
-                "attack_type": atk,
-                "method": methods.get(atk, "GET"),
-                "mined": atk in mined,
-            })
+            challenges.append(
+                {
+                    "id": cid,
+                    "name": f"{atk} ({n} records: {counts.get(atk, 0)} scan + {mined.get(atk, 0)} mined)",
+                    "endpoint": target,
+                    "attack_type": atk,
+                    "method": methods.get(atk, "GET"),
+                    "mined": atk in mined,
+                }
+            )
 
-        sites.append({
-            "slug": slug,
-            "target": target,
-            "estate": estate,
-            "challenges": challenges,
-            "source": {
-                "findings": len(raw_findings),
-                "verified": sum(1 for f in raw_findings if f.get("verified")),
-                "critical": sum(1 for f in raw_findings if f.get("severity") == "critical"),
-                "high": sum(1 for f in raw_findings if f.get("severity") == "high"),
-                "deep_audit": index_by_slug.get(slug, {}).get("deep_audit", False),
-                "mined_findings": len(mined),
-            },
-        })
+        sites.append(
+            {
+                "slug": slug,
+                "target": target,
+                "estate": estate,
+                "challenges": challenges,
+                "source": {
+                    "findings": len(raw_findings),
+                    "verified": sum(1 for f in raw_findings if f.get("verified")),
+                    "critical": sum(1 for f in raw_findings if f.get("severity") == "critical"),
+                    "high": sum(1 for f in raw_findings if f.get("severity") == "high"),
+                    "deep_audit": index_by_slug.get(slug, {}).get("deep_audit", False),
+                    "mined_findings": len(mined),
+                },
+            }
+        )
 
     return {
         "manifest": "estate-corpus",

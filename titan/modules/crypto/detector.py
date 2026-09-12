@@ -23,7 +23,6 @@ Features:
      • Detects cryptographic padding exceptions upon single-byte ciphertext tampering
 """
 
-
 from __future__ import annotations
 
 import base64
@@ -40,29 +39,54 @@ logger = get_logger("detector")
 # Provider-specific signatures first, then generic assignments
 _HARDCODED_PATTERNS: list[tuple[str, str, Severity, float]] = [
     # Google API Key
-    (r'AIza[0-9A-Za-z_\-]{12,}', "hardcoded_google_api_key", Severity.HIGH, 0.90),
+    (r"AIza[0-9A-Za-z_\-]{12,}", "hardcoded_google_api_key", Severity.HIGH, 0.90),
     # Stripe Keys
-    (r'sk_live_[0-9a-zA-Z]{16,}', "hardcoded_stripe_key", Severity.CRITICAL, 0.95),
-    (r'rk_live_[0-9a-zA-Z]{16,}', "hardcoded_stripe_restricted_key", Severity.HIGH, 0.90),
+    (r"sk_live_[0-9a-zA-Z]{16,}", "hardcoded_stripe_key", Severity.CRITICAL, 0.95),
+    (r"rk_live_[0-9a-zA-Z]{16,}", "hardcoded_stripe_restricted_key", Severity.HIGH, 0.90),
     # AWS Secrets
-    (r'(?i)["\']?(aws[_-]?secret[_-]?access[_-]?key|aws_secret)["\']?\s*[:=]\s*["\'][A-Za-z0-9/+=]{16,}["\']', "hardcoded_aws_key", Severity.CRITICAL, 0.95),
+    (
+        r'(?i)["\']?(aws[_-]?secret[_-]?access[_-]?key|aws_secret)["\']?\s*[:=]\s*["\'][A-Za-z0-9/+=]{16,}["\']',
+        "hardcoded_aws_key",
+        Severity.CRITICAL,
+        0.95,
+    ),
     # AWS AKIA/ASIA Access Key in assignment context
-    (r'(?i)["\']?(?:aws[_-]?)?(?:access[_-]?key[_-]?id|access[_-]?key|accesskey|secret[_-]?access[_-]?key|aws[_-]?key|key[_-]?id)["\']?\s*[:=]\s*["\']?(AKIA|ASIA)[0-9A-Z]{16}', "hardcoded_aws_access_key_id", Severity.HIGH, 0.90),
+    (
+        r'(?i)["\']?(?:aws[_-]?)?(?:access[_-]?key[_-]?id|access[_-]?key|accesskey|secret[_-]?access[_-]?key|aws[_-]?key|key[_-]?id)["\']?\s*[:=]\s*["\']?(AKIA|ASIA)[0-9A-Z]{16}',
+        "hardcoded_aws_access_key_id",
+        Severity.HIGH,
+        0.90,
+    ),
     # Private Keys
-    (r'(?i)(-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----)', "hardcoded_private_key", Severity.CRITICAL, 0.95),
+    (r"(?i)(-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----)", "hardcoded_private_key", Severity.CRITICAL, 0.95),
     # GitHub Tokens
-    (r'(?i)(ghp_|github_pat_)[0-9A-Za-z_]{20,}', "hardcoded_github_token", Severity.CRITICAL, 0.95),
+    (r"(?i)(ghp_|github_pat_)[0-9A-Za-z_]{20,}", "hardcoded_github_token", Severity.CRITICAL, 0.95),
     # OpenAI & Anthropic Keys
-    (r'sk-proj-[a-zA-Z0-9_\-]{48,}', "hardcoded_openai_key", Severity.CRITICAL, 0.95),
-    (r'sk-ant-[a-zA-Z0-9_\-]{32,}', "hardcoded_anthropic_key", Severity.CRITICAL, 0.95),
+    (r"sk-proj-[a-zA-Z0-9_\-]{48,}", "hardcoded_openai_key", Severity.CRITICAL, 0.95),
+    (r"sk-ant-[a-zA-Z0-9_\-]{32,}", "hardcoded_anthropic_key", Severity.CRITICAL, 0.95),
     # Slack & Discord Tokens
-    (r'xox[baprs]-[0-9a-zA-Z]{10,48}', "hardcoded_slack_token", Severity.HIGH, 0.90),
-    (r'[MNO][a-zA-Z\d_-]{23,25}\.[a-zA-Z\d_-]{6}\.[a-zA-Z\d_-]{27}', "hardcoded_discord_token", Severity.HIGH, 0.90),
+    (r"xox[baprs]-[0-9a-zA-Z]{10,48}", "hardcoded_slack_token", Severity.HIGH, 0.90),
+    (r"[MNO][a-zA-Z\d_-]{23,25}\.[a-zA-Z\d_-]{6}\.[a-zA-Z\d_-]{27}", "hardcoded_discord_token", Severity.HIGH, 0.90),
     # Generic API Keys & Passwords in explicit assignments
-    (r'(?i)["\']?(api[_-]?key|apikey|api_secret)["\']?\s*[:=]\s*["\'][a-zA-Z0-9_\-]{12,}["\']', "hardcoded_api_key", Severity.HIGH, 0.80),
+    (
+        r'(?i)["\']?(api[_-]?key|apikey|api_secret)["\']?\s*[:=]\s*["\'][a-zA-Z0-9_\-]{12,}["\']',
+        "hardcoded_api_key",
+        Severity.HIGH,
+        0.80,
+    ),
     (r'(?i)["\']?[a-z0-9_]*password["\']?\s*[:=]\s*["\'][^"\']{8,}["\']', "hardcoded_password", Severity.HIGH, 0.80),
-    (r'(?i)["\']?[a-z0-9_]*(secret|passwd|pwd)["\']?\s*[:=]\s*["\'][^"\']{8,}["\']', "hardcoded_secret", Severity.HIGH, 0.80),
-    (r'(?i)["\']?(access[_-]?token|api[_-]?token|secret[_-]?token|auth[_-]?token|client[_-]?secret)["\']?\s*[:=]\s*["\'](?!eyJ)[A-Za-z0-9_\-]{12,}["\']', "hardcoded_token", Severity.HIGH, 0.80),
+    (
+        r'(?i)["\']?[a-z0-9_]*(secret|passwd|pwd)["\']?\s*[:=]\s*["\'][^"\']{8,}["\']',
+        "hardcoded_secret",
+        Severity.HIGH,
+        0.80,
+    ),
+    (
+        r'(?i)["\']?(access[_-]?token|api[_-]?token|secret[_-]?token|auth[_-]?token|client[_-]?secret)["\']?\s*[:=]\s*["\'](?!eyJ)[A-Za-z0-9_\-]{12,}["\']',
+        "hardcoded_token",
+        Severity.HIGH,
+        0.80,
+    ),
 ]
 
 _WEAK_ALGORITHMS: dict[str, list[str]] = {
@@ -97,12 +121,31 @@ class CryptoDetector:
 
         # Crypto audits inspect both parameters and parameterless bodies (/config, /env)
         crypto_params = [
-            p for p in params
-            if any(k in p.lower() for k in [
-                "token", "key", "secret", "password", "hash", "signature",
-                "jwt", "iv", "nonce", "salt", "encrypt", "decrypt", "cipher",
-                "aes", "rsa", "md5", "sha1", "sha256"
-            ])
+            p
+            for p in params
+            if any(
+                k in p.lower()
+                for k in [
+                    "token",
+                    "key",
+                    "secret",
+                    "password",
+                    "hash",
+                    "signature",
+                    "jwt",
+                    "iv",
+                    "nonce",
+                    "salt",
+                    "encrypt",
+                    "decrypt",
+                    "cipher",
+                    "aes",
+                    "rsa",
+                    "md5",
+                    "sha1",
+                    "sha256",
+                ]
+            )
         ]
         params_to_test = crypto_params[:3] if crypto_params else [None]
 
@@ -146,7 +189,7 @@ class CryptoDetector:
         # ── 1. Weak Algorithm Mentions ─────────────────────────────────
         for algo, patterns in _WEAK_ALGORITHMS.items():
             for pattern in patterns:
-                if re.search(r'\b' + re.escape(pattern) + r'\b', body_lower):
+                if re.search(r"\b" + re.escape(pattern) + r"\b", body_lower):
                     return Finding(
                         target=target,
                         url=str(getattr(baseline_resp, "url", None) or url),
@@ -206,12 +249,19 @@ class CryptoDetector:
 
         # Active probe on login-like endpoints for minted alg:none tokens
         from urllib.parse import urlparse
+
         login_hint = urlparse(url).path.lower()
         if any(k in login_hint for k in ["login", "auth", "signin", "token", "jwt", "session"]):
-            for creds in ({"username": "admin", "password": "admin"}, {"email": "admin@test.com", "password": "admin123"}):
+            for creds in (
+                {"username": "admin", "password": "admin"},
+                {"email": "admin@test.com", "password": "admin123"},
+            ):
                 try:
                     login_resp = await context.request.post(
-                        url, form=creds, headers={"Referer": target, "Content-Type": "application/x-www-form-urlencoded"}, timeout=5000
+                        url,
+                        form=creds,
+                        headers={"Referer": target, "Content-Type": "application/x-www-form-urlencoded"},
+                        timeout=5000,
                     )
                     login_body = await login_resp.text()
                     jwt_finding = self._find_jwt_none(
@@ -257,7 +307,7 @@ class CryptoDetector:
     def _find_jwt_none(
         self, target: str, url: str, resp: Any, body: str, status: int | None, method: str, param_label: str
     ) -> Finding | None:
-        jwt_pattern = re.compile(r'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]*')
+        jwt_pattern = re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]*")
         jwt_matches = jwt_pattern.findall(body)
         for jwt in jwt_matches:
             try:

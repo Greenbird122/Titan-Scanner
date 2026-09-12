@@ -15,7 +15,6 @@ from titan.core.models import ScanResult
 _SEVERITY_ORDER = ["critical", "high", "medium", "low", "info", "unconfirmed"]
 
 
-
 def render_markdown_report(result: ScanResult, writer) -> str:
     lines: list[str] = [
         f"# Scan Report — {result.target}",
@@ -47,6 +46,7 @@ def render_markdown_report(result: ScanResult, writer) -> str:
 
     # Executive summary: risk posture, top 3 risks, remediation estimate, estate comparison.
     from titan.core.models import Severity
+
     critical = [f for f in result.findings if f.severity == Severity.CRITICAL]
     high = [f for f in result.findings if f.severity == Severity.HIGH]
     medium = [f for f in result.findings if f.severity == Severity.MEDIUM]
@@ -80,7 +80,9 @@ def render_markdown_report(result: ScanResult, writer) -> str:
             )
     # Remediation time estimate
     est_minutes = (
-        len(critical) * 120 + len(high) * 60 + len(medium) * 15
+        len(critical) * 120
+        + len(high) * 60
+        + len(medium) * 15
         + sum(1 for f in result.findings if f.severity == Severity.LOW) * 5
     )
     if est_minutes >= 60:
@@ -140,21 +142,18 @@ def render_markdown_report(result: ScanResult, writer) -> str:
     # Low-confidence section (M4): weak-evidence findings surfaced apart so
     # the verified list reads clean and the FP candidates are auditable.
     low_confidence = [
-        f for f in result.findings
-        if not f.verified and (f.evidence == "indicative" or f.confidence < 0.6)
+        f for f in result.findings if not f.verified and (f.evidence == "indicative" or f.confidence < 0.6)
     ]
     if low_confidence:
         lines += ["## Low-confidence findings", ""]
         lines += [
-            "> Weak evidence only (reflection/noise — not verified). Review "
-            "manually before acting.",
+            "> Weak evidence only (reflection/noise — not verified). Review manually before acting.",
             "",
         ]
         for f in low_confidence:
             atk = f.attack_type.value if f.attack_type else "Unknown"
             lines.append(
-                f"- `{atk}` ({f.evidence or 'no-grade'}) — "
-                f"{f.method} {f.url} param=`{f.param}` conf={f.confidence:.2f}"
+                f"- `{atk}` ({f.evidence or 'no-grade'}) — {f.method} {f.url} param=`{f.param}` conf={f.confidence:.2f}"
             )
         lines += [""]
 
@@ -163,6 +162,7 @@ def render_markdown_report(result: ScanResult, writer) -> str:
     # the report records whether that happened. This is the piece that
     # keeps "polished report" from being the only output of an audit.
     from titan.core.models import Severity as _Sev
+
     critical = [f for f in result.findings if f.severity == _Sev.CRITICAL]
     high = [f for f in result.findings if f.severity == _Sev.HIGH]
     if critical or high:
@@ -175,8 +175,7 @@ def render_markdown_report(result: ScanResult, writer) -> str:
         for i, f in enumerate(critical + high, 1):
             label = f.attack_type.value if f.attack_type else "Unknown"
             lines.append(
-                f"- [ ] **[{f.severity.value.upper()}] {label}** — "
-                f"{f.method} {f.url} — disclosed to owner: ____ (date)"
+                f"- [ ] **[{f.severity.value.upper()}] {label}** — {f.method} {f.url} — disclosed to owner: ____ (date)"
             )
         lines += [""]
 
@@ -260,9 +259,7 @@ def render_markdown_report(result: ScanResult, writer) -> str:
         if h.get("redirect_chain"):
             lines += ["### Redirect chain (observed)", ""]
             for hop in h["redirect_chain"][-10:]:
-                lines.append(
-                    f"- `{hop.get('status')}` {hop.get('from', '')} -> {hop.get('to', '')}"
-                )
+                lines.append(f"- `{hop.get('status')}` {hop.get('from', '')} -> {hop.get('to', '')}")
             lines += [""]
 
     if result.errors:
@@ -296,8 +293,6 @@ def render_markdown_report(result: ScanResult, writer) -> str:
     return "\n".join(lines)
 
 
-
-
 def finding_section(ordinal: int, f) -> list[str]:
     label = f.attack_type.value if f.attack_type else "Unknown"
     if f.verified:
@@ -308,13 +303,10 @@ def finding_section(ordinal: int, f) -> list[str]:
         f"### {ordinal}. [{f.severity.value.upper()}] {label}{mark}",
         "",
         f"- **URL** `{f.method.upper()} {f.url}`",
-        f"- **Param** `{f.param}` ({f.location}) · **Confidence** {f.confidence:.2f} "
-        f"· **Status** {f.status or 'n/a'}",
+        f"- **Param** `{f.param}` ({f.location}) · **Confidence** {f.confidence:.2f} · **Status** {f.status or 'n/a'}",
     ]
     if f.cvss_score is not None:
-        lines.append(
-            f"- **CVSS** {f.cvss_score} — `{f.cvss_vector}`"
-        )
+        lines.append(f"- **CVSS** {f.cvss_score} — `{f.cvss_vector}`")
     if f.payload:
         # Guard the code fence: a payload containing ``` would break out
         # and inject raw markdown into the report.
@@ -352,8 +344,6 @@ def finding_section(ordinal: int, f) -> list[str]:
     if f.poc_python:
         lines += ["- **PoC (python)**", "", "```python", f.poc_python, "```", ""]
     return lines
-
-
 
 
 def business_logic_section(result: ScanResult) -> list[str]:
@@ -409,4 +399,3 @@ def business_logic_section(result: ScanResult) -> list[str]:
         lines += ["No significant business-impact findings identified.", ""]
 
     return lines
-

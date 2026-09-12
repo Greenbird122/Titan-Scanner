@@ -1,4 +1,5 @@
 """Tests for the source/bundle hardcoded-secret detector."""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -91,9 +92,7 @@ def _ctx():
 
 def test_firebase_config_and_key_fire():
     ctx = _ctx()
-    findings = asyncio.run(
-        SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/firebase", {})
-    )
+    findings = asyncio.run(SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/firebase", {}))
     labels = {f.metadata["secret_type"] for f in findings}
     assert "Google/Firebase API Key" in labels
     assert "Firebase client config exposed" in labels
@@ -106,9 +105,7 @@ def test_firebase_config_and_key_fire():
 
 def test_finding_shape():
     ctx = _ctx()
-    findings = asyncio.run(
-        SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/firebase", {})
-    )
+    findings = asyncio.run(SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/firebase", {}))
     f = findings[0]
     assert f.attack_type.value == "Hardcoded Secret"
     assert f.verified is True
@@ -118,16 +115,12 @@ def test_finding_shape():
 
 def test_bundle_github_pat_fires():
     ctx = _ctx()
-    findings = asyncio.run(
-        SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/bundle", {})
-    )
+    findings = asyncio.run(SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/bundle", {}))
     assert any("GitHub Personal Access Token" in f.payload for f in findings)
     assert any("ghp_123456789012345678901234567890123456" in f.payload for f in findings)
 
 
 def test_clean_page_no_findings():
     ctx = _ctx()
-    findings = asyncio.run(
-        SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/clean", {})
-    )
+    findings = asyncio.run(SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/clean", {}))
     assert findings == []

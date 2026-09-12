@@ -4,7 +4,6 @@ Pure functions and small helpers that have no engine state dependencies.
 Keeps the engine focused on orchestration.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -22,6 +21,7 @@ logger = get_logger("helpers")
 # ---------------------------------------------------------------------------
 # Async task helpers
 # ---------------------------------------------------------------------------
+
 
 def consume_task_exception(task: asyncio.Task) -> None:
     """Done-callback that swallows a task's exception so an abandoned task
@@ -42,6 +42,7 @@ def consume_task_exception(task: asyncio.Task) -> None:
 # URL helpers
 # ---------------------------------------------------------------------------
 
+
 def normalize_url(url: str) -> str:
     """Strip query string and fragment for deduplication purposes.
 
@@ -50,9 +51,7 @@ def normalize_url(url: str) -> str:
     into two identical findings.
     """
     parsed = urlparse(url)
-    normalized = urlunparse(
-        (parsed.scheme, parsed.netloc, parsed.path, parsed.params, "", "")
-    )
+    normalized = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, "", ""))
     return normalized.split("#")[0]
 
 
@@ -82,6 +81,7 @@ def is_soft_404(body: str) -> bool:
 # ---------------------------------------------------------------------------
 # Finding deduplication
 # ---------------------------------------------------------------------------
+
 
 def dedupe_findings(findings: list, root_cause_types: frozenset[str]) -> list:
     """Deduplicate findings by (normalized_url, param, attack_type).
@@ -114,11 +114,7 @@ def dedupe_findings(findings: list, root_cause_types: frozenset[str]) -> list:
     root: dict[tuple, Finding] = {}
     out: list[Finding] = []
     for f in deduped:
-        if (
-            f.attack_type is not None
-            and f.attack_type.value in root_cause_types
-            and f.payload
-        ):
+        if f.attack_type is not None and f.attack_type.value in root_cause_types and f.payload:
             key = (f.attack_type.value, f.payload, f.verified)
             if key in root:
                 rep = root[key]
@@ -152,6 +148,7 @@ def dedupe_apis(apis: list[str]) -> list[str]:
 # JSON URL extraction
 # ---------------------------------------------------------------------------
 
+
 def extract_urls_from_json(json_text: str, is_in_scope: Any) -> list[str]:
     """Parse a JSON response body and extract in-scope URLs."""
     urls: list[str] = []
@@ -168,8 +165,7 @@ def _scan_json_for_urls(obj: Any, is_in_scope: Any) -> list[str]:
     """Recursively scan a JSON object for URL-like values."""
     urls: list[str] = []
     if isinstance(obj, dict):
-        for key in ("url", "href", "link", "path", "endpoint", "api",
-                     "next", "previous"):
+        for key in ("url", "href", "link", "path", "endpoint", "api", "next", "previous"):
             val = obj.get(key)
             if isinstance(val, str) and val.startswith("http") and is_in_scope(val):
                 urls.append(val)

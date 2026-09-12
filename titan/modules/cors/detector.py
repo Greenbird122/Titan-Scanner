@@ -12,7 +12,6 @@ This module:
 6. Pre-flight abuse
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class CORSPayload:
     """A CORS test payload."""
+
     name: str
     origin: str
     expected_effect: str
@@ -200,6 +199,7 @@ class CORSTester:
     ) -> dict[str, Any] | None:
         try:
             import aiohttp
+
             h = {**(headers or {}), "Origin": origin}
             async with aiohttp.ClientSession() as session:
                 async with session.options(url, headers=h, timeout=aiohttp.ClientTimeout(total=5)) as resp:

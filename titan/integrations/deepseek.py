@@ -1,6 +1,5 @@
 """DeepSeek integration for Titan Scanner."""
 
-
 from __future__ import annotations
 
 import os
@@ -10,7 +9,6 @@ from typing import Any
 from titan.core.logger import get_logger
 
 logger = get_logger("deepseek")
-
 
 
 class DeepSeekClient:
@@ -27,12 +25,16 @@ class DeepSeekClient:
             if parent not in sys.path:
                 sys.path.insert(0, parent)
             from dsk.api import create_api
+
             model = self.config.get("model", "deepseek-chat")
             fallback = self.config.get("fallback", "ollama")
-            self._client = create_api(default_model=f"deepseek/{model}", fallback_model=f"ollama/{fallback}" if fallback else "")
+            self._client = create_api(
+                default_model=f"deepseek/{model}", fallback_model=f"ollama/{fallback}" if fallback else ""
+            )
         except Exception:
             try:
                 from provider import DeepSeekProvider
+
                 self._client = DeepSeekProvider()
             except Exception:
                 self._client = None
@@ -54,6 +56,7 @@ class DeepSeekClient:
 
     def generate_sync(self, prompt: str) -> str:
         import asyncio
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():

@@ -17,7 +17,6 @@ from titan.core.models import Finding
 logger = get_logger("auto_verify")
 
 
-
 class AutoVerifier:
     """Deterministic auto-verification using negative controls."""
 
@@ -47,14 +46,12 @@ class AutoVerifier:
         controls = self._generate_controls(finding)
         results: list[tuple[str, str, int]] = []
 
-        for payload in controls[:self.max_control_payloads]:
+        for payload in controls[: self.max_control_payloads]:
             try:
                 resp = await self._send(context, finding, payload)
                 body = await resp.text() if hasattr(resp, "text") else ""
                 status = getattr(resp, "status", 0)
-                error_classes = self._extract_new_error_classes(
-                    finding.baseline_body or "", body
-                )
+                error_classes = self._extract_new_error_classes(finding.baseline_body or "", body)
                 results.append((body, error_classes, status))
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
@@ -118,32 +115,22 @@ class AutoVerifier:
         if finding.location == "header":
             headers = {"Referer": finding.target}
             if finding.method.upper() == "GET":
-                return await context.request.get(
-                    finding.url, headers=headers, timeout=3000
-                )
-            return await context.request.post(
-                finding.url, headers=headers, timeout=3000
-            )
+                return await context.request.get(finding.url, headers=headers, timeout=3000)
+            return await context.request.post(finding.url, headers=headers, timeout=3000)
 
         params = {finding.param: payload}
         if finding.method.upper() == "GET":
             return await context.request.get(
                 finding.url, params=params, headers={"Referer": finding.target}, timeout=3000
             )
-        return await context.request.post(
-            finding.url, data=params, headers={"Referer": finding.target}, timeout=3000
-        )
+        return await context.request.post(finding.url, data=params, headers={"Referer": finding.target}, timeout=3000)
 
-    def _should_demote(
-        self, finding: Finding, controls: list[tuple[str, str, int]]
-    ) -> bool:
+    def _should_demote(self, finding: Finding, controls: list[tuple[str, str, int]]) -> bool:
         """Return True if the finding should be demoted based on control results."""
         original_body = finding.body or ""
         original_status = finding.status or 0
         baseline_body = finding.baseline_body or ""
-        original_error_classes = set(self._extract_new_error_classes(
-            baseline_body, original_body
-        ))
+        original_error_classes = set(self._extract_new_error_classes(baseline_body, original_body))
 
         for control_body, control_error_classes, control_status in controls:
             if not control_body:
@@ -246,15 +233,35 @@ class AutoVerifier:
         test_classes = set()
 
         error_patterns = [
-            ("sql", ["sql syntax", "mysql_fetch", "ora-", "postgresql", "sqlstate",
-                     "unclosed quotation", "quoted string not properly terminated"]),
-            ("filesystem", ["no such file", "file not found", "permission denied",
-                            "access is denied", "system cannot find"]),
+            (
+                "sql",
+                [
+                    "sql syntax",
+                    "mysql_fetch",
+                    "ora-",
+                    "postgresql",
+                    "sqlstate",
+                    "unclosed quotation",
+                    "quoted string not properly terminated",
+                ],
+            ),
+            (
+                "filesystem",
+                ["no such file", "file not found", "permission denied", "access is denied", "system cannot find"],
+            ),
             ("xml", ["parser error", "not well-formed", "xml parsing"]),
             ("java", ["java.lang.", "exception in thread", "servlet", "springframework"]),
             ("python", ["traceback", "filenotfounderror", "valueerror", "typeerror"]),
-            ("generic", ["internal server error", "500 internal", "server error",
-                         "unhandled exception", "nullreferenceexception"]),
+            (
+                "generic",
+                [
+                    "internal server error",
+                    "500 internal",
+                    "server error",
+                    "unhandled exception",
+                    "nullreferenceexception",
+                ],
+            ),
         ]
 
         test_lower = test_body.lower()

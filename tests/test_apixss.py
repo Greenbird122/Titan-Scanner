@@ -1,4 +1,5 @@
 """Tests for the API-fed DOM-sink detector (git-vizor F6 harvest)."""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -137,9 +138,7 @@ def _ctx():
 def test_git_vizor_api_fed_sink_fires():
     """The F6 harvest: fetch() -> repo.description -> card.innerHTML."""
     ctx = _ctx()
-    findings = asyncio.run(
-        ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/analyzer", {})
-    )
+    findings = asyncio.run(ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/analyzer", {}))
     api = [f for f in findings if f.metadata.get("source") == "api"]
     assert api, "expected an api-fed sink finding"
     f = api[0]
@@ -154,9 +153,7 @@ def test_git_vizor_api_fed_sink_fires():
 
 def test_param_fed_sink_fires_medium():
     ctx = _ctx()
-    findings = asyncio.run(
-        ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/param", {})
-    )
+    findings = asyncio.run(ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/param", {}))
     assert any(f.metadata.get("source") == "param" for f in findings)
     f = [f for f in findings if f.metadata.get("source") == "param"][0]
     assert f.severity == Severity.HIGH  # user input into innerHTML is classic DOM XSS
@@ -164,18 +161,14 @@ def test_param_fed_sink_fires_medium():
 
 def test_static_page_no_findings():
     ctx = _ctx()
-    findings = asyncio.run(
-        ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/clean", {})
-    )
+    findings = asyncio.run(ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/clean", {}))
     assert findings == []
 
 
 def test_third_party_bundle_not_fetched():
     """CDN-only bundles are out of scope — the fetcher must skip them."""
     ctx = _ctx()
-    findings = asyncio.run(
-        ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/cdn", {})
-    )
+    findings = asyncio.run(ApiXssDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/cdn", {}))
     assert findings == []
 
 

@@ -54,66 +54,71 @@ class SupplyChainDetector:
             # Check for pull_request_target misuse
             if "pull_request_target" in content:
                 # Check if it also checks out code
-                has_checkout = any(
-                    checkout in content
-                    for checkout in self.DANGEROUS_ACTIONS_WITH_CHECKOUT
-                )
+                has_checkout = any(checkout in content for checkout in self.DANGEROUS_ACTIONS_WITH_CHECKOUT)
 
                 if has_checkout:
-                    findings.append({
-                        "type": "supply_chain_ppe",
-                        "severity": "critical",
-                        "title": "Poisoned Pipeline Execution Risk",
-                        "evidence": (
-                            f"Workflow '{name}' uses pull_request_target "
-                            f"with actions/checkout — attacker-controlled PRs "
-                            f"can execute code with repo secrets"
-                        ),
-                        "flow_types": ["code_exec", "creds"],
-                        "cvss": 9.8,
-                        "remediation": (
-                            "Remove actions/checkout from pull_request_target jobs, "
-                            "or use explicit ref: ${{ github.event.pull_request.head.sha }}"
-                        ),
-                    })
+                    findings.append(
+                        {
+                            "type": "supply_chain_ppe",
+                            "severity": "critical",
+                            "title": "Poisoned Pipeline Execution Risk",
+                            "evidence": (
+                                f"Workflow '{name}' uses pull_request_target "
+                                f"with actions/checkout — attacker-controlled PRs "
+                                f"can execute code with repo secrets"
+                            ),
+                            "flow_types": ["code_exec", "creds"],
+                            "cvss": 9.8,
+                            "remediation": (
+                                "Remove actions/checkout from pull_request_target jobs, "
+                                "or use explicit ref: ${{ github.event.pull_request.head.sha }}"
+                            ),
+                        }
+                    )
 
             # Check for secret leakage
             for pattern, secret_type in self.SECRET_PATTERNS:
                 matches = re.findall(pattern, content)
                 if matches:
-                    findings.append({
-                        "type": "supply_chain_secret_leak",
-                        "severity": "high",
-                        "title": f"CI/CD Secret Leakage: {secret_type}",
-                        "evidence": f"Workflow '{name}' exposes secrets via {pattern}",
-                        "flow_types": ["creds"],
-                        "cvss": 7.5,
-                    })
+                    findings.append(
+                        {
+                            "type": "supply_chain_secret_leak",
+                            "severity": "high",
+                            "title": f"CI/CD Secret Leakage: {secret_type}",
+                            "evidence": f"Workflow '{name}' exposes secrets via {pattern}",
+                            "flow_types": ["creds"],
+                            "cvss": 7.5,
+                        }
+                    )
 
             # Check for write permissions
             if "permissions:" in content:
                 if "contents: write" in content or "packages: write" in content:
-                    findings.append({
-                        "type": "supply_chain_over_permission",
-                        "severity": "medium",
-                        "title": "CI/CD Workflow Has Write Permissions",
-                        "evidence": f"Workflow '{name}' requests write access",
-                        "flow_types": ["code_exec"],
-                        "cvss": 5.3,
-                    })
+                    findings.append(
+                        {
+                            "type": "supply_chain_over_permission",
+                            "severity": "medium",
+                            "title": "CI/CD Workflow Has Write Permissions",
+                            "evidence": f"Workflow '{name}' requests write access",
+                            "flow_types": ["code_exec"],
+                            "cvss": 5.3,
+                        }
+                    )
 
             # Check for unpinned actions (mutable refs)
             unpinned = re.findall(r"uses:\s+(\w+/[\w-]+)@(?!(v\d|[0-9a-f]{40}))([\w-]+)", content)
             if unpinned:
-                findings.append({
-                    "type": "supply_chain_unpinned_action",
-                    "severity": "medium",
-                    "title": "Unpinned GitHub Actions (Mutable Refs)",
-                    "evidence": f"Workflow '{name}' uses unpinned actions: {[u[0]+'@'+u[2] for u in unpinned]}",
-                    "flow_types": ["code_exec"],
-                    "cvss": 6.5,
-                    "remediation": "Pin actions to full SHA commit hashes",
-                })
+                findings.append(
+                    {
+                        "type": "supply_chain_unpinned_action",
+                        "severity": "medium",
+                        "title": "Unpinned GitHub Actions (Mutable Refs)",
+                        "evidence": f"Workflow '{name}' uses unpinned actions: {[u[0] + '@' + u[2] for u in unpinned]}",
+                        "flow_types": ["code_exec"],
+                        "cvss": 6.5,
+                        "remediation": "Pin actions to full SHA commit hashes",
+                    }
+                )
 
         return findings
 
@@ -132,15 +137,17 @@ class SupplyChainDetector:
         for name, version in all_deps.items():
             # Check if package exists on public registry
             if not self._check_registry_exists(name, registry):
-                findings.append({
-                    "type": "supply_chain_dependency_confusion",
-                    "severity": "high",
-                    "title": f"Dependency Confusion Risk: '{name}'",
-                    "evidence": f"Package '{name}' not found on {registry} — could be replaced by attacker-published version",
-                    "flow_types": ["code_exec", "data_leak"],
-                    "cvss": 8.1,
-                    "remediation": f"Publish '{name}' to {registry} as a private/empty package to reserve the name",
-                })
+                findings.append(
+                    {
+                        "type": "supply_chain_dependency_confusion",
+                        "severity": "high",
+                        "title": f"Dependency Confusion Risk: '{name}'",
+                        "evidence": f"Package '{name}' not found on {registry} — could be replaced by attacker-published version",
+                        "flow_types": ["code_exec", "data_leak"],
+                        "cvss": 8.1,
+                        "remediation": f"Publish '{name}' to {registry} as a private/empty package to reserve the name",
+                    }
+                )
 
         return findings
 
@@ -148,9 +155,21 @@ class SupplyChainDetector:
         """Check for common typosquatting targets in dependencies."""
         findings = []
         known_packages = {
-            "express", "lodash", "react", "axios", "webpack",
-            "moment", "chalk", "commander", "debug", "semver",
-            "minimist", "glob", "rimraf", "mkdirp", "uuid",
+            "express",
+            "lodash",
+            "react",
+            "axios",
+            "webpack",
+            "moment",
+            "chalk",
+            "commander",
+            "debug",
+            "semver",
+            "minimist",
+            "glob",
+            "rimraf",
+            "mkdirp",
+            "uuid",
         }
 
         dependencies = package_json.get("dependencies", {})
@@ -158,14 +177,16 @@ class SupplyChainDetector:
             # Check for levenshtein distance < 2 from known packages
             for known in known_packages:
                 if name != known and self._levenshtein(name, known) <= 2:
-                    findings.append({
-                        "type": "supply_chain_typosquatting",
-                        "severity": "high",
-                        "title": f"Possible Typosquatting: '{name}' ≈ '{known}'",
-                        "evidence": f"Package name is close to popular package '{known}'",
-                        "flow_types": ["code_exec"],
-                        "cvss": 7.5,
-                    })
+                    findings.append(
+                        {
+                            "type": "supply_chain_typosquatting",
+                            "severity": "high",
+                            "title": f"Possible Typosquatting: '{name}' ≈ '{known}'",
+                            "evidence": f"Package name is close to popular package '{known}'",
+                            "flow_types": ["code_exec"],
+                            "cvss": 7.5,
+                        }
+                    )
 
         return findings
 

@@ -43,6 +43,7 @@ class _Result:
 def _result():
     return _Result()
 
+
 ALL_DISABLED = {
     "llm": {"enabled": False},
     "cloud": {"storage": {"enabled": False}, "imds": {"enabled": False}},

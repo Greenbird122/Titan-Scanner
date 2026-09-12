@@ -34,6 +34,7 @@ def _load_finding(raw: dict[str, Any]) -> Finding:
         if isinstance(val, str):
             try:
                 from titan.core.models import Severity
+
                 return Severity(val)
             except ValueError:
                 return Severity.UNCONFIRMED
@@ -43,6 +44,7 @@ def _load_finding(raw: dict[str, Any]) -> Finding:
         if isinstance(val, str):
             try:
                 from titan.core.models import AttackType
+
                 return AttackType(val)
             except ValueError:
                 return None
@@ -221,25 +223,13 @@ class TitanREPL:
         value = args[1].lower() if len(args) > 1 else ""
 
         if key in ("severity", "sev"):
-            self._filtered = [
-                f for f in self.findings
-                if f.severity.value.lower() == value
-            ]
+            self._filtered = [f for f in self.findings if f.severity.value.lower() == value]
         elif key in ("type", "attack", "module"):
-            self._filtered = [
-                f for f in self.findings
-                if f.attack_type and f.attack_type.value.lower() == value
-            ]
+            self._filtered = [f for f in self.findings if f.attack_type and f.attack_type.value.lower() == value]
         elif key in ("verified",):
-            self._filtered = [
-                f for f in self.findings
-                if f.verified == (value not in ("false", "0", "no"))
-            ]
+            self._filtered = [f for f in self.findings if f.verified == (value not in ("false", "0", "no"))]
         elif key in ("tier",):
-            self._filtered = [
-                f for f in self.findings
-                if (f.tier or "").lower() == value
-            ]
+            self._filtered = [f for f in self.findings if (f.tier or "").lower() == value]
         else:
             print(f"[!] unknown filter key: {key}")
             return
@@ -263,9 +253,11 @@ class TitanREPL:
             print(f"coverage:  {cov.get('status', '?')} — {cov.get('reason', '')}")
         hostile = self.meta.get("hostile", {})
         if hostile:
-            print(f"hostile:   monetization_score={hostile.get('monetization_score')} "
-                  f"origins={hostile.get('origins', 0)} "
-                  f"findings={hostile.get('hostile_findings', 0)}")
+            print(
+                f"hostile:   monetization_score={hostile.get('monetization_score')} "
+                f"origins={hostile.get('origins', 0)} "
+                f"findings={hostile.get('hostile_findings', 0)}"
+            )
 
     def cmd_repro(self, args: list[str]) -> None:
         if not args:
@@ -321,6 +313,7 @@ class TitanREPL:
 
     def cmd_count(self, _args: list[str]) -> None:
         from collections import Counter
+
         sev = Counter(f.severity.value for f in self.findings)
         types = Counter(f.attack_type.value for f in self.findings if f.attack_type)
         print("by severity:")

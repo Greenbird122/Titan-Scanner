@@ -17,6 +17,7 @@ from titan.core.models import Severity
 @dataclass
 class SupabasePayload:
     """A Supabase-specific test payload."""
+
     name: str
     category: str
     endpoint: str

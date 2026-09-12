@@ -14,6 +14,7 @@ Usage:
         --logout /api/auth/logout/ \
         --user '{"phone":"+2547...","password":"..."}'
 """
+
 import argparse
 import base64
 import json
@@ -56,6 +57,7 @@ def main():
     args = ap.parse_args()
 
     from urllib.parse import urlparse
+
     host = urlparse(args.target).netloc
     c = load_consent(host)
     print(f"[consent] {host} flags={c.get('flags')}")
@@ -76,8 +78,10 @@ def main():
     # JWT claims
     try:
         p = json.loads(b64d(access.split(".")[1]))
-        print(f"[jwt] claims: token_type={p.get('token_type')} role={p.get('role')} "
-              f"jti={'PRESENT' if p.get('jti') else 'MISSING'} user_id={p.get('user_id')}")
+        print(
+            f"[jwt] claims: token_type={p.get('token_type')} role={p.get('role')} "
+            f"jti={'PRESENT' if p.get('jti') else 'MISSING'} user_id={p.get('user_id')}"
+        )
     except Exception as e:
         print(f"[jwt] decode failed: {e}")
 
@@ -86,8 +90,10 @@ def main():
     time.sleep(0.5)
     st2, b2 = http("POST", base + args.refresh, {"refresh": refresh})
     rotated = st1 == 200 and st2 != 200
-    print(f"[rotation] refresh#1 -> {st1}, refresh#2(same) -> {st2}  "
-          f"{'ROTATION OK' if rotated else 'NO ROTATION (reusable token)'}")
+    print(
+        f"[rotation] refresh#1 -> {st1}, refresh#2(same) -> {st2}  "
+        f"{'ROTATION OK' if rotated else 'NO ROTATION (reusable token)'}"
+    )
 
     # logout invalidation
     if args.logout:
@@ -95,8 +101,10 @@ def main():
         time.sleep(0.5)
         st3, _ = http("POST", base + args.refresh, {"refresh": refresh})
         revoked = st3 != 200
-        print(f"[logout] {args.logout} -> {st}; refresh after logout -> {st3}  "
-              f"{'REVOKED' if revoked else 'LOGOUT IS COSMETIC (token still valid)'}")
+        print(
+            f"[logout] {args.logout} -> {st}; refresh after logout -> {st3}  "
+            f"{'REVOKED' if revoked else 'LOGOUT IS COSMETIC (token still valid)'}"
+        )
 
     return 0
 

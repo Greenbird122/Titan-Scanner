@@ -36,6 +36,7 @@ _BUCKET_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("r2", re.compile(r"https?://([a-z0-9][a-z0-9.\-]*)\.r2\.cloudflarestorage\.com", re.IGNORECASE)),
 ]
 
+
 # Provider -> listing endpoint. S3-style XML listing with object keys covers
 # S3, GCS (list-type=2) and R2; Azure blob containers answer with <Blob>.
 def _listing_url(bucket: str, provider: str) -> str:
@@ -108,6 +109,7 @@ class StorageProbe:
             return await self._fetcher(url)
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session, session.get(url, timeout=_TIMEOUT) as resp:
                 body = await resp.text()
                 return resp.status, body

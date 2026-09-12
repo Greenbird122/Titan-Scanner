@@ -5,7 +5,6 @@ Detectors never know which transport they're using — they just call
 transport.send(request) and get a response back.
 """
 
-
 from __future__ import annotations
 
 import enum
@@ -22,8 +21,10 @@ logger = get_logger("base")
 # Enums
 # ---------------------------------------------------------------------------
 
+
 class TransportProtocol(enum.Enum):
     """Supported transport protocols."""
+
     HTTP = "http"
     HTTPS = "https"
     ONION = "onion"
@@ -36,6 +37,7 @@ class TransportProtocol(enum.Enum):
 
 class RequestMethod(enum.Enum):
     """HTTP methods (also used for gRPC, WebSocket, etc.)."""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -49,6 +51,7 @@ class RequestMethod(enum.Enum):
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class AttackRequest:
     """A request to send through any transport.
@@ -57,6 +60,7 @@ class AttackRequest:
     Detectors create AttackRequests; transports convert them to
     protocol-specific wire format (HTTP headers, gRPC messages, etc.).
     """
+
     url: str
     method: RequestMethod = RequestMethod.GET
     headers: dict[str, str] = field(default_factory=dict)
@@ -72,11 +76,13 @@ class AttackRequest:
     @property
     def host(self) -> str:
         from urllib.parse import urlparse
+
         return urlparse(self.url).hostname or ""
 
     @property
     def path(self) -> str:
         from urllib.parse import urlparse
+
         return urlparse(self.url).path or "/"
 
 
@@ -87,6 +93,7 @@ class AttackResponse:
     Normalized across all transports — detectors see the same
     interface whether the target is HTTP, gRPC, WebSocket, or MQTT.
     """
+
     status: int
     headers: dict[str, str] = field(default_factory=dict)
     body: bytes = b""
@@ -109,6 +116,7 @@ class AttackResponse:
     @property
     def json(self) -> Any:
         import json
+
         try:
             return json.loads(self.body)
         except Exception:
@@ -122,6 +130,7 @@ class AttackResponse:
 @dataclass
 class TargetDescriptor:
     """Describes a target for transport-level operations."""
+
     url: str
     protocol: TransportProtocol = TransportProtocol.HTTPS
     host: str = ""
@@ -131,6 +140,7 @@ class TargetDescriptor:
     def __post_init__(self):
         if not self.host:
             from urllib.parse import urlparse
+
             parsed = urlparse(self.url)
             self.host = parsed.hostname or ""
             self.port = parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -139,6 +149,7 @@ class TargetDescriptor:
 @dataclass
 class TransportIdentity:
     """Current transport identity (for tracking circuit rotation, IP changes, etc.)."""
+
     protocol: str = ""
     circuit_id: str = ""
     source_ip: str = ""
@@ -148,6 +159,7 @@ class TransportIdentity:
 # ---------------------------------------------------------------------------
 # Transport Protocol (the interface every transport implements)
 # ---------------------------------------------------------------------------
+
 
 class Transport(Protocol):
     """Protocol-agnostic transport interface.
@@ -178,6 +190,7 @@ class Transport(Protocol):
 # ---------------------------------------------------------------------------
 # Transport Registry
 # ---------------------------------------------------------------------------
+
 
 class TransportRegistry:
     """Registry of available transports.
@@ -223,12 +236,14 @@ class TransportRegistry:
         """Auto-detect and register available transports."""
         # Always register HTTP (it's the baseline)
         from titan.transport.http_transport import HttpTransport
+
         http = HttpTransport()
         self.register("http", http, [TransportProtocol.HTTP, TransportProtocol.HTTPS])
 
         # Try to register Tor
         try:
             from titan.transport.tor import TorTransport
+
             tor = TorTransport()
             if TorTransport.is_available():
                 self.register("tor", tor, [TransportProtocol.ONION])
@@ -239,16 +254,19 @@ class TransportRegistry:
         # Try to register gRPC
         if importlib.util.find_spec("grpc") is not None:
             from titan.transport.grpc import GrpcTransport
+
             self.register("grpc", GrpcTransport(), [TransportProtocol.GRPC])
 
         # Try to register WebSocket
         if importlib.util.find_spec("aiohttp") is not None:
             from titan.transport.websocket import WebSocketTransport
+
             self.register("websocket", WebSocketTransport(), [TransportProtocol.WEBSOCKET])
 
         # Try to register MQTT
         if importlib.util.find_spec("aiomqtt") is not None:
             from titan.transport.mqtt import MqttTransport
+
             self.register("mqtt", MqttTransport(), [TransportProtocol.MQTT])
 
     @property

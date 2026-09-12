@@ -26,9 +26,7 @@ scenario_fixtures_bp = Blueprint("scenario_fixtures", __name__)
 # must discover the route AND recognize the high-entropy gate; the blue side
 # must surface hidden assets and flag high-entropy served content.
 PUZZLE_PLAIN = "TITAN-PUZZLE-KEY-3301"
-PUZZLE_CIPHER = base64.b64encode(
-    bytes(b ^ 0x5A for b in PUZZLE_PLAIN.encode("utf-8"))
-).decode("ascii")
+PUZZLE_CIPHER = base64.b64encode(bytes(b ^ 0x5A for b in PUZZLE_PLAIN.encode("utf-8"))).decode("ascii")
 
 
 @scenario_fixtures_bp.route("/puzzle")
@@ -191,10 +189,7 @@ def reset():
 def search():
     q = request.args.get("q", "")
     host = request.headers.get("X-Forwarded-Host", "") or request.host
-    body = (
-        "<html><body><h1>Search</h1>"
-        f"<p>You searched: {q}</p><p>cached host: {host}</p></body></html>"
-    )
+    body = f"<html><body><h1>Search</h1><p>You searched: {q}</p><p>cached host: {host}</p></body></html>"
     resp = make_response(body)
     resp.headers["X-Cache"] = "HIT"
     resp.headers["Age"] = "5"

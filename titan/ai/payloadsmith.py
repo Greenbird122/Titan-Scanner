@@ -1,6 +1,5 @@
 """AI-powered payload mutation using DeepSeek."""
 
-
 from __future__ import annotations
 
 import asyncio
@@ -13,7 +12,6 @@ from titan.ai.payloadforge import PayloadForge
 from titan.core.logger import get_logger
 
 logger = get_logger("payloadsmith")
-
 
 
 class PayloadSmith:
@@ -31,12 +29,16 @@ class PayloadSmith:
             if parent not in sys.path:
                 sys.path.insert(0, parent)
             from dsk.api import create_api
+
             model = self.config.get("model", "deepseek-chat")
             fallback = self.config.get("fallback", "ollama")
-            self._client = create_api(default_model=f"deepseek/{model}", fallback_model=f"ollama/{fallback}" if fallback else "")
+            self._client = create_api(
+                default_model=f"deepseek/{model}", fallback_model=f"ollama/{fallback}" if fallback else ""
+            )
         except Exception:
             try:
                 from provider import DeepSeekProvider
+
                 self._client = DeepSeekProvider()
             except Exception:
                 self._client = None
@@ -63,9 +65,7 @@ class PayloadSmith:
             host = parsed.hostname or "localhost"
             port = parsed.port or 11434
             try:
-                _, writer = await asyncio.wait_for(
-                    asyncio.open_connection(host, port), timeout=1.0
-                )
+                _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=1.0)
                 writer.close()
                 try:
                     await writer.wait_closed()
@@ -82,9 +82,7 @@ class PayloadSmith:
     async def _call_chat(self, session, prompt: str) -> list[dict[str, Any]]:
         # chat_completion is synchronous/streaming — run it in a thread so
         # asyncio.wait_for can actually interrupt a slow provider.
-        return await asyncio.to_thread(
-            lambda: list(self._client.chat_completion(session, prompt))
-        )
+        return await asyncio.to_thread(lambda: list(self._client.chat_completion(session, prompt)))
 
     async def mutate(self, base_payloads: list[str], context: dict[str, Any]) -> list[str]:
         if not self._client:
@@ -211,9 +209,7 @@ CHAINS:"""
         try:
             if hasattr(self._client, "chat_completion"):
                 session = self._client.create_chat_session()
-                chunks = await asyncio.to_thread(
-                    lambda: list(self._client.chat_completion(session, prompt))
-                )
+                chunks = await asyncio.to_thread(lambda: list(self._client.chat_completion(session, prompt)))
                 text = "".join(c.get("content", "") for c in chunks if c.get("type") == "text")
             elif hasattr(self._client, "generate"):
                 text = await asyncio.wait_for(self._client.generate(prompt), timeout=15)
@@ -221,6 +217,7 @@ CHAINS:"""
                 return []
 
             import json
+
             start = text.find("[")
             end = text.rfind("]") + 1
             if start >= 0 and end > start:

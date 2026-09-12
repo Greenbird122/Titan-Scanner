@@ -17,7 +17,6 @@ Features:
      • Cross-module FP isolation (eval errors only, no filesystem errors)
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -59,7 +58,7 @@ _SSTI_ESCAPE_PROBES: tuple[str, ...] = (
     "{{config}}",
     "{{self.__init__.__globals__.__builtins__}}",
     "{{_self.env.registerUndefinedFilterCallback('exec')}}",
-    "<#assign ex=\"freemarker.template.utility.Execute\"?new()>",
+    '<#assign ex="freemarker.template.utility.Execute"?new()>',
     "{$smarty.version}",
     "${T(java.lang.Runtime).getRuntime()}",
 )
@@ -103,14 +102,9 @@ class SSTIDetector:
 
         # Build payload pool
         base_payloads = self.payload_smith.get_base_payloads("ssti", context_data)
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf))
 
         math_payloads = [p[0] for p in _SSTI_MATH_PROBES]
         all_payloads = list(dict.fromkeys(math_payloads + list(_SSTI_ESCAPE_PROBES) + base_payloads))
@@ -167,31 +161,37 @@ class SSTIDetector:
                         resp = await context.request.post(url, data=params, headers=inject_headers, timeout=3000)
                     body = await resp.text()
 
-                    if self._has_answer(body, answer) and not self._has_answer(baseline_body, answer) and probe not in body:
+                    if (
+                        self._has_answer(body, answer)
+                        and not self._has_answer(baseline_body, answer)
+                        and probe not in body
+                    ):
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, probe)
                         diffs.append(f"ssti:header_math_eval:{probe}={answer}")
                         diffs.append(f"ssti:engine:{engine}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method=method.upper(),
-                            param=header_name,
-                            location="header",
-                            payload=probe,
-                            attack_type=AttackType.SSTI,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.92,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "http_header", "engine": engine},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method=method.upper(),
+                                param=header_name,
+                                location="header",
+                                payload=probe,
+                                attack_type=AttackType.SSTI,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.92,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "http_header", "engine": engine},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -255,31 +255,37 @@ class SSTIDetector:
                     )
                     body = await resp.text()
 
-                    if self._has_answer(body, answer) and not self._has_answer(baseline_body, answer) and probe not in body:
+                    if (
+                        self._has_answer(body, answer)
+                        and not self._has_answer(baseline_body, answer)
+                        and probe not in body
+                    ):
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, probe)
                         diffs.append(f"ssti:json_math_eval:{probe}={answer}")
                         diffs.append(f"ssti:engine:{engine}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method="POST",
-                            param=".".join(str(p) for p in path),
-                            location="json_body",
-                            payload=probe,
-                            attack_type=AttackType.SSTI,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.90,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "json_ast", "json_path": path, "engine": engine},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method="POST",
+                                param=".".join(str(p) for p in path),
+                                location="json_body",
+                                payload=probe,
+                                attack_type=AttackType.SSTI,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.90,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "json_ast", "json_path": path, "engine": engine},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -324,9 +330,13 @@ class SSTIDetector:
 
         try:
             if method == "GET":
-                baseline_resp = await context.request.get(url, params=all_params, headers={"Referer": target}, timeout=3000)
+                baseline_resp = await context.request.get(
+                    url, params=all_params, headers={"Referer": target}, timeout=3000
+                )
             else:
-                baseline_resp = await context.request.post(url, data=all_params, headers={"Referer": target}, timeout=3000)
+                baseline_resp = await context.request.post(
+                    url, data=all_params, headers={"Referer": target}, timeout=3000
+                )
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
         except Exception as exc:
@@ -348,12 +358,20 @@ class SSTIDetector:
 
                 # Math-eval deterministic oracle:
                 # 1. Probe 777*777 -> 603729
-                if "777*777" in payload and self._has_answer(body, "603729") and not self._has_answer(baseline_body, "603729"):
+                if (
+                    "777*777" in payload
+                    and self._has_answer(body, "603729")
+                    and not self._has_answer(baseline_body, "603729")
+                ):
                     if payload not in body:  # Ensure raw template source wasn't just echoed
                         signals.append("sanity_pair")
                         diffs.append("ssti:math_eval:777*777=603729")
                 # 2. Probe 7*'7' -> 7777777 (Jinja2 discriminator)
-                elif "7*'7'" in payload and self._has_answer(body, "7777777") and not self._has_answer(baseline_body, "7777777"):
+                elif (
+                    "7*'7'" in payload
+                    and self._has_answer(body, "7777777")
+                    and not self._has_answer(baseline_body, "7777777")
+                ):
                     if payload not in body:
                         signals.append("sanity_pair")
                         diffs.append("ssti:math_eval:7*'7'=7777777")
@@ -381,7 +399,12 @@ class SSTIDetector:
                     signals.append("status_500")
 
                 # If the payload is simply reflected in the body without evaluation or actual error, skip it
-                if payload in body and "sanity_pair" not in signals and "error:template" not in signals and resp.status < 500:
+                if (
+                    payload in body
+                    and "sanity_pair" not in signals
+                    and "error:template" not in signals
+                    and resp.status < 500
+                ):
                     continue
 
                 if signals:
@@ -449,6 +472,3 @@ class SSTIDetector:
             if pattern in tl and pattern not in bl:
                 indicators.append(f"error_class:{label}")
         return indicators
-
-
-

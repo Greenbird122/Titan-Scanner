@@ -5,7 +5,6 @@ timeouts, early-exit optimization, identity-level testing, and
 browser-side detectors.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -33,9 +32,15 @@ class ModuleRunner:
     # ------------------------------------------------------------------
 
     async def _run_modules(
-        self, context: Any, target: str, forms: list, links: list,
-        apis: list, fingerprint: dict[str, Any],
-        result: Any = None, route_score: int = 5,
+        self,
+        context: Any,
+        target: str,
+        forms: list,
+        links: list,
+        apis: list,
+        fingerprint: dict[str, Any],
+        result: Any = None,
+        route_score: int = 5,
     ) -> list[Finding]:
         """Run attack modules against all endpoint groups.
 
@@ -48,6 +53,7 @@ class ModuleRunner:
         form_tasks = []
         for form in forms:
             from urllib.parse import urljoin
+
             action = form.get("action") or target
             action = urljoin(target, action)
             if not e._is_in_scope(action):
@@ -57,7 +63,11 @@ class ModuleRunner:
             if not data:
                 continue
             e._coverage["params_discovered"] += len(data)
-            form_tasks.append(self.engine._run_attack_modules(context, target, method, action, data, fingerprint, route_score=route_score))
+            form_tasks.append(
+                self.engine._run_attack_modules(
+                    context, target, method, action, data, fingerprint, route_score=route_score
+                )
+            )
 
         link_tasks = []
         for link in links:
@@ -66,12 +76,17 @@ class ModuleRunner:
             if not e._is_in_scope(link):
                 continue
             from urllib.parse import parse_qs, urlparse
+
             parsed = urlparse(link)
             params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
             if not params:
                 continue
             e._coverage["params_discovered"] += len(params)
-            link_tasks.append(self.engine._run_attack_modules(context, target, "GET", link, params, fingerprint, route_score=route_score))
+            link_tasks.append(
+                self.engine._run_attack_modules(
+                    context, target, "GET", link, params, fingerprint, route_score=route_score
+                )
+            )
 
         api_tasks = []
         for api in apis:
@@ -166,8 +181,17 @@ class ModuleRunner:
         is_spa_shell = "#" in url
         config_only_modules = {"cors", "headers", "crypto", "deser", "race", "cache", "smuggling"}
         expensive_modules = {
-            "sqli", "ssti", "nosqli", "xxe", "rce", "lfi",
-            "upload", "deser", "race", "smuggling", "parserdiff",
+            "sqli",
+            "ssti",
+            "nosqli",
+            "xxe",
+            "rce",
+            "lfi",
+            "upload",
+            "deser",
+            "race",
+            "smuggling",
+            "parserdiff",
         }
         cheap_modules = {"headers", "cors", "crypto", "auth", "idor", "logic"}
 
@@ -177,7 +201,14 @@ class ModuleRunner:
         async def run_with_limit(name: str, runner: Any) -> list[Finding]:
             async with e._module_semaphore:
                 return await self._run_single_module(
-                    name, runner, context, target, method, url, params, fingerprint,
+                    name,
+                    runner,
+                    context,
+                    target,
+                    method,
+                    url,
+                    params,
+                    fingerprint,
                 )
 
         # Batch 1: cheap modules
@@ -236,9 +267,15 @@ class ModuleRunner:
         return findings
 
     async def _run_single_module(
-        self, name: str, runner: Any, context: Any,
-        target: str, method: str, url: str,
-        params: dict[str, str], fingerprint: dict[str, Any],
+        self,
+        name: str,
+        runner: Any,
+        context: Any,
+        target: str,
+        method: str,
+        url: str,
+        params: dict[str, str],
+        fingerprint: dict[str, Any],
     ) -> list[Finding]:
         """Run a single module with timeout and WAF awareness."""
         e = self.engine
@@ -287,10 +324,13 @@ class ModuleRunner:
         module_lines = e._module_line_counts.get(name)
         if module_lines is None:
             import os
+
             try:
                 module_path = os.path.join(
                     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                    "modules", name, "detector.py",
+                    "modules",
+                    name,
+                    "detector.py",
                 )
                 if os.path.exists(module_path):
                     with open(module_path, encoding="utf-8") as f:
@@ -318,7 +358,11 @@ class ModuleRunner:
     # ------------------------------------------------------------------
 
     async def run_identity_modules(
-        self, context: Any, target: str, api_url: str, fingerprint: dict[str, Any],
+        self,
+        context: Any,
+        target: str,
+        api_url: str,
+        fingerprint: dict[str, Any],
     ) -> list[Finding]:
         """BOLA, mass assignment, JWT, session fixation across identities."""
         e = self.engine
@@ -330,12 +374,14 @@ class ModuleRunner:
         method = "GET"
         url = api_url.split("?")[0]
         from urllib.parse import parse_qs, urlparse
+
         qs = parse_qs(urlparse(api_url).query)
         params = {k: v[0] for k, v in qs.items() if v}
 
         # BOLA
         try:
             from titan.modules.bola.detector import BOLADetector
+
             bola = BOLADetector(e.payload_smith, fingerprint)
             findings.extend(await bola.scan(context, target, method, url, params, identities))
         except Exception as exc:
@@ -346,6 +392,7 @@ class ModuleRunner:
         if e._looks_like_api(url) or e._is_state_changing_path(url):
             try:
                 from titan.modules.massassignment.detector import MassAssignmentDetector
+
                 ma = MassAssignmentDetector(e.payload_smith, fingerprint)
                 findings.extend(await ma.scan(context, target, "POST", url, params))
             except Exception as exc:
@@ -355,6 +402,7 @@ class ModuleRunner:
         # JWT
         try:
             from titan.modules.jwt.detector import JWTDetector
+
             jwt_det = JWTDetector(e.payload_smith, fingerprint)
             findings.extend(await jwt_det.scan(context, target, method, url, params))
         except Exception as exc:
@@ -365,6 +413,7 @@ class ModuleRunner:
         if e._looks_like_api(url):
             try:
                 from titan.modules.sessionfix.detector import SessionFixationDetector
+
                 sf = SessionFixationDetector(e.payload_smith, fingerprint)
                 findings.extend(await sf.scan(context, target, "POST", url, params))
             except Exception as exc:
@@ -378,8 +427,12 @@ class ModuleRunner:
     # ------------------------------------------------------------------
 
     async def run_browser_modules(
-        self, context: Any, page: Any, target: str,
-        fingerprint: dict[str, Any], result: ScanResult,
+        self,
+        context: Any,
+        page: Any,
+        target: str,
+        fingerprint: dict[str, Any],
+        result: ScanResult,
     ) -> None:
         """Client-side browser security detectors."""
         e = self.engine
@@ -387,9 +440,7 @@ class ModuleRunner:
             return
 
         if not getattr(e, "_client_marker", None):
-            e._client_marker = "titanmx" + "".join(
-                random.choices("0123456789abcdef", k=12)
-            )
+            e._client_marker = "titanmx" + "".join(random.choices("0123456789abcdef", k=12))
 
         targets = [u for u in list(e.visited)[:2] if not e._is_spa_shell(u)]
         if not targets:
@@ -412,6 +463,7 @@ class ModuleRunner:
                 continue
             try:
                 from urllib.parse import parse_qs, urlparse
+
                 qs = parse_qs(urlparse(page_url).query)
                 params = {k: v[0] for k, v in qs.items() if v}
 
@@ -454,31 +506,37 @@ class ModuleRunner:
 
     async def _run_domxss(self, b_page, target: str, page_url: str, params: dict[str, str]):
         from titan.modules.clientside.domxss.detector import DomXSSDetector
+
         det = DomXSSDetector(self.engine.payload_smith, {})
         return await det.scan(b_page, target, page_url, params, marker=getattr(self.engine, "_client_marker", None))
 
     async def _run_postmessage(self, b_page, target: str, page_url: str, params: dict[str, str]):
         from titan.modules.clientside.postmessage.detector import PostMessageDetector
+
         det = PostMessageDetector(self.engine.payload_smith, {})
         return await det.scan(b_page, target, page_url, params)
 
     async def _run_proto_pollution(self, b_page, target: str, page_url: str, params: dict[str, str]):
         from titan.modules.clientside.prototype.detector import PrototypePollutionDetector
+
         det = PrototypePollutionDetector(self.engine.payload_smith, {})
         return await det.scan(b_page, target, page_url, params)
 
     async def _run_third_party(self, b_page, target: str, page_url: str, params: dict[str, str]):
         from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
+
         det = ThirdPartyDetector(self.engine.payload_smith, {})
         return await det.scan(b_page, target, page_url, params)
 
     async def _run_csp(self, b_page, target: str, page_url: str, params: dict[str, str]):
         from titan.modules.clientside.csp.detector import CSPDetector
+
         det = CSPDetector(self.engine.payload_smith, {})
         return await det.scan(b_page, target, page_url, params)
 
     async def _run_redirect(self, b_page, target: str, page_url: str, params: dict[str, str]):
         from titan.modules.redirect.detector import RedirectDetector
+
         det = RedirectDetector(self.engine.payload_smith, {})
         return await det.scan(b_page, target, page_url, params)
 
@@ -488,107 +546,134 @@ class ModuleRunner:
 
     async def _run_sqli(self, ctx, t, m, u, p, fp):
         from titan.modules.sqli.detector import SQLiDetector
+
         return await SQLiDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_xss(self, ctx, t, m, u, p, fp):
         from titan.modules.xss.detector import XSSDetector
+
         return await XSSDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_ssrf(self, ctx, t, m, u, p, fp):
         from titan.modules.ssrf.detector import SSRFDetector
+
         e = self.engine
         internal_paths = [
-            v for v in sorted(e._discovered_urls)
-            if v.startswith("http") and e._is_in_scope(v) and "#" not in v
+            v for v in sorted(e._discovered_urls) if v.startswith("http") and e._is_in_scope(v) and "#" not in v
         ][:8]
         return await SSRFDetector(e.payload_smith, fp).scan(ctx, t, m, u, p, internal_paths=internal_paths)
 
     async def _run_auth(self, ctx, t, m, u, p, fp):
         from titan.modules.auth.detector import AuthDetector
+
         return await AuthDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_idor(self, ctx, t, m, u, p, fp):
         from titan.modules.idor.detector import IDORDetector
+
         return await IDORDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_lfi(self, ctx, t, m, u, p, fp):
         from titan.modules.lfi.detector import LFIDetector
+
         return await LFIDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_rce(self, ctx, t, m, u, p, fp):
         from titan.modules.rce.detector import RCEDetector
+
         return await RCEDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_nosqli(self, ctx, t, m, u, p, fp):
         from titan.modules.nosqli.detector import NoSQLiDetector
+
         return await NoSQLiDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_ssti(self, ctx, t, m, u, p, fp):
         from titan.modules.ssti.detector import SSTIDetector
+
         return await SSTIDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_xxe(self, ctx, t, m, u, p, fp):
         from titan.modules.xxe.detector import XXEDetector
+
         return await XXEDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_upload(self, ctx, t, m, u, p, fp):
         from titan.modules.upload.detector import UploadDetector
+
         return await UploadDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_logic(self, ctx, t, m, u, p, fp):
         from titan.modules.logic.detector import LogicDetector
+
         return await LogicDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_cors(self, ctx, t, m, u, p, fp):
         from titan.modules.cors.detector import CORSDetector
+
         return await CORSDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_headers(self, ctx, t, m, u, p, fp):
         from titan.modules.headers.detector import HeadersDetector
+
         return await HeadersDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_crypto(self, ctx, t, m, u, p, fp):
         from titan.modules.crypto.detector import CryptoDetector
+
         return await CryptoDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_deser(self, ctx, t, m, u, p, fp):
         from titan.modules.deser.detector import DeserDetector
+
         return await DeserDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_race(self, ctx, t, m, u, p, fp):
         from titan.modules.race.detector import RaceDetector
+
         return await RaceDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_cache(self, ctx, t, m, u, p, fp):
         from titan.modules.cache.detector import CacheDetector
+
         return await CacheDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_smuggling(self, ctx, t, m, u, p, fp):
         from titan.modules.smuggling.detector import SmugglingDetector
+
         return await SmugglingDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_baas(self, ctx, t, m, u, p, fp):
         from titan.modules.baas.detector import BaasDetector
+
         return await BaasDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_fuzzer(self, ctx, t, m, u, p, fp):
         from titan.modules.fuzzer.detector import FuzzerDetector
+
         return await FuzzerDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_parserdiff(self, ctx, t, m, u, p, fp):
         from titan.modules.parserdiff.detector import ParserDiffDetector
+
         return await ParserDiffDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_sourcesecret(self, ctx, t, m, u, p, fp):
         from titan.modules.sourcesecret.detector import SourceSecretDetector
+
         return await SourceSecretDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_apixss(self, ctx, t, m, u, p, fp):
         from titan.modules.apixss.detector import ApiXssDetector
+
         return await ApiXssDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_api_modules(
-        self, context: Any, target: str, api_url: str, fingerprint: dict[str, Any],
+        self,
+        context: Any,
+        target: str,
+        api_url: str,
+        fingerprint: dict[str, Any],
     ) -> list[Finding]:
         """Run module matrix against a discovered API endpoint."""
         e = self.engine
@@ -624,17 +709,34 @@ class ModuleRunner:
             print(f"    [i] Skipping dead endpoint {base_url}")
             return []
 
-        api_score = score_url(api_url, params=list(params.keys()),
-                              technologies=fingerprint.get("technologies", []) if fingerprint else [])
-        findings.extend(await self.engine._run_attack_modules(
-            context, target, "GET", api_url, params, fingerprint, route_score=api_score,
-        ))
+        api_score = score_url(
+            api_url, params=list(params.keys()), technologies=fingerprint.get("technologies", []) if fingerprint else []
+        )
+        findings.extend(
+            await self.engine._run_attack_modules(
+                context,
+                target,
+                "GET",
+                api_url,
+                params,
+                fingerprint,
+                route_score=api_score,
+            )
+        )
 
         post_url = api_url.split("?")[0]
         post_data = dict(params) if params else {"test": "1", "id": "1", "q": "test"}
-        findings.extend(await self.engine._run_attack_modules(
-            context, target, "POST", post_url, post_data, fingerprint, route_score=api_score,
-        ))
+        findings.extend(
+            await self.engine._run_attack_modules(
+                context,
+                target,
+                "POST",
+                post_url,
+                post_data,
+                fingerprint,
+                route_score=api_score,
+            )
+        )
         return findings
 
     async def _endpoint_is_alive(self, context, base_url, params):
@@ -652,6 +754,7 @@ class ModuleRunner:
             except Exception:
                 return True
             from titan.core.helpers import is_soft_404
+
             if is_soft_404(body):
                 return await self._post_probe(context, base_url)
         return True
@@ -672,6 +775,7 @@ class ModuleRunner:
         is_html = "<html" in head or head.startswith("<!doctype")
         if post_resp.status == 200:
             from titan.core.helpers import is_soft_404
+
             if is_html and is_soft_404(body):
                 return False
             return True
@@ -679,4 +783,5 @@ class ModuleRunner:
 
     async def _run_graphql(self, ctx, t, api_url, fp):
         from titan.modules.api.graphql import GraphQLScanner
+
         return await GraphQLScanner(self.engine.payload_smith, fp).scan(ctx, t, api_url)

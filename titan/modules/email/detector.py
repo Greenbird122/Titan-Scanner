@@ -11,7 +11,6 @@ This module:
 5. Open relay testing
 """
 
-
 from __future__ import annotations
 
 import subprocess
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class EmailPayload:
     """An email security test payload."""
+
     name: str
     category: str
     record_type: str
@@ -52,15 +51,9 @@ class EmailSecurityTester:
         findings = []
 
         try:
-            result = subprocess.run(
-                ["dig", "+short", domain, "TXT"],
-                capture_output=True, text=True, timeout=10
-            )
+            result = subprocess.run(["dig", "+short", domain, "TXT"], capture_output=True, text=True, timeout=10)
 
-            spf_records = [
-                r for r in result.stdout.strip().split("\n")
-                if "v=spf1" in r
-            ]
+            spf_records = [r for r in result.stdout.strip().split("\n") if "v=spf1" in r]
 
             if not spf_records:
                 finding = Finding(
@@ -117,14 +110,10 @@ class EmailSecurityTester:
 
         try:
             result = subprocess.run(
-                ["dig", "+short", f"_dmarc.{domain}", "TXT"],
-                capture_output=True, text=True, timeout=10
+                ["dig", "+short", f"_dmarc.{domain}", "TXT"], capture_output=True, text=True, timeout=10
             )
 
-            dmarc_records = [
-                r for r in result.stdout.strip().split("\n")
-                if "v=DMARC1" in r
-            ]
+            dmarc_records = [r for r in result.stdout.strip().split("\n") if "v=DMARC1" in r]
 
             if not dmarc_records:
                 finding = Finding(
@@ -185,7 +174,9 @@ class EmailSecurityTester:
             for selector in common_selectors:
                 result = subprocess.run(
                     ["dig", "+short", f"{selector}._domainkey.{domain}", "TXT"],
-                    capture_output=True, text=True, timeout=10
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
 
                 if result.stdout.strip():

@@ -92,13 +92,16 @@ class TestExecutiveSummaryEnhancements:
         # Create a temporary findings dir with sites.json
         import shutil
         import tempfile
+
         tmp = Path(tempfile.mkdtemp())
         try:
-            sites = {"sites": [
-                {"slug": "a", "target": "https://a.com", "findings": 5},
-                {"slug": "b", "target": "https://b.com", "findings": 10},
-                {"slug": "c", "target": "https://c.com", "findings": 15},
-            ]}
+            sites = {
+                "sites": [
+                    {"slug": "a", "target": "https://a.com", "findings": 5},
+                    {"slug": "b", "target": "https://b.com", "findings": 10},
+                    {"slug": "c", "target": "https://c.com", "findings": 15},
+                ]
+            }
             (tmp / "sites.json").write_text(json.dumps(sites))
             writer = SiteReportWriter(output_dir=str(tmp))
             result = _make_result(
@@ -126,6 +129,7 @@ class TestEstateRollup:
         """Empty findings dir produces valid report."""
         import shutil
         import tempfile
+
         tmp = Path(tempfile.mkdtemp())
         try:
             report = estate_rollup(str(tmp))
@@ -137,42 +141,107 @@ class TestEstateRollup:
         """Estate rollup aggregates findings across sites."""
         import shutil
         import tempfile
+
         tmp = Path(tempfile.mkdtemp())
         try:
             # Create sites index
-            sites = {"sites": [
-                {"slug": "site-a", "target": "https://a.com", "findings": 3,
-                 "verified": 1, "critical": 1, "high": 0, "chains": 0},
-                {"slug": "site-b", "target": "https://b.com", "findings": 5,
-                 "verified": 2, "critical": 0, "high": 2, "chains": 1},
-            ]}
+            sites = {
+                "sites": [
+                    {
+                        "slug": "site-a",
+                        "target": "https://a.com",
+                        "findings": 3,
+                        "verified": 1,
+                        "critical": 1,
+                        "high": 0,
+                        "chains": 0,
+                    },
+                    {
+                        "slug": "site-b",
+                        "target": "https://b.com",
+                        "findings": 5,
+                        "verified": 2,
+                        "critical": 0,
+                        "high": 2,
+                        "chains": 1,
+                    },
+                ]
+            }
             (tmp / "sites.json").write_text(json.dumps(sites))
 
             # Create findings for site-a
             (tmp / "site-a").mkdir()
             fa = [
-                {"attack_type": "sqli", "severity": "critical", "url": "/api", "param": "id",
-                 "verified": True, "confidence": 0.9},
-                {"attack_type": "headers", "severity": "medium", "url": "/", "param": "Headers",
-                 "verified": False, "confidence": 0.8},
-                {"attack_type": "cors", "severity": "low", "url": "/", "param": "Origin",
-                 "verified": False, "confidence": 0.6},
+                {
+                    "attack_type": "sqli",
+                    "severity": "critical",
+                    "url": "/api",
+                    "param": "id",
+                    "verified": True,
+                    "confidence": 0.9,
+                },
+                {
+                    "attack_type": "headers",
+                    "severity": "medium",
+                    "url": "/",
+                    "param": "Headers",
+                    "verified": False,
+                    "confidence": 0.8,
+                },
+                {
+                    "attack_type": "cors",
+                    "severity": "low",
+                    "url": "/",
+                    "param": "Origin",
+                    "verified": False,
+                    "confidence": 0.6,
+                },
             ]
             (tmp / "site-a" / "findings.json").write_text(json.dumps(fa))
 
             # Create findings for site-b
             (tmp / "site-b").mkdir()
             fb = [
-                {"attack_type": "sqli", "severity": "high", "url": "/search", "param": "q",
-                 "verified": True, "confidence": 0.85},
-                {"attack_type": "xss", "severity": "high", "url": "/comment", "param": "text",
-                 "verified": True, "confidence": 0.9},
-                {"attack_type": "headers", "severity": "medium", "url": "/", "param": "Headers",
-                 "verified": False, "confidence": 0.8},
-                {"attack_type": "sqli", "severity": "medium", "url": "/login", "param": "user",
-                 "verified": False, "confidence": 0.7},
-                {"attack_type": "idor", "severity": "low", "url": "/api/user/1", "param": "id",
-                 "verified": False, "confidence": 0.5},
+                {
+                    "attack_type": "sqli",
+                    "severity": "high",
+                    "url": "/search",
+                    "param": "q",
+                    "verified": True,
+                    "confidence": 0.85,
+                },
+                {
+                    "attack_type": "xss",
+                    "severity": "high",
+                    "url": "/comment",
+                    "param": "text",
+                    "verified": True,
+                    "confidence": 0.9,
+                },
+                {
+                    "attack_type": "headers",
+                    "severity": "medium",
+                    "url": "/",
+                    "param": "Headers",
+                    "verified": False,
+                    "confidence": 0.8,
+                },
+                {
+                    "attack_type": "sqli",
+                    "severity": "medium",
+                    "url": "/login",
+                    "param": "user",
+                    "verified": False,
+                    "confidence": 0.7,
+                },
+                {
+                    "attack_type": "idor",
+                    "severity": "low",
+                    "url": "/api/user/1",
+                    "param": "id",
+                    "verified": False,
+                    "confidence": 0.5,
+                },
             ]
             (tmp / "site-b" / "findings.json").write_text(json.dumps(fb))
 
@@ -189,22 +258,30 @@ class TestEstateRollup:
         """Patterns appearing on 3+ sites are highlighted."""
         import shutil
         import tempfile
+
         tmp = Path(tempfile.mkdtemp())
         try:
-            sites = {"sites": [
-                {"slug": f"site-{i}", "target": f"https://{i}.com", "findings": 1}
-                for i in range(4)
-            ]}
+            sites = {"sites": [{"slug": f"site-{i}", "target": f"https://{i}.com", "findings": 1} for i in range(4)]}
             (tmp / "sites.json").write_text(json.dumps(sites))
 
             # All 4 sites have headers findings
             for i in range(4):
                 d = tmp / f"site-{i}"
                 d.mkdir()
-                (d / "findings.json").write_text(json.dumps([
-                    {"attack_type": "headers", "severity": "medium", "url": "/",
-                     "param": "Headers", "verified": False, "confidence": 0.8},
-                ]))
+                (d / "findings.json").write_text(
+                    json.dumps(
+                        [
+                            {
+                                "attack_type": "headers",
+                                "severity": "medium",
+                                "url": "/",
+                                "param": "Headers",
+                                "verified": False,
+                                "confidence": 0.8,
+                            },
+                        ]
+                    )
+                )
 
             report = estate_rollup(str(tmp))
             assert "Cross-site patterns" in report
@@ -249,6 +326,7 @@ class TestRemediationPatches:
         """Empty estate produces valid remediation report."""
         import shutil
         import tempfile
+
         tmp = Path(tempfile.mkdtemp())
         try:
             report = remediation_rollup(str(tmp))
@@ -260,33 +338,74 @@ class TestRemediationPatches:
         """Remediation rollup groups patches by frequency."""
         import shutil
         import tempfile
+
         tmp = Path(tempfile.mkdtemp())
         try:
-            sites = {"sites": [
-                {"slug": "site-a", "target": "https://a.com", "findings": 3},
-                {"slug": "site-b", "target": "https://b.com", "findings": 2},
-            ]}
+            sites = {
+                "sites": [
+                    {"slug": "site-a", "target": "https://a.com", "findings": 3},
+                    {"slug": "site-b", "target": "https://b.com", "findings": 2},
+                ]
+            }
             (tmp / "sites.json").write_text(json.dumps(sites))
 
             # site-a has headers + sqli
             (tmp / "site-a").mkdir()
-            (tmp / "site-a" / "findings.json").write_text(json.dumps([
-                {"attack_type": "headers", "severity": "medium", "url": "/",
-                 "param": "Headers", "verified": False, "confidence": 0.8},
-                {"attack_type": "sqli", "severity": "high", "url": "/api",
-                 "param": "id", "verified": True, "confidence": 0.9},
-                {"attack_type": "sqli", "severity": "medium", "url": "/search",
-                 "param": "q", "verified": False, "confidence": 0.7},
-            ]))
+            (tmp / "site-a" / "findings.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "attack_type": "headers",
+                            "severity": "medium",
+                            "url": "/",
+                            "param": "Headers",
+                            "verified": False,
+                            "confidence": 0.8,
+                        },
+                        {
+                            "attack_type": "sqli",
+                            "severity": "high",
+                            "url": "/api",
+                            "param": "id",
+                            "verified": True,
+                            "confidence": 0.9,
+                        },
+                        {
+                            "attack_type": "sqli",
+                            "severity": "medium",
+                            "url": "/search",
+                            "param": "q",
+                            "verified": False,
+                            "confidence": 0.7,
+                        },
+                    ]
+                )
+            )
 
             # site-b has headers
             (tmp / "site-b").mkdir()
-            (tmp / "site-b" / "findings.json").write_text(json.dumps([
-                {"attack_type": "headers", "severity": "medium", "url": "/",
-                 "param": "Headers", "verified": False, "confidence": 0.8},
-                {"attack_type": "xss", "severity": "low", "url": "/comment",
-                 "param": "text", "verified": False, "confidence": 0.5},
-            ]))
+            (tmp / "site-b" / "findings.json").write_text(
+                json.dumps(
+                    [
+                        {
+                            "attack_type": "headers",
+                            "severity": "medium",
+                            "url": "/",
+                            "param": "Headers",
+                            "verified": False,
+                            "confidence": 0.8,
+                        },
+                        {
+                            "attack_type": "xss",
+                            "severity": "low",
+                            "url": "/comment",
+                            "param": "text",
+                            "verified": False,
+                            "confidence": 0.5,
+                        },
+                    ]
+                )
+            )
 
             report = remediation_rollup(str(tmp))
             assert "Priority remediation" in report

@@ -5,6 +5,7 @@ When run from a directory that contains a titan/ folder (e.g. titan-lab),
 Python resolves import titan to the CWD copy instead of the installed
 package. This module fixes that BEFORE importing titan.cli.
 """
+
 import os
 import sys
 
@@ -35,8 +36,9 @@ for k in bad_keys:
 # Step 4: Now import titan from the correct location
 import titan
 
-assert os.path.normcase(os.path.abspath(os.path.dirname(titan.__file__))) == os.path.normcase(_site_pkgs), \
+assert os.path.normcase(os.path.abspath(os.path.dirname(titan.__file__))) == os.path.normcase(_site_pkgs), (
     f"titan loaded from wrong path: {titan.__file__} (expected in {_site_pkgs})"
+)
 
 from titan.cli import main
 

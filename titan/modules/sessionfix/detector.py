@@ -54,16 +54,38 @@ from titan.core.models import AttackType, Finding, Severity
 
 # ── Session Cookie Names ─────────────────────────────────────────────
 COOKIE_NAMES: list[str] = [
-    "session", "sessionid", "sess", "sid", "jwt", "token", "auth",
-    "connect.sid", "PHPSESSID", "JSESSIONID", "ASP.NET_SessionId",
-    "_session_id", "sessionId", "session_id", "accessToken",
-    "refreshToken", "access_token", "refresh_token",
+    "session",
+    "sessionid",
+    "sess",
+    "sid",
+    "jwt",
+    "token",
+    "auth",
+    "connect.sid",
+    "PHPSESSID",
+    "JSESSIONID",
+    "ASP.NET_SessionId",
+    "_session_id",
+    "sessionId",
+    "session_id",
+    "accessToken",
+    "refreshToken",
+    "access_token",
+    "refresh_token",
 ]
 
 # ── Auth Endpoint Hints ──────────────────────────────────────────────
 AUTH_ENDPOINT_HINTS: list[str] = [
-    "login", "auth", "session", "signin", "sign-in", "token",
-    "oauth", "sso", "callback", "exchange",
+    "login",
+    "auth",
+    "session",
+    "signin",
+    "sign-in",
+    "token",
+    "oauth",
+    "sso",
+    "callback",
+    "exchange",
 ]
 
 # ── Probe Values ─────────────────────────────────────────────────────
@@ -153,7 +175,10 @@ class SessionFixationDetector:
             }
 
             resp = await context.request.post(
-                url, data=all_params, headers=headers, timeout=3000,
+                url,
+                data=all_params,
+                headers=headers,
+                timeout=3000,
             )
             body = await resp.text()
             resp_headers = dict(getattr(resp, "headers", {}))
@@ -228,8 +253,7 @@ class SessionFixationDetector:
                 cookie_name = cookie.split("=")[0].strip()
 
                 # Only check session-like cookies
-                if not any(s in cookie_name.lower() for s in
-                          ["session", "token", "auth", "sid", "jwt", "connect"]):
+                if not any(s in cookie_name.lower() for s in ["session", "token", "auth", "sid", "jwt", "connect"]):
                     continue
 
                 if "httponly" not in cookie_lower:
@@ -284,8 +308,7 @@ class SessionFixationDetector:
 
             # Check if session-like tokens appear in URL patterns in the page
             url_patterns = re.findall(
-                r'https?://[^\s"\'<>]*(?:session|token|sid|jwt|auth)=[^&"\s<>]+',
-                body, re.IGNORECASE
+                r'https?://[^\s"\'<>]*(?:session|token|sid|jwt|auth)=[^&"\s<>]+', body, re.IGNORECASE
             )
 
             if url_patterns:
@@ -338,9 +361,9 @@ class SessionFixationDetector:
 
             # Check if a session cookie is set on the login page itself
             session_cookies = [
-                c for c in set_cookies
-                if any(s in c.lower() for s in
-                       ["session", "sid", "token", "auth", "connect.sid"])
+                c
+                for c in set_cookies
+                if any(s in c.lower() for s in ["session", "sid", "token", "auth", "connect.sid"])
             ]
 
             if session_cookies:
@@ -365,7 +388,10 @@ class SessionFixationDetector:
                     baseline_status=None,
                     verification_body="",
                     verification_status=getattr(resp, "status", 200),
-                    metadata={"cookies": session_cookies[:2], "note": "Prerequisite for fixation — verify rotation on login"},
+                    metadata={
+                        "cookies": session_cookies[:2],
+                        "note": "Prerequisite for fixation — verify rotation on login",
+                    },
                 )
 
         except Exception:
@@ -386,9 +412,7 @@ class SessionFixationDetector:
         """Test if password reset token can be reused after first use."""
         try:
             # First use
-            resp1 = await context.request.post(
-                url, data=params, headers={"Referer": target}, timeout=3000
-            )
+            resp1 = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             body1 = await resp1.text()
 
             # Check if response contains a reset token
@@ -400,8 +424,7 @@ class SessionFixationDetector:
 
             # Second use with same token
             resp2 = await context.request.post(
-                url, data={**params, "token": token},
-                headers={"Referer": target}, timeout=3000
+                url, data={**params, "token": token}, headers={"Referer": target}, timeout=3000
             )
             body2 = await resp2.text()
 
@@ -452,14 +475,12 @@ class SessionFixationDetector:
 
             # Request with injected state
             resp_with_state = await context.request.get(
-                f"{url}?state={STATE_PROBE}",
-                headers={"Referer": target}, timeout=3000
+                f"{url}?state={STATE_PROBE}", headers={"Referer": target}, timeout=3000
             )
             body_with_state = await resp_with_state.text()
 
             # If both succeed identically, state is not validated
-            if (resp_no_state.status == resp_with_state.status and
-                body_no_state == body_with_state):
+            if resp_no_state.status == resp_with_state.status and body_no_state == body_with_state:
                 return Finding(
                     target=target,
                     url=str(getattr(resp_with_state, "url", None) or url),

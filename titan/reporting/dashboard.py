@@ -134,10 +134,7 @@ def build_dashboard(site_dir: Path, out_path: Path | None = None) -> Path:
     # script block (json.dumps alone does NOT escape these).
     def _json_embed(data: Any) -> str:
         return (
-            json.dumps(data, ensure_ascii=False)
-            .replace("<", "\\u003c")
-            .replace(">", "\\u003e")
-            .replace("&", "\\u0026")
+            json.dumps(data, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
         )
 
     json_rows = _json_embed(rows)
@@ -172,7 +169,7 @@ def build_dashboard(site_dir: Path, out_path: Path | None = None) -> Path:
         caps = " ".join(f'<span class="chip">{_esc(cap)}</span>' for cap in (c.get("capabilities") or []))
         chain_cards += (
             f'<details class="chain"><summary>Chain {i}: '
-            f'<strong>{_esc(c.get("name") or "Unknown")}</strong> '
+            f"<strong>{_esc(c.get('name') or 'Unknown')}</strong> "
             f'<span class="sev sev-{(str(c.get("severity") or "medium")).lower()}">'
             f"{_esc(c.get('severity') or 'MEDIUM')}</span></summary>"
             f"<p>{_esc(c.get('impact') or '')}</p>{caps}<ul>{hop_lines}</ul></details>"
@@ -201,19 +198,26 @@ def build_dashboard(site_dir: Path, out_path: Path | None = None) -> Path:
     if hostile:
         hprof = hostile.get("profile", {})
         h_origins = hprof.get("origins", []) or []
-        rows_html = "".join(
-            f'<tr><td><code>{_esc(r.get("host"))}</code></td>'
-            f'<td>{_esc(r.get("category") or "unknown")}</td>'
-            f'<td>{_esc(", ".join(r.get("kinds", [])))}</td>'
-            f'<td>{r.get("count")}</td>'
-            f'<td>{"cleartext!" if r.get("cleartext") else "ok"}</td>'
-            f'<td>{"missing" if r.get("sri_missing") else "ok"}</td>'
-            f'<td>{r.get("risk_score")}</td></tr>'
-            for r in h_origins[:25]
-        ) or '<tr><td colspan="7" class="muted">No third-party origins detected.</td></tr>'
+        rows_html = (
+            "".join(
+                f"<tr><td><code>{_esc(r.get('host'))}</code></td>"
+                f"<td>{_esc(r.get('category') or 'unknown')}</td>"
+                f"<td>{_esc(', '.join(r.get('kinds', [])))}</td>"
+                f"<td>{r.get('count')}</td>"
+                f"<td>{'cleartext!' if r.get('cleartext') else 'ok'}</td>"
+                f"<td>{'missing' if r.get('sri_missing') else 'ok'}</td>"
+                f"<td>{r.get('risk_score')}</td></tr>"
+                for r in h_origins[:25]
+            )
+            or '<tr><td colspan="7" class="muted">No third-party origins detected.</td></tr>'
+        )
         clickbait = hprof.get("clickbait", {}) or {}
-        sigs = (hprof.get("cloaks") or []) + (hprof.get("miners") or []) \
-            + (hprof.get("push") or []) + (hprof.get("mechanics") or [])
+        sigs = (
+            (hprof.get("cloaks") or [])
+            + (hprof.get("miners") or [])
+            + (hprof.get("push") or [])
+            + (hprof.get("mechanics") or [])
+        )
         sig_html = "".join(f"<li>{_esc(s.get('signal'))}</li>" for s in sigs[:14])
         hostile_lines = (
             f'<div class="meta-grid">'
@@ -223,28 +227,21 @@ def build_dashboard(site_dir: Path, out_path: Path | None = None) -> Path:
             f'<div><span class="k">Miners</span> {len(hprof.get("miners", []))}</div>'
             f'<div><span class="k">Push-abuse</span> {len(hprof.get("push", []))}</div>'
             f'<div><span class="k">Active probes</span> '
-            f'{"on (consent held)" if hostile.get("active_probes") else "off (read-only)"}</div>'
-            '</div>'
-            '<table><thead><tr><th>Host</th><th>Category</th><th>Kinds</th>'
-            '<th>Count</th><th>TLS</th><th>SRI</th><th>Risk</th></tr></thead>'
-            f'<tbody>{rows_html}</tbody></table>'
+            f"{'on (consent held)' if hostile.get('active_probes') else 'off (read-only)'}</div>"
+            "</div>"
+            "<table><thead><tr><th>Host</th><th>Category</th><th>Kinds</th>"
+            "<th>Count</th><th>TLS</th><th>SRI</th><th>Risk</th></tr></thead>"
+            f"<tbody>{rows_html}</tbody></table>"
             + (f"<strong>Hostile-content signals</strong><ul>{sig_html}</ul>" if sig_html else "")
         )
-    hostile_block = (
-        f'<h2>Monetization &amp; Hostile Surface (Track G)</h2>\n{hostile_lines}'
-        if hostile else ""
-    )
+    hostile_block = f"<h2>Monetization &amp; Hostile Surface (Track G)</h2>\n{hostile_lines}" if hostile else ""
 
     error_lines = "\n".join(f"<li>{_esc(e)}</li>" for e in errors)
     error_section = (
-        f'<div class="errors"><h3>Scan errors ({len(errors)})</h3><ul>{error_lines}</ul></div>'
-        if errors
-        else ""
+        f'<div class="errors"><h3>Scan errors ({len(errors)})</h3><ul>{error_lines}</ul></div>' if errors else ""
     )
 
-    attack_options = "\n".join(
-        f'<option value="{_esc(a)}">{_esc(a)}</option>' for a in attacks
-    )
+    attack_options = "\n".join(f'<option value="{_esc(a)}">{_esc(a)}</option>' for a in attacks)
 
     html_doc = f"""<!DOCTYPE html>
 <html lang="en">
@@ -314,10 +311,10 @@ def build_dashboard(site_dir: Path, out_path: Path | None = None) -> Path:
 <header>
   <h1>Titan Scan Dashboard — <span class="muted">{_esc(target)}</span></h1>
   <div class="meta-grid">
-    <div><span class="k">Scanned</span> {_esc(_iso(meta.get('started_at')))}</div>
-    <div><span class="k">Duration</span> {_esc(f"{duration:.1f}s" if duration is not None else 'n/a')}</div>
+    <div><span class="k">Scanned</span> {_esc(_iso(meta.get("started_at")))}</div>
+    <div><span class="k">Duration</span> {_esc(f"{duration:.1f}s" if duration is not None else "n/a")}</div>
     <div><span class="k">Findings</span> {total}</div>
-    <div><span class="k">Technologies</span> {_esc(", ".join(techs[:8]) or 'unknown')}</div>
+    <div><span class="k">Technologies</span> {_esc(", ".join(techs[:8]) or "unknown")}</div>
   </div>
 </header>
 
@@ -485,7 +482,7 @@ render();
 </body>
 </html>
 """
-    out = (out_path or site_dir / "dashboard.html")
+    out = out_path or site_dir / "dashboard.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html_doc, encoding="utf-8")
     return out

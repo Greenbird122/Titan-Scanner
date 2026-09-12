@@ -61,9 +61,11 @@ logger = logging.getLogger(__name__)
 # Finding merger — cross-agent deduplication
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class MergedFinding:
     """A finding that may have been confirmed by multiple agents."""
+
     type: str
     url: str
     param: str
@@ -193,9 +195,11 @@ class FindingMerger:
 # Coordinator result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class CoordinatorResult:
     """Result of a coordinated multi-agent scan."""
+
     targets: list[str] = field(default_factory=list)
     agent_results: list[AgentResult] = field(default_factory=list)
     merged_findings: list[MergedFinding] = field(default_factory=list)
@@ -208,6 +212,7 @@ class CoordinatorResult:
 # ---------------------------------------------------------------------------
 # Fleet Coordinator
 # ---------------------------------------------------------------------------
+
 
 class FleetCoordinator:
     """Multi-agent, multi-target scan coordinator.
@@ -313,9 +318,7 @@ class FleetCoordinator:
 
             # Collect errors
             if agent_result.error:
-                result.errors.append(
-                    f"{agent_result.agent_type.value}@{agent_result.target}: {agent_result.error}"
-                )
+                result.errors.append(f"{agent_result.agent_type.value}@{agent_result.target}: {agent_result.error}")
 
         # Finalize
         result.merged_findings = self._merger.findings
@@ -407,12 +410,14 @@ class FleetCoordinator:
         for i, r in enumerate(results):
             if isinstance(r, Exception):
                 target, agent_type, _ = tasks[i]
-                final_results.append(AgentResult(
-                    agent_type=agent_type,
-                    target=target,
-                    success=False,
-                    error=str(r),
-                ))
+                final_results.append(
+                    AgentResult(
+                        agent_type=agent_type,
+                        target=target,
+                        success=False,
+                        error=str(r),
+                    )
+                )
             else:
                 final_results.append(r)
 
@@ -422,6 +427,7 @@ class FleetCoordinator:
         """Check if consent exists for the target."""
         try:
             from titan.exploit.consent import verify_consent
+
             verify_consent(target, consent_dir=self.consent_dir)
             return True
         except Exception:

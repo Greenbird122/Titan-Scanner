@@ -9,7 +9,6 @@ This module tests:
 6. MFA bypass: Downgrade, recovery code abuse
 """
 
-
 from __future__ import annotations
 
 import json
@@ -22,10 +21,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("authservices")
 
 
-
 @dataclass
 class AuthPayload:
     """An auth services test payload."""
+
     name: str
     category: str
     endpoint: str
@@ -459,9 +458,7 @@ class AuthServicesTester:
                 if payload.headers:
                     url = url.replace("{domain}", auth0_domain)
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_auth_response(response, payload):
                     finding = Finding(
@@ -502,9 +499,7 @@ class AuthServicesTester:
             try:
                 url = f"https://{clerk_domain}{payload.endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_auth_response(response, payload):
                     finding = Finding(
@@ -551,9 +546,7 @@ class AuthServicesTester:
                 else:
                     url = f"{target_url}{payload.endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_auth_response(response, payload):
                     finding = Finding(
@@ -594,9 +587,7 @@ class AuthServicesTester:
             try:
                 url = f"{target_url}{payload.endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_auth_response(response, payload):
                     finding = Finding(
@@ -636,6 +627,7 @@ class AuthServicesTester:
         """Send HTTP request."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 req_headers = headers or {}
                 req_headers.setdefault("Content-Type", "application/json")
@@ -658,11 +650,24 @@ class AuthServicesTester:
         if status == 200:
             if body and body not in ("null", ""):
                 # Check for meaningful data
-                if any(kw in body.lower() for kw in [
-                    "email", "user", "session", "token", "role", "admin",
-                    "oidc", "jwks", "issuer", "authorization_endpoint",
-                    "refresh_token", "access_token", "id_token",
-                ]):
+                if any(
+                    kw in body.lower()
+                    for kw in [
+                        "email",
+                        "user",
+                        "session",
+                        "token",
+                        "role",
+                        "admin",
+                        "oidc",
+                        "jwks",
+                        "issuer",
+                        "authorization_endpoint",
+                        "refresh_token",
+                        "access_token",
+                        "id_token",
+                    ]
+                ):
                     return True
                 # Check for JSON with data
                 try:

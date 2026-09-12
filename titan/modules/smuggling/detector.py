@@ -19,7 +19,6 @@ Features:
      • Prevents self-verification when a target reflects probe URLs in SPA JS state or 404s.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -48,15 +47,26 @@ _TE_OBFUSCATION_HEADERS: tuple[dict[str, str], ...] = (
 )
 
 _SMUGGLE_ERROR_MARKERS: tuple[str, ...] = (
-    "bad request", "invalid request", "parse error",
-    "unrecognized header", "invalid transfer-encoding",
-    "request header or cookie too large", "too many headers",
-    "http protocol error", "stream error",
+    "bad request",
+    "invalid request",
+    "parse error",
+    "unrecognized header",
+    "invalid transfer-encoding",
+    "request header or cookie too large",
+    "too many headers",
+    "http protocol error",
+    "stream error",
 )
 
 _SMUGGLE_KEYWORDS_TO_STRIP: tuple[str, ...] = (
-    "content-length", "transfer-encoding", "chunked", "http/1.1",
-    "x-test", "get /test", "get /admin", "identity",
+    "content-length",
+    "transfer-encoding",
+    "chunked",
+    "http/1.1",
+    "x-test",
+    "get /test",
+    "get /admin",
+    "identity",
 )
 
 
@@ -86,13 +96,9 @@ class SmugglingDetector:
         baseline_status = None
         try:
             if method.upper() == "GET":
-                baseline_resp = await context.request.get(
-                    url, params=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
             else:
-                baseline_resp = await context.request.post(
-                    url, data=params, headers={"Referer": target}, timeout=3000
-                )
+                baseline_resp = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             baseline_body = await baseline_resp.text()
             baseline_status = baseline_resp.status
         except Exception as exc:
@@ -146,20 +152,22 @@ class SmugglingDetector:
 
                     headers = {"Referer": target, "Transfer-Encoding": "chunked"}
                     if method.upper() == "GET":
-                        resp = await context.request.get(
-                            url, params=test_params, headers=headers, timeout=3000
-                        )
+                        resp = await context.request.get(url, params=test_params, headers=headers, timeout=3000)
                     else:
-                        resp = await context.request.post(
-                            url, data=test_params, headers=headers, timeout=3000
-                        )
+                        resp = await context.request.post(url, data=test_params, headers=headers, timeout=3000)
                     body = await resp.text()
 
                     f = self._evaluate_smuggle_response(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, method, param_name,
+                        baseline_body,
+                        baseline_status,
+                        body,
+                        resp,
+                        target,
+                        url,
+                        method,
+                        param_name,
                         "query" if method.upper() == "GET" else "body",
-                        probe
+                        probe,
                     )
                     if f:
                         findings.append(f)
@@ -196,9 +204,16 @@ class SmugglingDetector:
                 body = await resp.text()
 
                 f = self._evaluate_smuggle_response(
-                    baseline_body, baseline_status, body, resp,
-                    target, url, method, "Transfer-Encoding", "header",
-                    f"TE Obfuscation: {te_hdr}"
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    method,
+                    "Transfer-Encoding",
+                    "header",
+                    f"TE Obfuscation: {te_hdr}",
                 )
                 if f:
                     findings.append(f)
@@ -239,10 +254,7 @@ class SmugglingDetector:
                 stripped = stripped.replace(form.lower(), "")
 
         baseline_lower = baseline_body.lower()
-        matches = [
-            ind for ind in _SMUGGLE_ERROR_MARKERS
-            if ind in stripped and ind not in baseline_lower
-        ]
+        matches = [ind for ind in _SMUGGLE_ERROR_MARKERS if ind in stripped and ind not in baseline_lower]
 
         # Duplicate header reflection check in server response
         resp_headers = getattr(resp, "headers", {})
@@ -271,7 +283,9 @@ class SmugglingDetector:
             if any(m in body_lower for m in _EDGE_REJECTION_MARKERS):
                 is_edge_rejection = True
 
-        if matches or (resp_status in (501, 502, 503, 504) and (baseline_status or 200) < 500 and not is_edge_rejection):
+        if matches or (
+            resp_status in (501, 502, 503, 504) and (baseline_status or 200) < 500 and not is_edge_rejection
+        ):
             diffs = [f"smuggle:{m}" for m in matches]
             if resp_status in (501, 502, 503, 504):
                 diffs.append(f"smuggle:gateway_error:{resp_status}")

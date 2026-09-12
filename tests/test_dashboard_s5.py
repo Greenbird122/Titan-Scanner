@@ -55,7 +55,12 @@ def _result() -> ScanResult:
             "capabilities": ["url_fetch", "creds"],
             "hops": [
                 {"attack_type": "SSRF", "method": "GET", "url": "http://lab.local/fetch", "flows": ["url_fetch"]},
-                {"attack_type": "Crypto Weakness", "method": "GET", "url": "http://lab.local/config", "flows": ["creds"]},
+                {
+                    "attack_type": "Crypto Weakness",
+                    "method": "GET",
+                    "url": "http://lab.local/config",
+                    "flows": ["creds"],
+                },
             ],
         }
     ]
@@ -83,7 +88,7 @@ def test_dashboard_renders_and_is_self_contained(tmp_path: Path):
     assert "<link" not in html_text and "<script src" not in html_text
     # Core interactive machinery present.
     assert "Titan Scan Dashboard" in html_text
-    assert "oninput=\"render()\"" in html_text
+    assert 'oninput="render()"' in html_text
     assert "attack-filter" in html_text
     assert "evidence-filter" in html_text
     assert "toggleDetail" in html_text

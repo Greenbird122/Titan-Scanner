@@ -3,6 +3,7 @@
 This module sat at 0% coverage: nothing in the suite imported it, so neither
 the JSON/YAML round trip nor the default-filling was ever exercised.
 """
+
 import json
 
 import pytest
@@ -119,11 +120,7 @@ class TestLoadYaml:
     def test_yaml_config_loads(self, tmp_path):
         path = tmp_path / "targets.yaml"
         path.write_text(
-            "targets:\n"
-            "  - url: https://yaml.test\n"
-            "    name: From YAML\n"
-            "    deep: true\n"
-            "coverage_threshold: 65.0\n"
+            "targets:\n  - url: https://yaml.test\n    name: From YAML\n    deep: true\ncoverage_threshold: 65.0\n"
         )
         config = ConfigManager().load(str(path))
         assert config.targets[0].name == "From YAML"

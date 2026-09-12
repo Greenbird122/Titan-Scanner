@@ -19,6 +19,7 @@ from titan.core.models import Finding
 @dataclass
 class WebhookConfig:
     """Configuration for a webhook endpoint."""
+
     url: str
     type: str  # "slack", "discord", "email", "custom"
     events: list[str]  # ["finding", "critical", "scan_complete"]
@@ -39,28 +40,34 @@ class WebhookManager:
 
     def add_slack(self, url: str, events: list[str] | None = None) -> None:
         """Add Slack webhook."""
-        self._webhooks.append(WebhookConfig(
-            url=url,
-            type="slack",
-            events=events or ["finding", "critical", "scan_complete"],
-        ))
+        self._webhooks.append(
+            WebhookConfig(
+                url=url,
+                type="slack",
+                events=events or ["finding", "critical", "scan_complete"],
+            )
+        )
 
     def add_discord(self, url: str, events: list[str] | None = None) -> None:
         """Add Discord webhook."""
-        self._webhooks.append(WebhookConfig(
-            url=url,
-            type="discord",
-            events=events or ["finding", "critical", "scan_complete"],
-        ))
+        self._webhooks.append(
+            WebhookConfig(
+                url=url,
+                type="discord",
+                events=events or ["finding", "critical", "scan_complete"],
+            )
+        )
 
     def add_custom(self, url: str, headers: dict[str, str], events: list[str] | None = None) -> None:
         """Add custom webhook."""
-        self._webhooks.append(WebhookConfig(
-            url=url,
-            type="custom",
-            events=events or ["finding", "critical"],
-            headers=headers,
-        ))
+        self._webhooks.append(
+            WebhookConfig(
+                url=url,
+                type="custom",
+                events=events or ["finding", "critical"],
+                headers=headers,
+            )
+        )
 
     async def send_finding_alert(self, finding: Finding) -> list[dict[str, Any]]:
         """Send alert for a new finding."""
@@ -99,9 +106,7 @@ class WebhookManager:
             if "scan_complete" not in webhook.events:
                 continue
 
-            payload = self._format_scan_complete_payload(
-                target, score, grade, findings_count, webhook.type
-            )
+            payload = self._format_scan_complete_payload(target, score, grade, findings_count, webhook.type)
             result = await self._send(webhook, payload)
             results.append(result)
 
@@ -131,18 +136,20 @@ class WebhookManager:
             }
         elif webhook_type == "discord":
             return {
-                "embeds": [{
-                    "title": f"🚨 {finding.severity} Finding",
-                    "description": (
-                        f"**Target:** {finding.target}\n"
-                        f"**URL:** {finding.url}\n"
-                        f"**Type:** {finding.attack_type}\n"
-                        f"**Confidence:** {finding.confidence:.0%}\n"
-                        f"**Notes:** {finding.notes or 'N/A'}"
-                    ),
-                    "color": 16711680 if str(finding.severity) == "CRITICAL" else 255,
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                }],
+                "embeds": [
+                    {
+                        "title": f"🚨 {finding.severity} Finding",
+                        "description": (
+                            f"**Target:** {finding.target}\n"
+                            f"**URL:** {finding.url}\n"
+                            f"**Type:** {finding.attack_type}\n"
+                            f"**Confidence:** {finding.confidence:.0%}\n"
+                            f"**Notes:** {finding.notes or 'N/A'}"
+                        ),
+                        "color": 16711680 if str(finding.severity) == "CRITICAL" else 255,
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    }
+                ],
             }
         else:
             return {
@@ -188,16 +195,16 @@ class WebhookManager:
             }
         elif webhook_type == "discord":
             return {
-                "embeds": [{
-                    "title": "✅ Scan Complete",
-                    "description": (
-                        f"**Target:** {target}\n"
-                        f"**Score:** {score}% ({grade})\n"
-                        f"**Findings:** {findings_count}"
-                    ),
-                    "color": 65280,
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                }],
+                "embeds": [
+                    {
+                        "title": "✅ Scan Complete",
+                        "description": (
+                            f"**Target:** {target}\n**Score:** {score}% ({grade})\n**Findings:** {findings_count}"
+                        ),
+                        "color": 65280,
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    }
+                ],
             }
         else:
             return {
@@ -213,6 +220,7 @@ class WebhookManager:
         """Send webhook payload."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 headers = webhook.headers or {}
                 headers.setdefault("Content-Type", "application/json")

@@ -15,7 +15,9 @@ async def run_scan(target: str, config_path: str = "config.yaml", output_format:
     if "markdown" in output_format:
         _write_markdown(result)
     if result.config_snapshot.get("scanner", {}).get("dawn", {}).get("memory", True):
-        DawnMemory().append_daily(f"SCAN: {target} — {len(result.findings)} findings ({result.critical_count} critical)")
+        DawnMemory().append_daily(
+            f"SCAN: {target} — {len(result.findings)} findings ({result.critical_count} critical)"
+        )
         for f in result.findings:
             DawnMemory().memorize_finding(f.to_dict())
     return result
@@ -23,6 +25,7 @@ async def run_scan(target: str, config_path: str = "config.yaml", output_format:
 
 def _write_json(result):
     import os
+
     out_dir = result.config_snapshot.get("scanner", {}).get("output_dir", "findings")
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "findings.json")
@@ -32,6 +35,7 @@ def _write_json(result):
 
 def _write_markdown(result):
     import os
+
     out_dir = result.config_snapshot.get("scanner", {}).get("output_dir", "findings")
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "report.md")

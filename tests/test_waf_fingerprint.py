@@ -5,7 +5,6 @@ bypass payload generation, and learning-state updates. The async probe
 path is exercised with a fake response function — no network.
 """
 
-
 import pytest
 
 from titan.ai.waf_fingerprint import WAFFingerprint, WAFFingerprinter
@@ -40,12 +39,14 @@ class TestAnalyzeProbes:
         # cf-cache-status is unique to the plain cloudflare signature set
         # (cf-ray alone also matches cloudflare_bot_management, which — being
         # last in WAF_SIGNATURES — wins; see test_last_match_wins below)
-        probes = [{
-            "probe": "sqli_probe",
-            "status": 200,
-            "body": "hello",
-            "headers": {"CF-Cache-Status": "DYNAMIC"},
-        }]
+        probes = [
+            {
+                "probe": "sqli_probe",
+                "status": 200,
+                "body": "hello",
+                "headers": {"CF-Cache-Status": "DYNAMIC"},
+            }
+        ]
         fp = WAFFingerprinter()._analyze_probes(probes)
         assert fp.name == "cloudflare"
         assert fp.detection_method.startswith("header:cf")
@@ -54,34 +55,40 @@ class TestAnalyzeProbes:
     def test_last_match_wins_on_shared_signatures(self):
         # Documented quirk: probe analysis iterates all WAFs and later
         # matches overwrite earlier ones regardless of confidence.
-        probes = [{
-            "probe": "sqli_probe",
-            "status": 200,
-            "body": "hello",
-            "headers": {"CF-Ray": "82e1a"},
-        }]
+        probes = [
+            {
+                "probe": "sqli_probe",
+                "status": 200,
+                "body": "hello",
+                "headers": {"CF-Ray": "82e1a"},
+            }
+        ]
         fp = WAFFingerprinter()._analyze_probes(probes)
         assert fp.name == "cloudflare_bot_management"
 
     def test_body_match_identifies_challenge_page(self):
-        probes = [{
-            "probe": "xss_probe",
-            "status": 503,
-            "body": "Please wait: Just a Moment while we verify...",
-            "headers": {},
-        }]
+        probes = [
+            {
+                "probe": "xss_probe",
+                "status": 503,
+                "body": "Please wait: Just a Moment while we verify...",
+                "headers": {},
+            }
+        ]
         fp = WAFFingerprinter()._analyze_probes(probes)
         assert fp.name == "cloudflare"
         assert fp.detection_method.startswith("body:")
         assert fp.confidence == 0.95
 
     def test_body_match_identifies_imperva(self):
-        probes = [{
-            "probe": "sqli_probe",
-            "status": 403,
-            "body": "Request blocked by Incapsula. Incident Id: 42",
-            "headers": {},
-        }]
+        probes = [
+            {
+                "probe": "sqli_probe",
+                "status": 403,
+                "body": "Request blocked by Incapsula. Incident Id: 42",
+                "headers": {},
+            }
+        ]
         fp = WAFFingerprinter()._analyze_probes(probes)
         assert fp.name == "imperva"
         assert fp.confidence == 0.95
@@ -108,12 +115,14 @@ class TestClassifyTier:
     def test_cloudflare_free_tier(self):
         p = WAFFingerprinter()
         fp = WAFFingerprint(name="cloudflare")
-        probes = [{
-            "probe": "p",
-            "status": 503,
-            "body": "checking your browser",
-            "headers": {"cf-ray": "8x"},
-        }]
+        probes = [
+            {
+                "probe": "p",
+                "status": 503,
+                "body": "checking your browser",
+                "headers": {"cf-ray": "8x"},
+            }
+        ]
         assert p._classify_tier(fp, probes) == "free"
 
     def test_tierless_waf_gets_default(self):
@@ -196,8 +205,7 @@ class TestBypassPayloads:
 class TestUpdateFromScan:
     def test_creates_and_updates_fingerprint(self):
         p = WAFFingerprinter()
-        p.update_from_scan("cloudflare", blocked_patterns=["union select"],
-                           successful_bypasses=["case_variation"])
+        p.update_from_scan("cloudflare", blocked_patterns=["union select"], successful_bypasses=["case_variation"])
         fp = p.fingerprints["cloudflare"]
         assert fp.scan_count == 1
         assert fp.blocked_patterns == ["union select"]
@@ -206,15 +214,12 @@ class TestUpdateFromScan:
 
     def test_block_rate_reflects_ratio(self):
         p = WAFFingerprinter()
-        p.update_from_scan("cloudflare",
-                           blocked_patterns=["b1", "b2"],
-                           successful_bypasses=["s1"])
+        p.update_from_scan("cloudflare", blocked_patterns=["b1", "b2"], successful_bypasses=["s1"])
         assert p.fingerprints["cloudflare"].block_rate == pytest.approx(2 / 3)
 
     def test_history_trimmed_to_100(self):
         p = WAFFingerprinter()
-        p.update_from_scan("cloudflare", blocked_patterns=[f"p{i}" for i in range(150)],
-                           successful_bypasses=[])
+        p.update_from_scan("cloudflare", blocked_patterns=[f"p{i}" for i in range(150)], successful_bypasses=[])
         fp = p.fingerprints["cloudflare"]
         assert len(fp.blocked_patterns) == 100
         assert fp.blocked_patterns[-1] == "p149"  # newest retained

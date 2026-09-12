@@ -16,7 +16,6 @@ Features:
   7. Strict Encoded-Echo Stripping: prevents self-verification on reflected probe URLs.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -96,16 +95,16 @@ _IP_OBFUSCATION_PROBES: tuple[str, ...] = (
     "http://[::1]:80",
     "http://[::]:80",
     # Decimal
-    "http://2130706433",                  # 127.0.0.1
-    "http://2852039166",                  # 169.254.169.254
-    "http://3232235777",                  # 192.168.1.1
+    "http://2130706433",  # 127.0.0.1
+    "http://2852039166",  # 169.254.169.254
+    "http://3232235777",  # 192.168.1.1
     # Hex
-    "http://0x7f000001",                  # 127.0.0.1
-    "http://0xa9fea9fe",                  # 169.254.169.254
-    "http://0xc0a80101",                  # 192.168.1.1
+    "http://0x7f000001",  # 127.0.0.1
+    "http://0xa9fea9fe",  # 169.254.169.254
+    "http://0xc0a80101",  # 192.168.1.1
     # Octal
-    "http://0177.0.0.1",                  # 127.0.0.1
-    "http://0251.0.0.1",                  # 169.254.169.254
+    "http://0177.0.0.1",  # 127.0.0.1
+    "http://0251.0.0.1",  # 169.254.169.254
     # DNS rebinding / wildcard
     "http://127.0.0.1.nip.io",
     "http://127.0.0.1.xip.io",
@@ -153,14 +152,9 @@ class SSRFDetector:
 
         # Build payload pool
         base_payloads = self.payload_smith.get_base_payloads("ssrf", context_data)
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf))
 
         # Same-origin internal endpoints the crawl already discovered
         same_origin: list[str] = []
@@ -175,12 +169,9 @@ class SSRFDetector:
                     same_origin.append(candidate)
 
         # Priority assembly: discovered same-origin routes first, then cloud metadata, then IP obfuscations
-        all_payloads = list(dict.fromkeys(
-            same_origin
-            + list(_CLOUD_METADATA_PROBES)
-            + list(_IP_OBFUSCATION_PROBES)
-            + base_payloads
-        ))
+        all_payloads = list(
+            dict.fromkeys(same_origin + list(_CLOUD_METADATA_PROBES) + list(_IP_OBFUSCATION_PROBES) + base_payloads)
+        )
 
         # ── Engine 1: Query & Form Parameters (all params, no keyword whitelist) ──
         for param_name in list(params.keys()):
@@ -251,27 +242,29 @@ class SSRFDetector:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
                         for m in content_matches:
                             diffs.append(f"ssrf:content:{m}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method=method.upper(),
-                            param=header_name,
-                            location="header",
-                            payload=payload,
-                            attack_type=AttackType.SSRF,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.92,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "http_header"},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method=method.upper(),
+                                param=header_name,
+                                location="header",
+                                payload=payload,
+                                attack_type=AttackType.SSRF,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.92,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "http_header"},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -346,27 +339,29 @@ class SSRFDetector:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
                         for m in content_matches:
                             diffs.append(f"ssrf:content:{m}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method="POST",
-                            param=".".join(str(p) for p in path),
-                            location="json_body",
-                            payload=payload,
-                            attack_type=AttackType.SSRF,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.90,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "json_ast", "json_path": path},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method="POST",
+                                param=".".join(str(p) for p in path),
+                                location="json_body",
+                                payload=payload,
+                                attack_type=AttackType.SSRF,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.90,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "json_ast", "json_path": path},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -457,29 +452,60 @@ class SSRFDetector:
 
                 content_indicators = [
                     # AWS
-                    "ami-id", "ami-launch-index", "ami-manifest-path",
-                    "instance-id", "instance-type", "local-ipv4",
-                    "public-keys", "public-ipv4", "security-groups",
-                    "meta-data", "meta data", "169.254",
+                    "ami-id",
+                    "ami-launch-index",
+                    "ami-manifest-path",
+                    "instance-id",
+                    "instance-type",
+                    "local-ipv4",
+                    "public-keys",
+                    "public-ipv4",
+                    "security-groups",
+                    "meta-data",
+                    "meta data",
+                    "169.254",
                     # GCP
-                    "metadata.google", "computeMetadata", "project-id",
-                    "instance-id", "access_configs",
+                    "metadata.google",
+                    "computeMetadata",
+                    "project-id",
+                    "instance-id",
+                    "access_configs",
                     # Azure
-                    "vmId", "subscriptionId", "resourceGroupName",
-                    "imagePublisher", "imageOffer", "imageSku",
+                    "vmId",
+                    "subscriptionId",
+                    "resourceGroupName",
+                    "imagePublisher",
+                    "imageOffer",
+                    "imageSku",
                     # DigitalOcean / Alibaba / Hetzner
-                    "100.100.100.200", "hetzner", "equinix",
+                    "100.100.100.200",
+                    "hetzner",
+                    "equinix",
                     # Oracle Cloud
-                    "opc/v1", "opc/v2", "shape",
+                    "opc/v1",
+                    "opc/v2",
+                    "shape",
                     # IBM Cloud
                     "ibmcloud",
                     # Kubernetes / Docker
-                    "kubelet", "docker", "containers/json",
-                    "api/v1/namespaces", "pods",
+                    "kubelet",
+                    "docker",
+                    "containers/json",
+                    "api/v1/namespaces",
+                    "pods",
                     # Generic internal services
-                    "sshd", "openssh", "root:", "daemon:",
-                    "apache", "nginx", "httpd", "service-status",
-                    "mysql", "postgresql", "mongodb", "redis",
+                    "sshd",
+                    "openssh",
+                    "root:",
+                    "daemon:",
+                    "apache",
+                    "nginx",
+                    "httpd",
+                    "service-status",
+                    "mysql",
+                    "postgresql",
+                    "mongodb",
+                    "redis",
                 ]
                 content_matches = [ind for ind in content_indicators if ind in stripped]
                 if content_matches:
@@ -585,6 +611,3 @@ class SSRFDetector:
                 pass
 
         return None
-
-
-

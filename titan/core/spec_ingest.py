@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Data types
 # ---------------------------------------------------------------------------
 
+
 class ParamLocation(Enum):
     QUERY = "query"
     HEADER = "header"
@@ -50,6 +51,7 @@ class AuthType(Enum):
 @dataclass
 class ApiEndpoint:
     """A discovered API endpoint."""
+
     method: str
     path: str
     summary: str = ""
@@ -66,6 +68,7 @@ class ApiEndpoint:
 @dataclass
 class ApiSchema:
     """A data model/schema from the API spec."""
+
     name: str
     properties: dict[str, dict] = field(default_factory=dict)
     required: list[str] = field(default_factory=list)
@@ -75,6 +78,7 @@ class ApiSchema:
 @dataclass
 class AttackSurface:
     """Complete attack surface from an API specification."""
+
     title: str = ""
     version: str = ""
     base_url: str = ""
@@ -88,6 +92,7 @@ class AttackSurface:
 # ---------------------------------------------------------------------------
 # Spec Ingestor
 # ---------------------------------------------------------------------------
+
 
 class SpecIngestor:
     """Parse API specifications and generate semantic attack surfaces.
@@ -106,6 +111,7 @@ class SpecIngestor:
         # Try to fetch the spec
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(spec_url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                     if resp.status != 200:
@@ -154,12 +160,14 @@ class SpecIngestor:
         components = data.get("components", {})
         security_schemes = components.get("securitySchemes", {})
         for name, scheme in security_schemes.items():
-            surface.auth_flows.append({
-                "name": name,
-                "type": scheme.get("type", ""),
-                "scheme": scheme.get("scheme", ""),
-                "bearerFormat": scheme.get("bearerFormat", ""),
-            })
+            surface.auth_flows.append(
+                {
+                    "name": name,
+                    "type": scheme.get("type", ""),
+                    "scheme": scheme.get("scheme", ""),
+                    "bearerFormat": scheme.get("bearerFormat", ""),
+                }
+            )
             if scheme.get("type") == "http":
                 surface.auth_type = AuthType.BEARER if scheme.get("scheme") == "bearer" else AuthType.BASIC
             elif scheme.get("type") == "apiKey":
@@ -167,11 +175,13 @@ class SpecIngestor:
 
         # Parse schemas
         for name, schema in components.get("schemas", {}).items():
-            surface.schemas.append(ApiSchema(
-                name=name,
-                properties=schema.get("properties", {}),
-                required=schema.get("required", []),
-            ))
+            surface.schemas.append(
+                ApiSchema(
+                    name=name,
+                    properties=schema.get("properties", {}),
+                    required=schema.get("required", []),
+                )
+            )
 
         # Parse endpoints
         for path, path_item in data.get("paths", {}).items():
@@ -214,11 +224,13 @@ class SpecIngestor:
 
         # Parse definitions (schemas)
         for name, definition in data.get("definitions", {}).items():
-            surface.schemas.append(ApiSchema(
-                name=name,
-                properties=definition.get("properties", {}),
-                required=definition.get("required", []),
-            ))
+            surface.schemas.append(
+                ApiSchema(
+                    name=name,
+                    properties=definition.get("properties", {}),
+                    required=definition.get("required", []),
+                )
+            )
 
         # Parse endpoints
         for path, path_item in data.get("paths", {}).items():
@@ -261,21 +273,25 @@ class SpecIngestor:
                     field_type = field_match.group(2).strip()
                     properties[field_name] = {"type": field_type}
 
-            surface.schemas.append(ApiSchema(
-                name=type_name,
-                properties=properties,
-            ))
+            surface.schemas.append(
+                ApiSchema(
+                    name=type_name,
+                    properties=properties,
+                )
+            )
 
             # Query/Mutation types become endpoints
             if type_name in ("Query", "Mutation"):
                 for field_name in properties:
                     method = "GET" if type_name == "Query" else "POST"
-                    surface.endpoints.append(ApiEndpoint(
-                        method=method,
-                        path=f"/graphql#{field_name}",
-                        summary=f"GraphQL {type_name}.{field_name}",
-                        auth_required=False,
-                    ))
+                    surface.endpoints.append(
+                        ApiEndpoint(
+                            method=method,
+                            path=f"/graphql#{field_name}",
+                            summary=f"GraphQL {type_name}.{field_name}",
+                            auth_required=False,
+                        )
+                    )
 
         logger.info(f"GraphQL ingested: {len(surface.endpoints)} operations, {len(surface.schemas)} types")
         return surface
@@ -300,39 +316,56 @@ class SpecIngestor:
                 for schema in surface.schemas:
                     if schema.name.lower() in endpoint.path.lower():
                         extra_fields = {}
-                        for prop_name in ["admin", "role", "is_admin", "isAdmin",
-                                          "user_id", "userId", "account_type",
-                                          "price", "amount", "discount",
-                                          "verified", "confirmed", "approved"]:
+                        for prop_name in [
+                            "admin",
+                            "role",
+                            "is_admin",
+                            "isAdmin",
+                            "user_id",
+                            "userId",
+                            "account_type",
+                            "price",
+                            "amount",
+                            "discount",
+                            "verified",
+                            "confirmed",
+                            "approved",
+                        ]:
                             extra_fields[prop_name] = self._generate_value(prop_name)
 
-                        payloads.append(AttackRequest(
-                            url=f"{base_url}{endpoint.path}",
-                            method=RequestMethod(endpoint.method),
-                            headers={"Content-Type": "application/json"},
-                            body=json.dumps(extra_fields),
-                            metadata={"attack_type": "mass_assignment", "endpoint": endpoint.path},
-                        ))
+                        payloads.append(
+                            AttackRequest(
+                                url=f"{base_url}{endpoint.path}",
+                                method=RequestMethod(endpoint.method),
+                                headers={"Content-Type": "application/json"},
+                                body=json.dumps(extra_fields),
+                                metadata={"attack_type": "mass_assignment", "endpoint": endpoint.path},
+                            )
+                        )
 
             # 2. IDOR — try accessing other users' resources
             if endpoint.method == "GET" and any(p in endpoint.path for p in ["/{id}", "/:id", "/{userId}"]):
                 for test_id in ["1", "0", "999", "admin", "../admin"]:
                     test_path = re.sub(r"\{[^}]+\}|:\w+", test_id, endpoint.path)
-                    payloads.append(AttackRequest(
-                        url=f"{base_url}{test_path}",
-                        method=RequestMethod.GET,
-                        metadata={"attack_type": "idor", "endpoint": endpoint.path},
-                    ))
+                    payloads.append(
+                        AttackRequest(
+                            url=f"{base_url}{test_path}",
+                            method=RequestMethod.GET,
+                            metadata={"attack_type": "idor", "endpoint": endpoint.path},
+                        )
+                    )
 
             # 3. Auth bypass — hit authenticated endpoints without credentials
             if endpoint.auth_required:
-                payloads.append(AttackRequest(
-                    url=f"{base_url}{endpoint.path}",
-                    method=RequestMethod(endpoint.method),
-                    headers={"Content-Type": "application/json"},
-                    body="{}",
-                    metadata={"attack_type": "auth_bypass", "endpoint": endpoint.path},
-                ))
+                payloads.append(
+                    AttackRequest(
+                        url=f"{base_url}{endpoint.path}",
+                        method=RequestMethod(endpoint.method),
+                        headers={"Content-Type": "application/json"},
+                        body="{}",
+                        metadata={"attack_type": "auth_bypass", "endpoint": endpoint.path},
+                    )
+                )
 
             # 4. Contract violations — send wrong types
             if endpoint.method in ("POST", "PUT"):
@@ -343,13 +376,15 @@ class SpecIngestor:
                     "object_field": [1, 2, 3],
                     "boolean_field": "not_a_boolean",
                 }
-                payloads.append(AttackRequest(
-                    url=f"{base_url}{endpoint.path}",
-                    method=RequestMethod(endpoint.method),
-                    headers={"Content-Type": "application/json"},
-                    body=json.dumps(wrong_type_payloads),
-                    metadata={"attack_type": "contract_violation", "endpoint": endpoint.path},
-                ))
+                payloads.append(
+                    AttackRequest(
+                        url=f"{base_url}{endpoint.path}",
+                        method=RequestMethod(endpoint.method),
+                        headers={"Content-Type": "application/json"},
+                        body=json.dumps(wrong_type_payloads),
+                        metadata={"attack_type": "contract_violation", "endpoint": endpoint.path},
+                    )
+                )
 
             # 5. SQLi on query parameters
             for param in endpoint.parameters:
@@ -360,12 +395,14 @@ class SpecIngestor:
                         "' UNION SELECT NULL,NULL,NULL--",
                     ]
                     for payload in sqli_payloads:
-                        payloads.append(AttackRequest(
-                            url=f"{base_url}{endpoint.path}",
-                            method=RequestMethod(endpoint.method),
-                            params={param["name"]: payload},
-                            metadata={"attack_type": "sqli", "param": param["name"]},
-                        ))
+                        payloads.append(
+                            AttackRequest(
+                                url=f"{base_url}{endpoint.path}",
+                                method=RequestMethod(endpoint.method),
+                                params={param["name"]: payload},
+                                metadata={"attack_type": "sqli", "param": param["name"]},
+                            )
+                        )
 
         logger.info(f"Generated {len(payloads)} semantic payloads from {len(surface.endpoints)} endpoints")
         return payloads

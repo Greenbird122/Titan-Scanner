@@ -18,7 +18,6 @@ Features:
   6. Baseline Sanity Gate: silent when baseline request fails.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -34,22 +33,37 @@ logger = get_logger("detector")
 
 
 SENSITIVE_INDICATORS = [
-    "email", "phone", "address", "ssn", "password", "secret", "token",
-    "api_key", "credit", "payment", "medical", "health", "diagnosis",
-    "prescription", "salary", "dob", "national_id", "passport",
-    "private", "internal", "billing",
+    "email",
+    "phone",
+    "address",
+    "ssn",
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "credit",
+    "payment",
+    "medical",
+    "health",
+    "diagnosis",
+    "prescription",
+    "salary",
+    "dob",
+    "national_id",
+    "passport",
+    "private",
+    "internal",
+    "billing",
 ]
 
 # Regex patterns to detect ID types
-_UUID_RE = re.compile(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I
-)
-_MONGO_OID_RE = re.compile(r'^[0-9a-f]{24}$', re.I)
-_NUMERIC_RE = re.compile(r'^\d+$')
-_B64_RE = re.compile(r'^[A-Za-z0-9+/]+=*$')
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+_MONGO_OID_RE = re.compile(r"^[0-9a-f]{24}$", re.I)
+_NUMERIC_RE = re.compile(r"^\d+$")
+_B64_RE = re.compile(r"^[A-Za-z0-9+/]+=*$")
 
 # Detect numeric segments in URL paths  e.g. /api/users/42/orders
-_URL_ID_SEGMENT_RE = re.compile(r'/(\d{1,18})(?:/|$)')
+_URL_ID_SEGMENT_RE = re.compile(r"/(\d{1,18})(?:/|$)")
 
 
 def _is_base64_id(v: str) -> bool:
@@ -58,7 +72,8 @@ def _is_base64_id(v: str) -> bool:
         return False
     try:
         import base64
-        decoded = base64.b64decode(v + '==').decode('ascii', errors='replace')
+
+        decoded = base64.b64decode(v + "==").decode("ascii", errors="replace")
         return decoded.strip().isdigit()
     except Exception:
         return False
@@ -80,11 +95,11 @@ def _mutate_numeric(val: str) -> list[str]:
 def _mutate_uuid(val: str) -> list[str]:
     """Generate plausibly different UUIDs by replacing the last segment."""
     try:
-        parts = val.split('-')
+        parts = val.split("-")
         mutations = []
         for _ in range(4):
             new_last = uuid.uuid4().hex[:12]
-            new_uuid = '-'.join(parts[:4]) + '-' + new_last
+            new_uuid = "-".join(parts[:4]) + "-" + new_last
             mutations.append(new_uuid)
         return mutations
     except Exception:
@@ -98,7 +113,7 @@ def _mutate_mongo_oid(val: str) -> list[str]:
         mutated = []
         for delta in (+1, -1, +2, 0xFFFF):
             new_n = (n + delta) & 0xFFFFFFFF
-            mutated.append(val[:-8] + f'{new_n:08x}')
+            mutated.append(val[:-8] + f"{new_n:08x}")
         return mutated
     except Exception:
         return []
@@ -108,14 +123,12 @@ def _mutate_base64(val: str) -> list[str]:
     """Decode, mutate numeric content, re-encode."""
     try:
         import base64
-        decoded = base64.b64decode(val + '==').decode('ascii').strip()
+
+        decoded = base64.b64decode(val + "==").decode("ascii").strip()
         if not decoded.isdigit():
             return []
         numeric_muts = _mutate_numeric(decoded)[:3]
-        return [
-            base64.b64encode(m.encode()).decode().rstrip('=')
-            for m in numeric_muts
-        ]
+        return [base64.b64encode(m.encode()).decode().rstrip("=") for m in numeric_muts]
     except Exception:
         return []
 
@@ -134,7 +147,7 @@ def _generate_mutations(original_value: str) -> list[str]:
     if original_value.isalnum() and len(original_value) < 10:
         try:
             n = int(original_value, 16)
-            return [f'{n+1:x}', f'{n-1:x}']
+            return [f"{n + 1:x}", f"{n - 1:x}"]
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
             pass
@@ -177,8 +190,14 @@ class IDORDetector:
                 if str(test_value) == original_value:
                     continue
                 f = await self._test_idor(
-                    context, target, method, url, param_name, params,
-                    test_value, original_value,
+                    context,
+                    target,
+                    method,
+                    url,
+                    param_name,
+                    params,
+                    test_value,
+                    original_value,
                 )
                 if f:
                     findings.append(f)
@@ -190,9 +209,7 @@ class IDORDetector:
 
         # ── Engine 3: Cross-Session BOLA (if second session available) ─
         if self._second_session_headers:
-            bola_findings = await self._scan_cross_session(
-                context, target, method, url, params
-            )
+            bola_findings = await self._scan_cross_session(context, target, method, url, params)
             findings.extend(bola_findings)
 
         return findings
@@ -219,10 +236,17 @@ class IDORDetector:
         for m in matches[:2]:
             original_id = m.group(1)
             for test_value in _mutate_numeric(original_id)[:3]:
-                new_url = url[:m.start(1)] + test_value + url[m.end(1):]
+                new_url = url[: m.start(1)] + test_value + url[m.end(1) :]
                 f = await self._test_idor(
-                    context, target, method, new_url, "__url_path__", params,
-                    test_value, original_id, probe_url=new_url,
+                    context,
+                    target,
+                    method,
+                    new_url,
+                    "__url_path__",
+                    params,
+                    test_value,
+                    original_id,
+                    probe_url=new_url,
                 )
                 if f:
                     findings.append(f)
@@ -250,13 +274,9 @@ class IDORDetector:
         try:
             # Baseline: Session A's request
             if method == "GET":
-                r0 = await context.request.get(
-                    url, params=params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
             else:
-                r0 = await context.request.post(
-                    url, data=params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             baseline_body = await r0.text()
             baseline_status = r0.status
 
@@ -277,27 +297,29 @@ class IDORDetector:
                 non_echo = [(p, o, n) for p, o, n in changes]
                 if non_echo:
                     diffs = [f"bola:cross_session:{p}" for p, _, _ in non_echo]
-                    findings.append(Finding(
-                        target=target,
-                        url=url,
-                        method=method.upper(),
-                        param="__session_b__",
-                        location="header",
-                        payload="[Session B auth headers]",
-                        attack_type=AttackType.IDOR,
-                        severity=Severity.CRITICAL,
-                        verified=True,
-                        confidence=0.9,
-                        status=resp.status,
-                        headers=dict(resp.headers),
-                        body=body[:2000],
-                        diffs=diffs,
-                        baseline_body=baseline_body[:2000],
-                        baseline_status=baseline_status,
-                        verification_body=body[:2000],
-                        verification_status=resp.status,
-                        metadata={"type": "bola_cross_session"},
-                    ))
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=url,
+                            method=method.upper(),
+                            param="__session_b__",
+                            location="header",
+                            payload="[Session B auth headers]",
+                            attack_type=AttackType.IDOR,
+                            severity=Severity.CRITICAL,
+                            verified=True,
+                            confidence=0.9,
+                            status=resp.status,
+                            headers=dict(resp.headers),
+                            body=body[:2000],
+                            diffs=diffs,
+                            baseline_body=baseline_body[:2000],
+                            baseline_status=baseline_status,
+                            verification_body=body[:2000],
+                            verification_status=resp.status,
+                            metadata={"type": "bola_cross_session"},
+                        )
+                    )
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
             pass
@@ -327,13 +349,11 @@ class IDORDetector:
             try:
                 if method == "GET":
                     baseline_resp = await context.request.get(
-                        url, params=all_params,
-                        headers={"Referer": target}, timeout=3000
+                        url, params=all_params, headers={"Referer": target}, timeout=3000
                     )
                 else:
                     baseline_resp = await context.request.post(
-                        url, data=all_params,
-                        headers={"Referer": target}, timeout=3000
+                        url, data=all_params, headers={"Referer": target}, timeout=3000
                     )
                 baseline_body = await baseline_resp.text()
                 baseline_status = baseline_resp.status
@@ -350,27 +370,19 @@ class IDORDetector:
                 # URL-path mutation — URL is already mutated, params unchanged
                 if method == "GET":
                     resp = await context.request.get(
-                        probe_url, params=all_params,
-                        headers={"Referer": target}, timeout=3000
+                        probe_url, params=all_params, headers={"Referer": target}, timeout=3000
                     )
                 else:
                     resp = await context.request.post(
-                        probe_url, data=all_params,
-                        headers={"Referer": target}, timeout=3000
+                        probe_url, data=all_params, headers={"Referer": target}, timeout=3000
                     )
             else:
                 test_params = dict(all_params)
                 test_params[param_name] = str(test_value)
                 if method == "GET":
-                    resp = await context.request.get(
-                        url, params=test_params,
-                        headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.get(url, params=test_params, headers={"Referer": target}, timeout=3000)
                 else:
-                    resp = await context.request.post(
-                        url, data=test_params,
-                        headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.post(url, data=test_params, headers={"Referer": target}, timeout=3000)
             body = await resp.text()
 
             diffs = BaselineAnalyzer.diff_responses(baseline_body, body, str(test_value))
@@ -410,18 +422,14 @@ class IDORDetector:
             # ── Signal 3: Value changes that don't echo test_value ────
             changes = json_value_changes(baseline_body, body)
             value_changes = [
-                (p, o, n) for p, o, n in changes
-                if str(test_value) not in str(n) and str(test_value) not in str(o)
+                (p, o, n) for p, o, n in changes if str(test_value) not in str(n) and str(test_value) not in str(o)
             ]
             for p, _o, _n in value_changes:
                 diffs.append(f"idor:value_changed:{p}")
 
             # ── Signal 4: New sensitive fields in test response ───────
             baseline_lower = baseline_body.lower()
-            sensitive_new = [
-                ind for ind in SENSITIVE_INDICATORS
-                if ind in body.lower() and ind not in baseline_lower
-            ]
+            sensitive_new = [ind for ind in SENSITIVE_INDICATORS if ind in body.lower() and ind not in baseline_lower]
 
             if value_changes or sensitive_new:
                 verified = True

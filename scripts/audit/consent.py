@@ -19,6 +19,7 @@ Usage:
     c = load_consent("repairai.co.ke")
     require_write(c, "for write probes")
 """
+
 import os
 import sys
 
@@ -79,10 +80,7 @@ def require_write(c: dict, why: str):
 
 def require_flag(c: dict, flag: str, why: str):
     if not has_flag(c, flag):
-        raise SystemExit(
-            f"[consent] {why} requires flags including '{flag}' "
-            f"(have {c.get('flags')})."
-        )
+        raise SystemExit(f"[consent] {why} requires flags including '{flag}' (have {c.get('flags')}).")
 
 
 if __name__ == "__main__":
@@ -91,8 +89,7 @@ if __name__ == "__main__":
     if not target:
         raise SystemExit("usage: python consent.py <target> [--write]")
     c = load_consent(target)
-    print(f"[consent] {target}: flags={c.get('flags')} "
-          f"expires={c.get('expires_at')} signed={bool(c.get('signature'))}")
+    print(f"[consent] {target}: flags={c.get('flags')} expires={c.get('expires_at')} signed={bool(c.get('signature'))}")
     if "--write" in sys.argv:
         require_write(c, "CLI check")
         print("[consent] write flag OK")

@@ -62,6 +62,7 @@ def _result(findings):
 # Challenge scoring (pure)
 # ---------------------------------------------------------------------------
 
+
 def test_hit_when_verified_matching_finding():
     ch = _challenge()
     r = _result([_finding("http://127.0.0.1:5000/sqli?id=1", AttackType.SQLI)])
@@ -90,9 +91,9 @@ def test_suspicious_partial_never_counts_as_hit():
     """A suspicious-only report (behavioral signal, unverified) is NOT the
     challenge captured — it's the partial outcome."""
     ch = _challenge()
-    f = _finding("http://127.0.0.1:5000/sqli?id=1", AttackType.SQLI,
-                 tier="suspicious", verified=False,
-                 diffs=["reflection"])
+    f = _finding(
+        "http://127.0.0.1:5000/sqli?id=1", AttackType.SQLI, tier="suspicious", verified=False, diffs=["reflection"]
+    )
     row = score_challenge(ch, _result([f]))
     assert row["outcome"] == "suspicious"
 
@@ -121,10 +122,14 @@ def test_na_on_no_result():
 # Aggregation (pure)
 # ---------------------------------------------------------------------------
 
+
 def test_summarize_pass_rate():
     rows = [
-        {"outcome": "hit"}, {"outcome": "hit"}, {"outcome": "miss"},
-        {"outcome": "na"}, {"outcome": "suspicious"},
+        {"outcome": "hit"},
+        {"outcome": "hit"},
+        {"outcome": "miss"},
+        {"outcome": "na"},
+        {"outcome": "suspicious"},
     ]
     s = summarize(rows)
     assert s["total"] == 5
@@ -143,12 +148,11 @@ def test_summarize_zero_reachable():
 # Scorecard rendering (pure)
 # ---------------------------------------------------------------------------
 
+
 def test_render_table_columns():
     rows = [
-        {"name": "SQLi", "endpoint": "/sqli", "attack_type": "SQLi",
-         "outcome": "hit", "evidence": "sanity_pair"},
-        {"name": "LFI", "endpoint": "/lfi", "attack_type": "LFI",
-         "outcome": "na", "evidence": "endpoint not reached"},
+        {"name": "SQLi", "endpoint": "/sqli", "attack_type": "SQLi", "outcome": "hit", "evidence": "sanity_pair"},
+        {"name": "LFI", "endpoint": "/lfi", "attack_type": "LFI", "outcome": "na", "evidence": "endpoint not reached"},
     ]
     md = render_table(rows)
     assert "| Challenge | Endpoint | Attack type | Outcome | Evidence |" in md
@@ -161,10 +165,10 @@ def test_render_scorecard_summary():
         "target": "http://127.0.0.1:5000",
         "scanned_at": "2026-08-16T10:00:00",
         "scan_seconds": 42,
-        "rows": [{"name": "SQLi", "endpoint": "/sqli", "attack_type": "SQLi",
-                  "outcome": "hit", "evidence": "sanity_pair"}],
-        "summary": {"pass_rate": 100.0, "hits": 1, "reachable": 1,
-                    "suspicious": 0, "misses": 0, "na": 0},
+        "rows": [
+            {"name": "SQLi", "endpoint": "/sqli", "attack_type": "SQLi", "outcome": "hit", "evidence": "sanity_pair"}
+        ],
+        "summary": {"pass_rate": 100.0, "hits": 1, "reachable": 1, "suspicious": 0, "misses": 0, "na": 0},
     }
     md = render_scorecard(benchmark)
     assert "Pass rate" in md
@@ -173,12 +177,20 @@ def test_render_scorecard_summary():
 
 
 def test_merge_runs_keeps_best_outcome():
-    prev = {"rows": [
-        {"id": "a", "outcome": "miss"}, {"id": "b", "outcome": "na"},
-    ], "runs": 1}
-    new = {"rows": [
-        {"id": "a", "outcome": "hit"}, {"id": "b", "outcome": "miss"},
-    ], "scanned_at": "t2"}
+    prev = {
+        "rows": [
+            {"id": "a", "outcome": "miss"},
+            {"id": "b", "outcome": "na"},
+        ],
+        "runs": 1,
+    }
+    new = {
+        "rows": [
+            {"id": "a", "outcome": "hit"},
+            {"id": "b", "outcome": "miss"},
+        ],
+        "scanned_at": "t2",
+    }
     merged = merge_runs(prev, new)
     by_id = {r["id"]: r["outcome"] for r in merged["rows"]}
     assert by_id == {"a": "hit", "b": "miss"}
@@ -195,8 +207,7 @@ def test_manifest_load(tmp_path):
 
 def test_manifest_load_with_target(tmp_path):
     mf = tmp_path / "m.json"
-    mf.write_text(json.dumps({"target": "http://127.0.0.1:3000",
-                              "challenges": [{"id": "x"}]}), encoding="utf-8")
+    mf.write_text(json.dumps({"target": "http://127.0.0.1:3000", "challenges": [{"id": "x"}]}), encoding="utf-8")
     out = load_manifest(str(mf))
     assert out["target"] == "http://127.0.0.1:3000"
     assert out["challenges"] == [{"id": "x"}]

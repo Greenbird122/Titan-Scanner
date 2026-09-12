@@ -41,6 +41,7 @@ from titan.verify.kernel import (
 # Phase 3: Kernel Observation tests
 # ---------------------------------------------------------------------------
 
+
 class TestKernelObservation:
     def test_rce_confirmed(self):
         obs = KernelObservation(
@@ -88,8 +89,16 @@ class TestKernelSession:
 
     def test_rce_count(self):
         session = KernelSession(pid=1234, mode="ebpf")
-        session.add(KernelObservation(type=ObservationType.PROCESS_EXEC, evidence_tier=EvidenceTier.KERNEL, data={"proof": True}))
-        session.add(KernelObservation(type=ObservationType.PROCESS_EXEC, evidence_tier=EvidenceTier.KERNEL, data={"proof": True}))
+        session.add(
+            KernelObservation(
+                type=ObservationType.PROCESS_EXEC, evidence_tier=EvidenceTier.KERNEL, data={"proof": True}
+            )
+        )
+        session.add(
+            KernelObservation(
+                type=ObservationType.PROCESS_EXEC, evidence_tier=EvidenceTier.KERNEL, data={"proof": True}
+            )
+        )
         session.add(KernelObservation(type=ObservationType.FILE_OPEN, evidence_tier=EvidenceTier.SYSCALL))
         assert session.rce_count == 2
 
@@ -154,12 +163,14 @@ class TestKernelObserver:
     def test_analyze_rce_observation(self):
         observer = KernelObserver()
         session = KernelSession(pid=1234, mode="process")
-        session.add(KernelObservation(
-            type=ObservationType.PROCESS_EXEC,
-            evidence_tier=EvidenceTier.SYSCALL,
-            data={"pid": 1234, "filename": "/bin/bash"},
-            metadata={"source": "psutil"},
-        ))
+        session.add(
+            KernelObservation(
+                type=ObservationType.PROCESS_EXEC,
+                evidence_tier=EvidenceTier.SYSCALL,
+                data={"pid": 1234, "filename": "/bin/bash"},
+                metadata={"source": "psutil"},
+            )
+        )
         findings = observer.analyze_observations(session)
         assert len(findings) == 1
         assert findings[0]["type"] == "kernel_process_execution"
@@ -168,12 +179,14 @@ class TestKernelObserver:
     def test_analyze_file_access(self):
         observer = KernelObserver()
         session = KernelSession(pid=1234, mode="process")
-        session.add(KernelObservation(
-            type=ObservationType.FILE_OPEN,
-            evidence_tier=EvidenceTier.SYSCALL,
-            data={"filename": "/etc/passwd"},
-            metadata={"source": "/proc"},
-        ))
+        session.add(
+            KernelObservation(
+                type=ObservationType.FILE_OPEN,
+                evidence_tier=EvidenceTier.SYSCALL,
+                data={"filename": "/etc/passwd"},
+                metadata={"source": "/proc"},
+            )
+        )
         findings = observer.analyze_observations(session)
         assert len(findings) == 1
         assert findings[0]["type"] == "kernel_sensitive_file_access"
@@ -201,6 +214,7 @@ class TestFallbackKernelObserver:
 # ---------------------------------------------------------------------------
 # Phase 8: Anti-Forensics tests
 # ---------------------------------------------------------------------------
+
 
 class TestTrafficShaper:
     def test_default_profile(self):

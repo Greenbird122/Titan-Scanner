@@ -14,6 +14,7 @@ Usage:
     python probe_django.py https://target.example --token <jwt> \
         [--endpoints /api/patients/ /api/clinical/] [--settings-500 /api/auth/profile/]
 """
+
 import argparse
 import json
 import os
@@ -43,6 +44,7 @@ def http(method, url, data=None, token=None, timeout=20):
 
 def urlconf_leak(base):
     import random
+
     probe = f"/api/nonexistent-{random.randrange(10**8)}/xyz/"
     st, body = http("GET", base + probe)
     leaked = []
@@ -59,8 +61,17 @@ def settings_dump(base, token, path):
     st, body = http("GET", base + path, token=token)
     if st == 500 and "Settings" in body:
         print(f"[django] DEBUG 500 on {path} -> SETTINGS LEAKED ({len(body)} bytes)")
-        for key in ("DEBUG", "DATABASES", "ALLOWED_HOSTS", "CORS_", "SECRET_KEY",
-                    "AFRICASTALKING", "GOOGLE_", "REDIS", "CELERY"):
+        for key in (
+            "DEBUG",
+            "DATABASES",
+            "ALLOWED_HOSTS",
+            "CORS_",
+            "SECRET_KEY",
+            "AFRICASTALKING",
+            "GOOGLE_",
+            "REDIS",
+            "CELERY",
+        ):
             if re.search(key, body):
                 m = re.search(key + r".{0,90}", body, re.S)
                 val = " ".join(m.group(0).split())[:110] if m else ""
@@ -84,14 +95,14 @@ def main():
     ap.add_argument("target")
     ap.add_argument("--token", default=None, help="JWT (throwaway account)")
     ap.add_argument("--endpoints", nargs="*", default=[])
-    ap.add_argument("--settings-500", default=None,
-                    help="endpoint that 500s for all users, e.g. /api/auth/profile/")
+    ap.add_argument("--settings-500", default=None, help="endpoint that 500s for all users, e.g. /api/auth/profile/")
     args = ap.parse_args()
 
     base = args.target.rstrip("/")
     if args.token:
         # authenticated phase — require a consent file for the domain
         from urllib.parse import urlparse
+
         host = urlparse(base).netloc
         c = load_consent(host)
         print(f"[consent] {host} flags={c.get('flags')}")
@@ -103,8 +114,7 @@ def main():
         if routes and args.token and args.settings_500:
             settings_dump(base, args.token, args.settings_500)
         if routes and not args.endpoints:
-            print("\n[tip] re-run with --endpoints to sweep specific routes "
-                  "(see leaked list above)")
+            print("\n[tip] re-run with --endpoints to sweep specific routes (see leaked list above)")
     return 0
 
 

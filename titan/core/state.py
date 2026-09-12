@@ -24,6 +24,7 @@ from titan.core.models import Finding
 @dataclass
 class ScanState:
     """Complete scan state for persistence."""
+
     scan_id: str
     target: str
     started_at: str

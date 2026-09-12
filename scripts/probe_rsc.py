@@ -9,13 +9,13 @@ logger = get_logger("probe_rsc")
 
 
 URL_RE = re.compile(r'https?://[a-zA-Z0-9.\-]+[^\s"\'<>\\]{0,80}')
-API_RE = re.compile(r'/api/[a-zA-Z0-9_/\-]+')
-CALL_RE = re.compile(r'(?:fetch|axios|\.post|\.get|action)\([^)]{0,90}')
+API_RE = re.compile(r"/api/[a-zA-Z0-9_/\-]+")
+CALL_RE = re.compile(r"(?:fetch|axios|\.post|\.get|action)\([^)]{0,90}")
 
 
 def extract(path: str) -> None:
     raw = open(path, encoding="utf-8", errors="replace").read()
-    chunks = re.findall(r'self\.__next_f\.push\((\[.*?\])\)', raw, re.S)
+    chunks = re.findall(r"self\.__next_f\.push\((\[.*?\])\)", raw, re.S)
     text = "".join(chunks)
     try:
         text = text.encode().decode("unicode_escape", errors="ignore")

@@ -14,6 +14,7 @@ Usage:
 The pilot benchmark is the local lab (no installs). Juice Shop / WebGoat
 manifests plug in the same way once the operator approves the installs.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,8 +38,7 @@ DEFAULT_CONFIG = {
     # timeout 900: the homepage of a real SPA (Juice Shop) exposes ~90 APIs
     # and the module matrix on all of them exceeds 180s — the crawl must not
     # die before the seeded challenge endpoints ever run.
-    "crawl": {"profile": "deep", "max_pages": 10, "timeout": 900,
-              "module_concurrency": 2, "max_apis": 500},
+    "crawl": {"profile": "deep", "max_pages": 10, "timeout": 900, "module_concurrency": 2, "max_apis": 500},
     "modules": {},
     "clientside": {"enabled": False},
     "llm": {"enabled": False},
@@ -88,19 +88,22 @@ async def _run(
             prev = json.loads(score_path.read_text(encoding="utf-8"))
         except Exception:
             prev = {}
-    merged = merge_runs(prev, result) if prev else {
-        "target": target,
-        "last_scan": result["scanned_at"],
-        "runs": 1,
-        "rows": result["rows"],
-        "summary": result["summary"],
-    }
+    merged = (
+        merge_runs(prev, result)
+        if prev
+        else {
+            "target": target,
+            "last_scan": result["scanned_at"],
+            "runs": 1,
+            "rows": result["rows"],
+            "summary": result["summary"],
+        }
+    )
     write_scorecard(merged, out_dir=out_dir)
 
     s = merged["summary"]
     print(f"[+] Pass rate: {s['pass_rate']}% ({s['hits']}/{s['reachable']} reachable)")
-    print(f"[+] Hits {s['hits']} · Suspicious {s['suspicious']} · "
-          f"Misses {s['misses']} · N/A {s['na']}")
+    print(f"[+] Hits {s['hits']} · Suspicious {s['suspicious']} · Misses {s['misses']} · N/A {s['na']}")
     print(f"[+] Scorecard written to {out / 'scorecard.md'}")
     return out
 
@@ -118,8 +121,9 @@ async def _estate(out_dir: str, limit: int, rebuild_only: bool, auth_cookies: st
     manifest = build_estate_manifest("findings", include_practice=False)
     manifest_path = write_estate_manifest(manifest)
     print(f"[+] Estate corpus regenerated: {manifest_path}")
-    print(f"[+] {len(manifest['sites'])} estate sites · "
-          f"{sum(len(s['challenges']) for s in manifest['sites'])} challenges")
+    print(
+        f"[+] {len(manifest['sites'])} estate sites · {sum(len(s['challenges']) for s in manifest['sites'])} challenges"
+    )
     if rebuild_only:
         return
 
@@ -148,8 +152,7 @@ async def _estate(out_dir: str, limit: int, rebuild_only: bool, auth_cookies: st
     if limit:
         sites = sites[:limit]
     for i, site in enumerate(sites, 1):
-        print(f"[+] [{i}/{len(sites)}] scanning {site['slug']} "
-              f"({len(site['challenges'])} challenges)")
+        print(f"[+] [{i}/{len(sites)}] scanning {site['slug']} ({len(site['challenges'])} challenges)")
         engine = TitanEngine(cfg)
         try:
             result = await run_benchmark(site["target"], site["challenges"], engine)
@@ -159,31 +162,47 @@ async def _estate(out_dir: str, limit: int, rebuild_only: bool, auth_cookies: st
                 "scanned_at": __import__("time").strftime("%Y-%m-%dT%H:%M:%S"),
                 "scan_seconds": 0,
                 "scan_error": str(exc)[:200],
-                "rows": [{
-                    "id": c["id"], "name": c["name"], "endpoint": c["endpoint"],
-                    "attack_type": c["attack_type"], "outcome": "na",
-                    "evidence": f"scan error: {str(exc)[:120]}",
-                } for c in site["challenges"]],
-                "summary": {"total": len(site["challenges"]), "hits": 0,
-                            "suspicious": 0, "misses": 0, "na": len(site["challenges"]),
-                            "reachable": 0, "pass_rate": 0.0},
+                "rows": [
+                    {
+                        "id": c["id"],
+                        "name": c["name"],
+                        "endpoint": c["endpoint"],
+                        "attack_type": c["attack_type"],
+                        "outcome": "na",
+                        "evidence": f"scan error: {str(exc)[:120]}",
+                    }
+                    for c in site["challenges"]
+                ],
+                "summary": {
+                    "total": len(site["challenges"]),
+                    "hits": 0,
+                    "suspicious": 0,
+                    "misses": 0,
+                    "na": len(site["challenges"]),
+                    "reachable": 0,
+                    "pass_rate": 0.0,
+                },
             }
         prev[site["slug"]] = result
         s = result["summary"]
-        print(f"    pass {s['pass_rate']}% ({s['hits']}/{s['reachable']}) "
-              f"miss {s['misses']} na {s['na']}")
+        print(f"    pass {s['pass_rate']}% ({s['hits']}/{s['reachable']}) miss {s['misses']} na {s['na']}")
 
     tmp = out / "scorecard.json.tmp"
     tmp.write_text(json.dumps(prev, indent=2), encoding="utf-8")
     tmp.replace(score_path)
 
     # estate summary table
-    lines = ["# Estate benchmark — owned sites vs their recorded findings", "",
-             "| Site | Pass | Hits | Misses | N/A |", "|---|---|---|---|---|"]
+    lines = [
+        "# Estate benchmark — owned sites vs their recorded findings",
+        "",
+        "| Site | Pass | Hits | Misses | N/A |",
+        "|---|---|---|---|---|",
+    ]
     for slug, res in prev.items():
         s = res.get("summary", {})
-        lines.append(f"| {slug} | {s.get('pass_rate', 0)}% | {s.get('hits', 0)} | "
-                     f"{s.get('misses', 0)} | {s.get('na', 0)} |")
+        lines.append(
+            f"| {slug} | {s.get('pass_rate', 0)}% | {s.get('hits', 0)} | {s.get('misses', 0)} | {s.get('na', 0)} |"
+        )
     (out / "SCORECARD.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[+] Estate scorecard written to {out / 'SCORECARD.md'}")
 
@@ -196,19 +215,18 @@ def main() -> int:
     run_p.add_argument("--manifest", default="bench/manifests/local_lab.json")
     run_p.add_argument("--target", default=None)
     run_p.add_argument("--output", default="bench/results")
-    run_p.add_argument("--auth-cookies", default=None,
-                       help="session cookies to inject, e.g. 'JSESSIONID=abc; foo=bar'")
+    run_p.add_argument("--auth-cookies", default=None, help="session cookies to inject, e.g. 'JSESSIONID=abc; foo=bar'")
 
     estate_p = sub.add_parser(
         "estate",
         help="rebuild the estate corpus from the findings ledger, then scan "
-             "each owned-estate site and score it against its recorded findings",
+        "each owned-estate site and score it against its recorded findings",
     )
     estate_p.add_argument("--output", default="bench/results/estate")
-    estate_p.add_argument("--limit", type=int, default=0,
-                          help="cap the number of estate sites scanned (0 = all)")
-    estate_p.add_argument("--rebuild-only", action="store_true",
-                          help="only regenerate bench/manifests/estate.json, don't scan")
+    estate_p.add_argument("--limit", type=int, default=0, help="cap the number of estate sites scanned (0 = all)")
+    estate_p.add_argument(
+        "--rebuild-only", action="store_true", help="only regenerate bench/manifests/estate.json, don't scan"
+    )
     estate_p.add_argument("--auth-cookies", default=None)
 
     args = parser.parse_args()
@@ -223,6 +241,7 @@ def main() -> int:
 
     if args.cmd == "score":
         from bench.scorecard import render_scorecard
+
         p = Path(args.output) / "scorecard.json"
         if not p.exists():
             print(f"[!] No scorecard at {p} — run `bench run` first")

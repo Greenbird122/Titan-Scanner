@@ -39,6 +39,7 @@ def _utc_now() -> str:
 @dataclass
 class LogEntry:
     """A single log entry."""
+
     timestamp: str
     level: str  # "info", "warning", "error", "debug"
     category: str  # "test", "finding", "coverage", "error"
@@ -196,13 +197,18 @@ class TitanLogger:
         filepath = os.path.join(self.log_dir, filename)
         with open(filepath, "w") as f:
             for entry in self._entries:
-                f.write(json.dumps({
-                    "timestamp": entry.timestamp,
-                    "level": entry.level,
-                    "category": entry.category,
-                    "message": entry.message,
-                    "data": entry.data,
-                }) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "timestamp": entry.timestamp,
+                            "level": entry.level,
+                            "category": entry.category,
+                            "message": entry.message,
+                            "data": entry.data,
+                        }
+                    )
+                    + "\n"
+                )
 
         return filepath
 
@@ -345,17 +351,13 @@ def _configure_standard_logging() -> None:
     stream_handler = logging.StreamHandler(_CurrentStderr())
     stream_handler.setFormatter(formatter)
 
-    file_handler = logging.FileHandler(
-        os.path.join(log_dir, "titan.log"), encoding="utf-8"
-    )
+    file_handler = logging.FileHandler(os.path.join(log_dir, "titan.log"), encoding="utf-8")
     file_handler.setFormatter(formatter)
 
     root = logging.getLogger()
     root.addHandler(stream_handler)
     root.addHandler(file_handler)
-    root.setLevel(
-        getattr(logging, os.environ.get("TITAN_LOG_LEVEL", "INFO").upper(), logging.INFO)
-    )
+    root.setLevel(getattr(logging, os.environ.get("TITAN_LOG_LEVEL", "INFO").upper(), logging.INFO))
 
 
 _configure_standard_logging()

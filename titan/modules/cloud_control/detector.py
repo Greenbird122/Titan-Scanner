@@ -78,50 +78,58 @@ class CloudControlDetector:
 
         # Check if response looks like IMDS
         if self._is_imds_response(body, headers):
-            findings.append({
-                "type": "cloud_imds_exposure",
-                "severity": "critical",
-                "title": "Cloud Instance Metadata Service (IMDS) Accessible",
-                "evidence": f"IMDS endpoint responded at {url}",
-                "flow_types": ["url_fetch", "creds"],
-                "cvss": 9.8,
-            })
+            findings.append(
+                {
+                    "type": "cloud_imds_exposure",
+                    "severity": "critical",
+                    "title": "Cloud Instance Metadata Service (IMDS) Accessible",
+                    "evidence": f"IMDS endpoint responded at {url}",
+                    "flow_types": ["url_fetch", "creds"],
+                    "cvss": 9.8,
+                }
+            )
 
         # Check for AWS role credentials in response
         role_creds = self._extract_role_credentials(body)
         if role_creds:
-            findings.append({
-                "type": "cloud_credential_exposure",
-                "severity": "critical",
-                "title": f"IAM Role Credentials Extracted: {role_creds['role_name']}",
-                "evidence": f"AccessKeyId={role_creds.get('access_key_id', 'N/A')[:12]}...",
-                "flow_types": ["creds", "auth_bypass"],
-                "cvss": 10.0,
-                "metadata": role_creds,
-            })
+            findings.append(
+                {
+                    "type": "cloud_credential_exposure",
+                    "severity": "critical",
+                    "title": f"IAM Role Credentials Extracted: {role_creds['role_name']}",
+                    "evidence": f"AccessKeyId={role_creds.get('access_key_id', 'N/A')[:12]}...",
+                    "flow_types": ["creds", "auth_bypass"],
+                    "cvss": 10.0,
+                    "metadata": role_creds,
+                }
+            )
 
         # Check for AWS metadata in headers
         for header, provider in self.AWS_HEADERS.items():
             if header.lower() in {h.lower() for h in headers}:
-                findings.append({
-                    "type": "cloud_metadata_leak",
-                    "severity": "medium",
-                    "title": f"{provider} Metadata Header Exposed",
-                    "evidence": f"Header '{header}' present in response",
-                    "flow_types": ["data_leak"],
-                    "cvss": 5.3,
-                })
+                findings.append(
+                    {
+                        "type": "cloud_metadata_leak",
+                        "severity": "medium",
+                        "title": f"{provider} Metadata Header Exposed",
+                        "evidence": f"Header '{header}' present in response",
+                        "flow_types": ["data_leak"],
+                        "cvss": 5.3,
+                    }
+                )
 
         # Check for user-data exposure
         if self._is_user_data(body):
-            findings.append({
-                "type": "cloud_userdata_exposure",
-                "severity": "critical",
-                "title": "EC2 User-Data Exposed",
-                "evidence": "Instance user-data accessible — may contain scripts, secrets, bootstrapping logic",
-                "flow_types": ["data_leak", "creds"],
-                "cvss": 9.1,
-            })
+            findings.append(
+                {
+                    "type": "cloud_userdata_exposure",
+                    "severity": "critical",
+                    "title": "EC2 User-Data Exposed",
+                    "evidence": "Instance user-data accessible — may contain scripts, secrets, bootstrapping logic",
+                    "flow_types": ["data_leak", "creds"],
+                    "cvss": 9.1,
+                }
+            )
 
         return findings
 
@@ -129,22 +137,26 @@ class CloudControlDetector:
         """Generate payloads for probing cloud IMDS."""
         payloads = []
         for endpoint in self.IMDS_ENDPOINTS:
-            payloads.append({
-                "url": endpoint,
-                "method": "GET",
-                "headers": {},
-                "description": f"IMDS probe: {endpoint}",
-                "attack_type": "ssrf",
-            })
+            payloads.append(
+                {
+                    "url": endpoint,
+                    "method": "GET",
+                    "headers": {},
+                    "description": f"IMDS probe: {endpoint}",
+                    "attack_type": "ssrf",
+                }
+            )
 
         # Also try IMDSv2 (requires PUT to get token)
-        payloads.append({
-            "url": "http://169.254.169.254/latest/api/token",
-            "method": "PUT",
-            "headers": {"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
-            "description": "IMDSv2 token request",
-            "attack_type": "ssrf",
-        })
+        payloads.append(
+            {
+                "url": "http://169.254.169.254/latest/api/token",
+                "method": "PUT",
+                "headers": {"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
+                "description": "IMDSv2 token request",
+                "attack_type": "ssrf",
+            }
+        )
 
         return payloads
 
@@ -187,28 +199,32 @@ class CloudControlDetector:
 
                 for action in actions:
                     if action in escalation_actions or action == "*":
-                        findings.append({
-                            "type": "cloud_privilege_escalation",
-                            "severity": "critical",
-                            "title": f"IAM Privilege Escalation: {action}",
-                            "evidence": f"Role '{role_name}' has '{action}' permission",
-                            "flow_types": ["auth_bypass", "code_exec"],
-                            "cvss": 9.8,
-                        })
+                        findings.append(
+                            {
+                                "type": "cloud_privilege_escalation",
+                                "severity": "critical",
+                                "title": f"IAM Privilege Escalation: {action}",
+                                "evidence": f"Role '{role_name}' has '{action}' permission",
+                                "flow_types": ["auth_bypass", "code_exec"],
+                                "cvss": 9.8,
+                            }
+                        )
 
                 # Cross-account access
                 principal_arn = stmt.get("Principal", {})
                 if isinstance(principal_arn, dict):
                     aws_principal = principal_arn.get("AWS", "")
                     if aws_principal and "*" not in aws_principal:
-                        findings.append({
-                            "type": "cloud_cross_account",
-                            "severity": "high",
-                            "title": "Cross-Account Access Detected",
-                            "evidence": f"Role trusts external account: {aws_principal}",
-                            "flow_types": ["auth_bypass"],
-                            "cvss": 7.5,
-                        })
+                        findings.append(
+                            {
+                                "type": "cloud_cross_account",
+                                "severity": "high",
+                                "title": "Cross-Account Access Detected",
+                                "evidence": f"Role trusts external account: {aws_principal}",
+                                "flow_types": ["auth_bypass"],
+                                "cvss": 7.5,
+                            }
+                        )
 
         return findings
 

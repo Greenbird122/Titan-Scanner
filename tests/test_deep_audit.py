@@ -124,16 +124,26 @@ class TestAttackChain:
         result = AuditResult(target="https://test.com")
         result.findings = [
             AuditFinding(
-                id="F1", severity="critical", title="PII",
-                description="PII exposed", proof="200",
-                impact="Data leak", remediation="Fix",
-                category="pii_exposure", verified=True,
+                id="F1",
+                severity="critical",
+                title="PII",
+                description="PII exposed",
+                proof="200",
+                impact="Data leak",
+                remediation="Fix",
+                category="pii_exposure",
+                verified=True,
             ),
             AuditFinding(
-                id="F2", severity="high", title="Headers",
-                description="Missing headers", proof="200",
-                impact="XSS risk", remediation="Add headers",
-                category="misconfiguration", verified=True,
+                id="F2",
+                severity="high",
+                title="Headers",
+                description="Missing headers",
+                proof="200",
+                impact="XSS risk",
+                remediation="Add headers",
+                category="misconfiguration",
+                verified=True,
             ),
         ]
         result.cloud_config = CloudConfig(provider="firebase")
@@ -147,10 +157,15 @@ class TestAttackChain:
         result = AuditResult(target="https://test.com")
         result.findings = [
             AuditFinding(
-                id="F1", severity="info", title="Password Login Disabled",
-                description="Disabled", proof="200",
-                impact="None", remediation="N/A",
-                category="positive_control", verified=True,
+                id="F1",
+                severity="info",
+                title="Password Login Disabled",
+                description="Disabled",
+                proof="200",
+                impact="None",
+                remediation="N/A",
+                category="positive_control",
+                verified=True,
             ),
         ]
         controls = auditor._build_positive_controls(result)

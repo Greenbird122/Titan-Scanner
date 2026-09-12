@@ -19,7 +19,6 @@ finding is not dead until the full path family has been swept on the app
 origin AND responses have been differentiated from canned controls.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -33,7 +32,6 @@ from titan.modules.baas.firebase import FirebaseTester
 from titan.modules.baas.supabase import SupabaseTester
 
 logger = get_logger("detector")
-
 
 
 class BaasDetector:
@@ -104,7 +102,7 @@ class BaasDetector:
         """Extract Supabase URL from fingerprint."""
         body = self.fingerprint.get("body", "")
         # Look for Supabase URL pattern
-        match = re.search(r'https://[a-z0-9]+\.supabase\.co', body)
+        match = re.search(r"https://[a-z0-9]+\.supabase\.co", body)
         if match:
             return match.group(0)
         return None
@@ -113,7 +111,7 @@ class BaasDetector:
         """Extract Firebase URL from fingerprint."""
         body = self.fingerprint.get("body", "")
         # Look for Firebase URL pattern
-        match = re.search(r'https://[a-z0-9]+\.firebaseio\.com', body)
+        match = re.search(r"https://[a-z0-9]+\.firebaseio\.com", body)
         if match:
             return match.group(0)
         return None
@@ -122,7 +120,7 @@ class BaasDetector:
         """Extract Firebase API key from fingerprint."""
         body = self.fingerprint.get("body", "")
         # Look for API key pattern
-        match = re.search(r'AIza[A-Za-z0-9_-]{35}', body)
+        match = re.search(r"AIza[A-Za-z0-9_-]{35}", body)
         if match:
             return match.group(0)
         return None
@@ -140,12 +138,23 @@ class BaasDetector:
     # finding.
 
     ON_ORIGIN_COMMON_TABLES = [
-        "users", "admin", "products", "payments", "profiles",
-        "orders", "sessions", "settings", "messages",
+        "users",
+        "admin",
+        "products",
+        "payments",
+        "profiles",
+        "orders",
+        "sessions",
+        "settings",
+        "messages",
     ]
 
     ON_ORIGIN_COMMON_BUCKETS = [
-        "uploads", "images", "files", "documents", "avatars",
+        "uploads",
+        "images",
+        "files",
+        "documents",
+        "avatars",
     ]
 
     ON_ORIGIN_CONTROL_NAME = "zz_titan_ctl_nonexistent_7f3a"
@@ -156,8 +165,16 @@ class BaasDetector:
     # (RSC payloads, JSON-LD, manifests) mention .json constantly and
     # would false-positive the gate.
     ON_ORIGIN_MARKERS = (
-        "supabase", "firebase", "firestore", "identitytoolkit", "appwrite",
-        "/rest/v1", "storage/v1", "/functions/v1", "/auth/v1", "postgrest",
+        "supabase",
+        "firebase",
+        "firestore",
+        "identitytoolkit",
+        "appwrite",
+        "/rest/v1",
+        "storage/v1",
+        "/functions/v1",
+        "/auth/v1",
+        "postgrest",
     )
 
     def _on_origin_base(self, url: str) -> str | None:
@@ -269,16 +286,18 @@ class BaasDetector:
                 distinct = {self._normalize_body(b) for _, b in live_rows}
                 if len(distinct) == 1 and len(live_rows) > 1:
                     continue
-                findings.append(self._make_on_origin_finding(
-                    target=target,
-                    url=f"{base}{prefix}/rest/v1/",
-                    name="supabase-rest-on-origin",
-                    detail=f"Public PostgREST-style API on app origin serving live data across {len(live_rows)} tables ({', '.join(t for t, _ in live_rows[:5])})",
-                    evidence=live_rows[0][1],
-                    severity=Severity.HIGH,
-                    attack=AttackType.INFO_LEAK,
-                    tags=["baas", "supabase", "on_origin", "rest_v1"],
-                ))
+                findings.append(
+                    self._make_on_origin_finding(
+                        target=target,
+                        url=f"{base}{prefix}/rest/v1/",
+                        name="supabase-rest-on-origin",
+                        detail=f"Public PostgREST-style API on app origin serving live data across {len(live_rows)} tables ({', '.join(t for t, _ in live_rows[:5])})",
+                        evidence=live_rows[0][1],
+                        severity=Severity.HIGH,
+                        attack=AttackType.INFO_LEAK,
+                        tags=["baas", "supabase", "on_origin", "rest_v1"],
+                    )
+                )
         return findings
 
     async def _probe_firebase_rtdb_family(self, context, target: str, base: str) -> list[Finding]:
@@ -300,16 +319,18 @@ class BaasDetector:
             norm = self._normalize_body(resp["body"])
             canned = bool(ctl) and norm == ctl_body
             if not canned and self._looks_like_data(resp["body"]):
-                findings.append(self._make_on_origin_finding(
-                    target=target,
-                    url=url,
-                    name="firebase-rtdb-on-origin",
-                    detail="Firebase-RTDB-shaped .json endpoint on app origin exposes data",
-                    evidence=resp["body"][:500],
-                    severity=Severity.HIGH,
-                    attack=AttackType.INFO_LEAK,
-                    tags=["baas", "firebase", "on_origin", "rtdb"],
-                ))
+                findings.append(
+                    self._make_on_origin_finding(
+                        target=target,
+                        url=url,
+                        name="firebase-rtdb-on-origin",
+                        detail="Firebase-RTDB-shaped .json endpoint on app origin exposes data",
+                        evidence=resp["body"][:500],
+                        severity=Severity.HIGH,
+                        attack=AttackType.INFO_LEAK,
+                        tags=["baas", "firebase", "on_origin", "rtdb"],
+                    )
+                )
         return findings
 
     async def _probe_storage_family(self, context, target: str, base: str) -> list[Finding]:
@@ -345,21 +366,30 @@ class BaasDetector:
                 if len(distinct) == 1 and len(live_objs) > 1:
                     continue  # canned row across every bucket — honeypot
                 bucket, obj_url, snippet = live_objs[0]
-                findings.append(self._make_on_origin_finding(
-                    target=target,
-                    url=obj_url,
-                    name="storage-object-list-on-origin",
-                    detail=f"Storage bucket '{bucket}' object listing readable on app origin ({len(live_objs)} buckets respond)",
-                    evidence=snippet,
-                    severity=Severity.HIGH,
-                    attack=AttackType.INFO_LEAK,
-                    tags=["baas", "storage", "on_origin", "objects"],
-                ))
+                findings.append(
+                    self._make_on_origin_finding(
+                        target=target,
+                        url=obj_url,
+                        name="storage-object-list-on-origin",
+                        detail=f"Storage bucket '{bucket}' object listing readable on app origin ({len(live_objs)} buckets respond)",
+                        evidence=snippet,
+                        severity=Severity.HIGH,
+                        attack=AttackType.INFO_LEAK,
+                        tags=["baas", "storage", "on_origin", "objects"],
+                    )
+                )
         return findings
 
     def _make_on_origin_finding(
-        self, target: str, url: str, name: str, detail: str,
-        evidence: str, severity: Severity, attack: AttackType, tags: list[str],
+        self,
+        target: str,
+        url: str,
+        name: str,
+        detail: str,
+        evidence: str,
+        severity: Severity,
+        attack: AttackType,
+        tags: list[str],
     ) -> Finding:
         """Build an on-origin BaaS finding."""
         return Finding(
@@ -473,17 +503,27 @@ class BaasDetector:
 
         # Common table names to try
         common_tables = [
-            "users", "profiles", "orders", "products", "sessions",
-            "admin", "settings", "configs", "logs", "audit",
-            "payments", "subscriptions", "invoices", "items", "categories",
+            "users",
+            "profiles",
+            "orders",
+            "products",
+            "sessions",
+            "admin",
+            "settings",
+            "configs",
+            "logs",
+            "audit",
+            "payments",
+            "subscriptions",
+            "invoices",
+            "items",
+            "categories",
         ]
 
         for table in common_tables:
             try:
                 url = f"{self._supabase_url}/rest/v1/{table}?select=id&limit=1"
-                resp = await context.request.get(
-                    url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000
-                )
+                resp = await context.request.get(url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000)
                 body = await resp.text()
 
                 if resp.status == 200 and body not in ("[]", "null", ""):
@@ -507,17 +547,26 @@ class BaasDetector:
 
         # Common function names to try
         common_functions = [
-            "health", "status", "ping", "auth", "user", "admin",
-            "payment", "webhook", "api", "data", "export",
-            "gemini-chat", "travel-intelligence", "text-to-speech",
+            "health",
+            "status",
+            "ping",
+            "auth",
+            "user",
+            "admin",
+            "payment",
+            "webhook",
+            "api",
+            "data",
+            "export",
+            "gemini-chat",
+            "travel-intelligence",
+            "text-to-speech",
         ]
 
         for function in common_functions:
             try:
                 url = f"{self._supabase_url}/functions/v1/{function}"
-                resp = await context.request.get(
-                    url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000
-                )
+                resp = await context.request.get(url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000)
                 await resp.text()
 
                 if resp.status in (200, 403, 401):
@@ -536,9 +585,7 @@ class BaasDetector:
 
         try:
             url = f"{self._supabase_url}/storage/v1/bucket"
-            resp = await context.request.get(
-                url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000
-            )
+            resp = await context.request.get(url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000)
             body = await resp.text()
 
             if resp.status == 200:
@@ -558,9 +605,7 @@ class BaasDetector:
             if bucket not in buckets:
                 try:
                     url = f"{self._supabase_url}/storage/v1/object/{bucket}/"
-                    resp = await context.request.get(
-                        url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000
-                    )
+                    resp = await context.request.get(url, headers={"apikey": self.supa._anon_key or ""}, timeout=3000)
                     if resp.status in (200, 403):
                         buckets.append(bucket)
                 except Exception as exc:
@@ -575,8 +620,16 @@ class BaasDetector:
 
         # Common collection names
         common_collections = [
-            "users", "profiles", "orders", "products", "sessions",
-            "admin", "settings", "configs", "logs", "audit",
+            "users",
+            "profiles",
+            "orders",
+            "products",
+            "sessions",
+            "admin",
+            "settings",
+            "configs",
+            "logs",
+            "audit",
         ]
 
         for collection in common_collections:

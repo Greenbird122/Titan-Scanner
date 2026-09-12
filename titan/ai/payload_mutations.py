@@ -48,47 +48,57 @@ class MutationMixin:
         mutations = []
 
         if waf == "cloudflare":
-            mutations.extend([
-                payload.replace(" ", "/**/"),
-                payload.replace(" ", "%09"),
-                payload.replace(" ", "%0a"),
-                payload.replace("'", "/*!50000'*/"),
-                payload.replace("UNION", "/*!50000UNION*/"),
-                payload.replace("SELECT", "/*!50000SELECT*/"),
-                payload.replace("--", "/**/--"),
-            ])
+            mutations.extend(
+                [
+                    payload.replace(" ", "/**/"),
+                    payload.replace(" ", "%09"),
+                    payload.replace(" ", "%0a"),
+                    payload.replace("'", "/*!50000'*/"),
+                    payload.replace("UNION", "/*!50000UNION*/"),
+                    payload.replace("SELECT", "/*!50000SELECT*/"),
+                    payload.replace("--", "/**/--"),
+                ]
+            )
 
         elif waf == "akamai":
-            mutations.extend([
-                payload.replace(" ", "/**/"),
-                payload.replace("'", "''"),
-                payload.replace("UNION", "UNION/**/"),
-                payload.replace("SELECT", "SELECT/**/"),
-            ])
+            mutations.extend(
+                [
+                    payload.replace(" ", "/**/"),
+                    payload.replace("'", "''"),
+                    payload.replace("UNION", "UNION/**/"),
+                    payload.replace("SELECT", "SELECT/**/"),
+                ]
+            )
 
         elif waf == "aws_waf":
-            mutations.extend([
-                payload.replace(" ", "%20"),
-                payload.replace("'", "%27"),
-                payload.replace('"', "%22"),
-                payload.replace("UNION", "%55NION"),
-                payload.replace("SELECT", "%53ELECT"),
-            ])
+            mutations.extend(
+                [
+                    payload.replace(" ", "%20"),
+                    payload.replace("'", "%27"),
+                    payload.replace('"', "%22"),
+                    payload.replace("UNION", "%55NION"),
+                    payload.replace("SELECT", "%53ELECT"),
+                ]
+            )
 
         elif waf == "imperva":
-            mutations.extend([
-                payload.replace(" ", "/**/"),
-                payload.replace("'", "%27"),
-                payload.replace("UNION", "UNION/**/"),
-            ])
+            mutations.extend(
+                [
+                    payload.replace(" ", "/**/"),
+                    payload.replace("'", "%27"),
+                    payload.replace("UNION", "UNION/**/"),
+                ]
+            )
 
         elif waf == "mod_security":
-            mutations.extend([
-                payload.replace(" ", "/**/"),
-                payload.replace("'", "''"),
-                payload.replace("UNION", "/*!UNION*/"),
-                payload.replace("SELECT", "/*!SELECT*/"),
-            ])
+            mutations.extend(
+                [
+                    payload.replace(" ", "/**/"),
+                    payload.replace("'", "''"),
+                    payload.replace("UNION", "/*!UNION*/"),
+                    payload.replace("SELECT", "/*!SELECT*/"),
+                ]
+            )
 
         return mutations
 
@@ -126,6 +136,7 @@ class MutationMixin:
 
         # URL encoding
         from urllib.parse import quote
+
         mutations.append(quote(payload, safe=""))
         mutations.append(quote(quote(payload, safe="")))
 
@@ -143,6 +154,7 @@ class MutationMixin:
 
         # Base64
         import base64
+
         mutations.append(base64.b64encode(payload.encode()).decode())
 
         return mutations
@@ -152,4 +164,3 @@ class MutationMixin:
         return "".join(c.upper() if i % 2 == 0 else c.lower() for i, c in enumerate(payload))
 
     # ── Stats ───────────────────────────────────────────────────────────
-

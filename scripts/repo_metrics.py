@@ -7,15 +7,28 @@ Exists because ad-hoc `find | xargs wc -l` is unusably slow on this repo
 (multiple virtualenvs), and because third-party code valuations should be
 checkable against the actual tree rather than trusted.
 """
+
 import argparse
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 PRUNE = {
-    "venv", ".venv", "venv_linux", ".git", "__pycache__", ".mypy_cache",
-    ".ruff_cache", ".pytest_cache", "build", "dist", "node_modules",
-    ".dsk_undo", ".tmp_pp", ".tmp_pq", "titan_scanner.egg-info",
+    "venv",
+    ".venv",
+    "venv_linux",
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    "build",
+    "dist",
+    "node_modules",
+    ".dsk_undo",
+    ".tmp_pp",
+    ".tmp_pq",
+    "titan_scanner.egg-info",
 }
 
 
@@ -63,10 +76,10 @@ def main():
     print(f"source files / LOC    : {len(src)} / {sum(r[0] for r in src)}")
     print(f"test files / LOC      : {len(tests)} / {sum(r[0] for r in tests)}")
     if tests and src:
-        print(f"test:source file ratio: 1:{len(src)/len(tests):.1f}")
+        print(f"test:source file ratio: 1:{len(src) / len(tests):.1f}")
     print(f"files > {args.threshold} LOC        : {len(over)}")
     print(f"\ntop {args.top}:")
-    for n, p in over[:args.top] or sorted(rows, reverse=True)[:args.top]:
+    for n, p in over[: args.top] or sorted(rows, reverse=True)[: args.top]:
         print(f"  {n:5d}  {p}")
 
 

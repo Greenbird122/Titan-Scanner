@@ -51,6 +51,7 @@ def _finding(**overrides):
 # Signature selection
 # ---------------------------------------------------------------------------
 
+
 def test_oracle_signature_derived_from_differential_not_payload():
     """The signature must come from the verified evidence differential, never
     the raw payload (a reflected payload proves reflection, not the flaw)."""
@@ -79,12 +80,13 @@ def test_oracle_signature_empty_when_no_evidence():
 # Generation
 # ---------------------------------------------------------------------------
 
+
 def test_repro_script_embeds_request_and_oracle():
     f = _finding()
     script = generate_repro(f, ordinal=1)
-    assert "TITANSQLi_MARKER_7f3a" in script      # the oracle is embedded
-    assert "urllib.request" in script              # dependency-free
-    assert "PASS" in script and "FAIL" in script   # ground-truth wording
+    assert "TITANSQLi_MARKER_7f3a" in script  # the oracle is embedded
+    assert "urllib.request" in script  # dependency-free
+    assert "PASS" in script and "FAIL" in script  # ground-truth wording
     assert "sanity_pair" in script.lower() or "SQLi" in script
 
 
@@ -102,6 +104,7 @@ def test_repros_only_for_confirmed():
 # LIVE Ground-Truth contract: PASS while vulnerable, FAIL after "fix"
 # ---------------------------------------------------------------------------
 
+
 class _VulnerableHandler(http.server.BaseHTTPRequestHandler):
     """Models a real injectable search endpoint: the SQLi payload in the
     query string (' OR 1=1--) triggers the injection oracle in the response.
@@ -114,6 +117,7 @@ class _VulnerableHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         body = "<h1>Search</h1><p>No results.</p>"
         import urllib.parse as _up
+
         if not type(self).fixed and "OR 1=1" in _up.unquote(self.path):
             body += " <mark>TITANSQLi_MARKER_7f3a</mark> 1 row returned."
         payload = body.encode()
@@ -142,13 +146,16 @@ def _run_script(script: str) -> int:
     """Execute a repro script in a subprocess and return its exit code."""
     Path(os.environ.get("TMPDIR", "/tmp")) if os.name != "nt" else None
     import tempfile
+
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as fh:
         fh.write(script)
         name = fh.name
     try:
         proc = subprocess.run(
             [sys.executable, name],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         return proc.returncode
     finally:
@@ -157,10 +164,7 @@ def _run_script(script: str) -> int:
 
 def test_live_repro_passes_on_vulnerable_then_fails_on_fix(live_server):
     f = _finding(target=live_server, url=f"{live_server}/search")
-    f.verification_body = (
-        "<h1>Search</h1><p>No results.</p>"
-        " <mark>TITANSQLi_MARKER_7f3a</mark> 1 row returned."
-    )
+    f.verification_body = "<h1>Search</h1><p>No results.</p> <mark>TITANSQLi_MARKER_7f3a</mark> 1 row returned."
     script = generate_repro(f, ordinal=1)
 
     # Vulnerable: the oracle appears -> repro must PASS (exit 0).
@@ -176,8 +180,14 @@ def test_live_repro_status_check(live_server):
     """A finding whose evidence is only a distinctive status (e.g. 403 vs
     200) asserts the status, and still flips when the server changes."""
     f = _finding(
-        target=live_server, url=f"{live_server}/admin", method="GET",
-        param="", payload="", status=403, verification_body="", baseline_body="",
+        target=live_server,
+        url=f"{live_server}/admin",
+        method="GET",
+        param="",
+        payload="",
+        status=403,
+        verification_body="",
+        baseline_body="",
         diffs=["status:403"],
     )
 
@@ -201,9 +211,8 @@ def test_live_repro_status_check(live_server):
     try:
         _AdminHandler.code = 403
         import dataclasses
-        script = generate_repro(
-            dataclasses.replace(f, target=url, url=f"{url}/admin"), ordinal=1
-        )
+
+        script = generate_repro(dataclasses.replace(f, target=url, url=f"{url}/admin"), ordinal=1)
         assert _run_script(script) == 0
         _AdminHandler.code = 200  # the fix: endpoint now serves normally
         assert _run_script(script) == 1
@@ -216,12 +225,14 @@ def test_live_repro_status_check(live_server):
 # Report wiring
 # ---------------------------------------------------------------------------
 
+
 def test_report_writer_emits_repros_and_records_path(tmp_path):
     f = _finding()
     enforce_evidence([f])
     assert f.tier == "confirmed"
 
     from titan.core.models import ScanResult
+
     result = ScanResult(target=f.target, started_at=0, finished_at=1, findings=[f])
     writer = SiteReportWriter(output_dir=str(tmp_path))
     site_dir = writer.write(result)
@@ -249,6 +260,7 @@ def test_report_writer_skips_suspicious(tmp_path):
     assert suspicious.tier == "suspicious"
 
     from titan.core.models import ScanResult
+
     result = ScanResult(target=suspicious.target, started_at=0, finished_at=1, findings=[suspicious])
     writer = SiteReportWriter(output_dir=str(tmp_path))
     site_dir = writer.write(result)

@@ -17,7 +17,6 @@ Features:
        false positives on standard Cache-Control/ETag headers.
 """
 
-
 from __future__ import annotations
 
 import random
@@ -129,51 +128,55 @@ class CacheDetector:
 
             try:
                 if method.upper() == "GET":
-                    resp = await context.request.get(
-                        url, params=test_params, headers=cache_headers, timeout=3000
-                    )
+                    resp = await context.request.get(url, params=test_params, headers=cache_headers, timeout=3000)
                 else:
-                    resp = await context.request.post(
-                        url, data=test_params, headers=cache_headers, timeout=3000
-                    )
+                    resp = await context.request.post(url, data=test_params, headers=cache_headers, timeout=3000)
                 body = await resp.text()
                 resp_headers = dict(resp.headers)
                 header_str = str(resp_headers).lower()
 
                 cache_indicators = [
-                    "x-cache", "x-cache-status", "cf-cache", "age:", "via:",
-                    "cache-control", "expires", "etag", "last-modified",
-                    "cdn-cache", "server: cloudflare", "server: cache",
-                    "x-proxy-cache", "x-varnish", "x-served-by",
+                    "x-cache",
+                    "x-cache-status",
+                    "cf-cache",
+                    "age:",
+                    "via:",
+                    "cache-control",
+                    "expires",
+                    "etag",
+                    "last-modified",
+                    "cdn-cache",
+                    "server: cloudflare",
+                    "server: cache",
+                    "x-proxy-cache",
+                    "x-varnish",
+                    "x-served-by",
                 ]
                 matches = [ind for ind in cache_indicators if ind in header_str or ind in body.lower()]
 
-                if (
-                    matches
-                    and resp.status == 200
-                    and poison_marker in body
-                    and self._is_shared_cacheable(resp_headers)
-                ):
-                    findings.append(Finding(
-                        target=target,
-                        url=str(getattr(resp, "url", None) or url),
-                        method=method.upper(),
-                        param=param_name,
-                        location="query" if method.upper() == "GET" else "body",
-                        payload=f"Cache poisoning probe reflected: {poison_marker}",
-                        attack_type=AttackType.CACHE_POISONING,
-                        severity=Severity.HIGH,
-                        verified=True,
-                        confidence=0.85,
-                        status=resp.status,
-                        headers=resp_headers,
-                        body=body[:2000],
-                        diffs=["cache:reflection_confirmed"] + [f"cache_indicator:{m}" for m in matches],
-                        baseline_body="",
-                        baseline_status=None,
-                        verification_body=body[:2000],
-                        verification_status=resp.status,
-                    ))
+                if matches and resp.status == 200 and poison_marker in body and self._is_shared_cacheable(resp_headers):
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=str(getattr(resp, "url", None) or url),
+                            method=method.upper(),
+                            param=param_name,
+                            location="query" if method.upper() == "GET" else "body",
+                            payload=f"Cache poisoning probe reflected: {poison_marker}",
+                            attack_type=AttackType.CACHE_POISONING,
+                            severity=Severity.HIGH,
+                            verified=True,
+                            confidence=0.85,
+                            status=resp.status,
+                            headers=resp_headers,
+                            body=body[:2000],
+                            diffs=["cache:reflection_confirmed"] + [f"cache_indicator:{m}" for m in matches],
+                            baseline_body="",
+                            baseline_status=None,
+                            verification_body=body[:2000],
+                            verification_status=resp.status,
+                        )
+                    )
                     break
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
@@ -208,31 +211,29 @@ class CacheDetector:
                 body = await resp.text()
                 resp_headers = dict(resp.headers)
 
-                if (
-                    canary_val in body
-                    and resp.status == 200
-                    and self._is_shared_cacheable(resp_headers)
-                ):
-                    findings.append(Finding(
-                        target=target,
-                        url=str(getattr(resp, "url", None) or url),
-                        method=method.upper(),
-                        param=hdr_name,
-                        location="header",
-                        payload=f"Unkeyed Header Poisoning: {hdr_name}: {canary_val}",
-                        attack_type=AttackType.CACHE_POISONING,
-                        severity=Severity.HIGH,
-                        verified=True,
-                        confidence=0.90,
-                        status=resp.status,
-                        headers=resp_headers,
-                        body=body[:2000],
-                        diffs=["cache:unkeyed_header_reflected", f"header:{hdr_name}"],
-                        baseline_body="",
-                        baseline_status=None,
-                        verification_body=body[:2000],
-                        verification_status=resp.status,
-                    ))
+                if canary_val in body and resp.status == 200 and self._is_shared_cacheable(resp_headers):
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=str(getattr(resp, "url", None) or url),
+                            method=method.upper(),
+                            param=hdr_name,
+                            location="header",
+                            payload=f"Unkeyed Header Poisoning: {hdr_name}: {canary_val}",
+                            attack_type=AttackType.CACHE_POISONING,
+                            severity=Severity.HIGH,
+                            verified=True,
+                            confidence=0.90,
+                            status=resp.status,
+                            headers=resp_headers,
+                            body=body[:2000],
+                            diffs=["cache:unkeyed_header_reflected", f"header:{hdr_name}"],
+                            baseline_body="",
+                            baseline_status=None,
+                            verification_body=body[:2000],
+                            verification_status=resp.status,
+                        )
+                    )
                     break
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
@@ -260,10 +261,9 @@ class CacheDetector:
 
         for ext in _WCD_EXTENSIONS:
             mutated_path = f"{base_path}{ext}"
-            mutated_url = urlunparse((
-                parsed.scheme, parsed.netloc, mutated_path,
-                parsed.params, parsed.query, parsed.fragment
-            ))
+            mutated_url = urlunparse(
+                (parsed.scheme, parsed.netloc, mutated_path, parsed.params, parsed.query, parsed.fragment)
+            )
 
             try:
                 resp = await context.request.get(mutated_url, headers={"Referer": target}, timeout=3000)
@@ -272,32 +272,30 @@ class CacheDetector:
 
                 # WCD is confirmed when the application returns a 200 OK HTML/JSON response
                 # AND the response has cacheable directives due to the extension
-                if (
-                    resp.status == 200
-                    and len(body) > 50
-                    and self._is_shared_cacheable(resp_headers)
-                ):
-                    findings.append(Finding(
-                        target=target,
-                        url=mutated_url,
-                        method="GET",
-                        param="__path__",
-                        location="url_path",
-                        payload=f"Web Cache Deception: {ext}",
-                        attack_type=AttackType.CACHE_POISONING,
-                        severity=Severity.HIGH,
-                        verified=True,
-                        confidence=0.80,
-                        status=resp.status,
-                        headers=resp_headers,
-                        body=body[:2000],
-                        diffs=["cache:wcd_confirmed", f"extension:{ext}"],
-                        baseline_body="",
-                        baseline_status=None,
-                        verification_body=body[:2000],
-                        verification_status=resp.status,
-                        metadata={"type": "web_cache_deception", "extension": ext},
-                    ))
+                if resp.status == 200 and len(body) > 50 and self._is_shared_cacheable(resp_headers):
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=mutated_url,
+                            method="GET",
+                            param="__path__",
+                            location="url_path",
+                            payload=f"Web Cache Deception: {ext}",
+                            attack_type=AttackType.CACHE_POISONING,
+                            severity=Severity.HIGH,
+                            verified=True,
+                            confidence=0.80,
+                            status=resp.status,
+                            headers=resp_headers,
+                            body=body[:2000],
+                            diffs=["cache:wcd_confirmed", f"extension:{ext}"],
+                            baseline_body="",
+                            baseline_status=None,
+                            verification_body=body[:2000],
+                            verification_status=resp.status,
+                            metadata={"type": "web_cache_deception", "extension": ext},
+                        )
+                    )
                     break
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")

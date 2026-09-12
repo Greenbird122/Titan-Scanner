@@ -1,4 +1,5 @@
 """Tests for the FINDINGS.md note miner."""
+
 import sys
 from pathlib import Path
 

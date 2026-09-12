@@ -142,7 +142,7 @@ def extract_copy(cfg):
     if close_line <= open_line:
         return None, "close marker precedes open marker"
     lines = text.split("\n")
-    return "\n".join(lines[open_line + 1:close_line]), None
+    return "\n".join(lines[open_line + 1 : close_line]), None
 
 
 def check_block(cfg):
@@ -156,8 +156,7 @@ def check_block(cfg):
     if _normalize(canonical) == _normalize(copy):
         return True, None
     return False, (
-        f"{cfg['copy']} drifted from canonical {cfg['canonical']} — "
-        f"re-embed the canonical block and re-run."
+        f"{cfg['copy']} drifted from canonical {cfg['canonical']} — re-embed the canonical block and re-run."
     )
 
 
@@ -181,17 +180,11 @@ def main():
             continue
         problems.append(f"{cfg['id']}: {msg}")
     if problems:
-        print(
-            f"[check_skills_consistency] {len(problems)} drift violation(s) "
-            f"({ok_count}/{len(BLOCKS)} blocks match):"
-        )
+        print(f"[check_skills_consistency] {len(problems)} drift violation(s) ({ok_count}/{len(BLOCKS)} blocks match):")
         for p in problems:
             print("  - " + p)
         return 1
-    print(
-        f"[check_skills_consistency] clean: {ok_count} canonical blocks "
-        f"match their embedded copies."
-    )
+    print(f"[check_skills_consistency] clean: {ok_count} canonical blocks match their embedded copies.")
     return 0
 
 

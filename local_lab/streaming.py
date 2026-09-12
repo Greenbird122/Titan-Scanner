@@ -61,8 +61,7 @@ def stream_index():
     cards = []
     for vid, meta in VIDEOS.items():
         lock = "" if meta["tier"] == "free" else ' <span class="lock">PREMIUM</span>'
-        cards.append(f"<li>EP-{vid:02d} {meta['title']}{lock} "
-                     f"<a href='/stream/play/{vid}'>watch</a></li>")
+        cards.append(f"<li>EP-{vid:02d} {meta['title']}{lock} <a href='/stream/play/{vid}'>watch</a></li>")
     return (
         "<html><head><title>STREAM-PEAK</title></head><body>"
         "<h1>STREAM-PEAK</h1><p>the home of everything, allegedly</p>"
@@ -70,8 +69,8 @@ def stream_index():
         "<!-- debug: signing oracle at /stream/sign?key=<id> (no auth) -->"
         "<script>"
         "/* player signing config */ "
-        "var TITAN_SIGNER_SALT=\"titan_stream_salt\"; "
-        "var TITAN_EDGE_SECRET=\"titan-anti-scraper-challenge\";"
+        'var TITAN_SIGNER_SALT="titan_stream_salt"; '
+        'var TITAN_EDGE_SECRET="titan-anti-scraper-challenge";'
         "</script>"
         "</body></html>"
     )
@@ -90,12 +89,14 @@ def stream_play(vid):
         return "STREAM-404 no such video", 404
     token = request.args.get("token", "")
     if token == stream_token(str(vid)):
-        return jsonify({
-            "stream": "STREAM-OK",
-            "title": meta["title"],
-            "tier": meta["tier"],
-            "url": f"/stream/play/{vid}?token={token}",
-        })
+        return jsonify(
+            {
+                "stream": "STREAM-OK",
+                "title": meta["title"],
+                "tier": meta["tier"],
+                "url": f"/stream/play/{vid}?token={token}",
+            }
+        )
     resp = make_response("STREAM-LOCKED 403 this video needs a valid token", 403)
     resp.headers["X-Titan-Hint"] = "sign@/stream/sign?key=<id>"
     return resp

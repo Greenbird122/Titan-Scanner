@@ -14,6 +14,7 @@ def parse_scan_blocks(text: str) -> list[dict]:
 
 async def execute_scan_block(arg: str, config_path: str = "config.yaml") -> str:
     from dawn_integration.cli import run_scan
+
     result = await run_scan(arg, config_path)
     lines = [
         f"[scan] Target: {result.target}",

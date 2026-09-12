@@ -42,7 +42,6 @@ Evidence oracles:
   • Differential Oracle: response differs from baseline ONLY by injected field
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -173,9 +172,7 @@ class MassAssignmentDetector:
 
         # ── Engine 1: Flat Privilege Field Injection ─────────────────
         for field, value, label in PRIVILEGE_FIELDS:
-            f = await self._test_mass_assignment(
-                context, target, method, url, params, field, value, label
-            )
+            f = await self._test_mass_assignment(context, target, method, url, params, field, value, label)
             if f:
                 findings.append(f)
                 break
@@ -183,9 +180,7 @@ class MassAssignmentDetector:
         # ── Engine 2: Nested Object Injection ───────────────────────
         if not findings:
             for payload, label in NESTED_INJECTIONS:
-                f = await self._test_nested_injection(
-                    context, target, method, url, params, payload, label
-                )
+                f = await self._test_nested_injection(context, target, method, url, params, payload, label)
                 if f:
                     findings.append(f)
                     break
@@ -193,9 +188,7 @@ class MassAssignmentDetector:
         # ── Engine 3: Prototype Pollution ────────────────────────────
         if not findings:
             for payload, label in PROTO_POLLUTION:
-                f = await self._test_prototype_pollution(
-                    context, target, method, url, params, payload, label
-                )
+                f = await self._test_prototype_pollution(context, target, method, url, params, payload, label)
                 if f:
                     findings.append(f)
                     break
@@ -203,9 +196,7 @@ class MassAssignmentDetector:
         # ── Engine 4: MongoDB Operator Injection ─────────────────────
         if not findings:
             for payload, label in MONGO_OPERATORS:
-                f = await self._test_mongo_operator(
-                    context, target, method, url, params, payload, label
-                )
+                f = await self._test_mongo_operator(context, target, method, url, params, payload, label)
                 if f:
                     findings.append(f)
                     break
@@ -213,9 +204,7 @@ class MassAssignmentDetector:
         # ── Engine 5: Type Confusion ─────────────────────────────────
         if not findings:
             for field, value, label in TYPE_CONFUSION:
-                f = await self._test_type_confusion(
-                    context, target, method, url, params, field, value, label
-                )
+                f = await self._test_type_confusion(context, target, method, url, params, field, value, label)
                 if f:
                     findings.append(f)
                     break
@@ -547,26 +536,26 @@ class MassAssignmentDetector:
                 return None
 
             return Finding(
-                    target=target,
-                    url=str(getattr(test_resp, "url", None) or url),
-                    method=method.upper(),
-                    param=field,
-                    location="body",
-                    payload=f"Type confusion: {field}={label} accepted",
-                    attack_type=AttackType.MASS_ASSIGNMENT,
-                    severity=Severity.MEDIUM,
-                    verified=True,
-                    confidence=0.75,
-                    status=getattr(test_resp, "status", 200),
-                    headers=dict(getattr(test_resp, "headers", {})),
-                    body=test_body[:2000],
-                    diffs=[f"massassign:type_confusion:{field}={label}"],
-                    baseline_body=baseline_body[:2000],
-                    baseline_status=getattr(baseline_resp, "status", 200),
-                    verification_body=test_body[:2000],
-                    verification_status=getattr(test_resp, "status", 200),
-                    metadata={"field": field, "type": label, "value": val_str},
-                )
+                target=target,
+                url=str(getattr(test_resp, "url", None) or url),
+                method=method.upper(),
+                param=field,
+                location="body",
+                payload=f"Type confusion: {field}={label} accepted",
+                attack_type=AttackType.MASS_ASSIGNMENT,
+                severity=Severity.MEDIUM,
+                verified=True,
+                confidence=0.75,
+                status=getattr(test_resp, "status", 200),
+                headers=dict(getattr(test_resp, "headers", {})),
+                body=test_body[:2000],
+                diffs=[f"massassign:type_confusion:{field}={label}"],
+                baseline_body=baseline_body[:2000],
+                baseline_status=getattr(baseline_resp, "status", 200),
+                verification_body=test_body[:2000],
+                verification_status=getattr(test_resp, "status", 200),
+                metadata={"field": field, "type": label, "value": val_str},
+            )
 
         except Exception:
             return None
@@ -600,12 +589,14 @@ class MassAssignmentDetector:
         """Send request with appropriate content type."""
         if is_json:
             return await context.request.post(
-                url, data=json.dumps(tree),
+                url,
+                data=json.dumps(tree),
                 headers={"Referer": target, "Content-Type": "application/json"},
                 timeout=3000,
             )
         return await context.request.post(
-            url, data=tree,
+            url,
+            data=tree,
             headers={"Referer": target, "Content-Type": "application/json"},
             timeout=3000,
         )

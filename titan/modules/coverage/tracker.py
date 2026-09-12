@@ -23,6 +23,7 @@ from titan.core.models import Finding
 @dataclass
 class TestRecord:
     """Record of a single test execution."""
+
     endpoint: str
     attack_type: str
     payload: str
@@ -37,6 +38,7 @@ class TestRecord:
 @dataclass
 class CoverageMatrix:
     """Matrix of coverage across endpoints and attack types."""
+
     endpoints: list[str]
     attack_types: list[str]
     matrix: dict[tuple[str, str], TestRecord]
@@ -50,34 +52,78 @@ class CoverageTracker:
 
     # All attack types Titan can test
     ALL_ATTACK_TYPES = [
-        "sqli", "xss", "idor", "ssrf", "rce", "csrf",
-        "auth_bypass", "privilege_escalation", "business_logic",
-        "info_leak", "file_upload", "path_traversal",
-        "open_redirect", "cors", "headers",
-        "rate_limit", "session", "jwt",
-        "baas_supabase", "baas_firebase", "baas_appwrite",
-        "baas_clerk", "baas_auth0",
-        "ecommerce", "saas", "workflow",
-        "content_type", "method_override", "header_injection",
-        "post_exploit", "chain", "lateral_movement",
-        "persistence", "cover_up",
+        "sqli",
+        "xss",
+        "idor",
+        "ssrf",
+        "rce",
+        "csrf",
+        "auth_bypass",
+        "privilege_escalation",
+        "business_logic",
+        "info_leak",
+        "file_upload",
+        "path_traversal",
+        "open_redirect",
+        "cors",
+        "headers",
+        "rate_limit",
+        "session",
+        "jwt",
+        "baas_supabase",
+        "baas_firebase",
+        "baas_appwrite",
+        "baas_clerk",
+        "baas_auth0",
+        "ecommerce",
+        "saas",
+        "workflow",
+        "content_type",
+        "method_override",
+        "header_injection",
+        "post_exploit",
+        "chain",
+        "lateral_movement",
+        "persistence",
+        "cover_up",
     ]
 
     # Severity weights for risk-based scoring
     SEVERITY_WEIGHTS = {
-        "sqli": 1.0, "rce": 1.0, "auth_bypass": 0.95,
-        "idor": 0.9, "ssrf": 0.9, "privilege_escalation": 0.9,
-        "xss": 0.85, "csrf": 0.8, "business_logic": 0.8,
-        "file_upload": 0.75, "path_traversal": 0.75,
-        "info_leak": 0.7, "open_redirect": 0.65,
-        "cors": 0.6, "headers": 0.55, "rate_limit": 0.5,
-        "session": 0.7, "jwt": 0.7,
-        "baas_supabase": 0.85, "baas_firebase": 0.85,
-        "baas_appwrite": 0.8, "baas_clerk": 0.75, "baas_auth0": 0.75,
-        "ecommerce": 0.8, "saas": 0.8, "workflow": 0.75,
-        "content_type": 0.6, "method_override": 0.65, "header_injection": 0.6,
-        "post_exploit": 0.9, "chain": 0.95, "lateral_movement": 0.9,
-        "persistence": 0.85, "cover_up": 0.8,
+        "sqli": 1.0,
+        "rce": 1.0,
+        "auth_bypass": 0.95,
+        "idor": 0.9,
+        "ssrf": 0.9,
+        "privilege_escalation": 0.9,
+        "xss": 0.85,
+        "csrf": 0.8,
+        "business_logic": 0.8,
+        "file_upload": 0.75,
+        "path_traversal": 0.75,
+        "info_leak": 0.7,
+        "open_redirect": 0.65,
+        "cors": 0.6,
+        "headers": 0.55,
+        "rate_limit": 0.5,
+        "session": 0.7,
+        "jwt": 0.7,
+        "baas_supabase": 0.85,
+        "baas_firebase": 0.85,
+        "baas_appwrite": 0.8,
+        "baas_clerk": 0.75,
+        "baas_auth0": 0.75,
+        "ecommerce": 0.8,
+        "saas": 0.8,
+        "workflow": 0.75,
+        "content_type": 0.6,
+        "method_override": 0.65,
+        "header_injection": 0.6,
+        "post_exploit": 0.9,
+        "chain": 0.95,
+        "lateral_movement": 0.9,
+        "persistence": 0.85,
+        "cover_up": 0.8,
     }
 
     # Test dependencies (which tests should run first)
@@ -112,9 +158,7 @@ class CoverageTracker:
     ) -> None:
         """Record a test execution."""
         # Hash response for proof
-        response_hash = hashlib.sha256(
-            (response_body or "").encode()
-        ).hexdigest()
+        response_hash = hashlib.sha256((response_body or "").encode()).hexdigest()
 
         record = TestRecord(
             endpoint=endpoint,
@@ -272,8 +316,7 @@ class CoverageTracker:
             "min_duration_ms": round(min(durations), 2),
             "max_duration_ms": round(max(durations), 2),
             "slowest_tests": sorted(
-                [(r.endpoint, r.attack_type, r.duration_ms) for r in self._records],
-                key=lambda x: -x[2]
+                [(r.endpoint, r.attack_type, r.duration_ms) for r in self._records], key=lambda x: -x[2]
             )[:5],
         }
 
@@ -295,9 +338,10 @@ class CoverageTracker:
             "satisfied": satisfied,
             "unsatisfied": unsatisfied,
             "satisfaction_rate": round(
-                sum(len(v) for v in satisfied.values()) /
-                max(sum(len(v) for v in satisfied.values()) + sum(len(v) for v in unsatisfied.values()), 1) * 100,
-                1
+                sum(len(v) for v in satisfied.values())
+                / max(sum(len(v) for v in satisfied.values()) + sum(len(v) for v in unsatisfied.values()), 1)
+                * 100,
+                1,
             ),
         }
 

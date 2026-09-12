@@ -13,7 +13,6 @@ Known-vulnerable services database covers 30+ hosting / SaaS platforms
 with specific fingerprint strings that indicate an unclaimed deployment.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -495,44 +494,48 @@ class SubdomainTakeoverDetector:
                 print(f"      [subdomain-takeover] {subdomain} → CNAME {cname_target} ({service_info['service']})")
 
                 # Step 3: Verify claimability
-                is_claimable = await self._verify_claimability(
-                    subdomain, cname_target, service_info
-                )
+                is_claimable = await self._verify_claimability(subdomain, cname_target, service_info)
 
                 if is_claimable:
-                    findings.append(Finding(
-                        target=target,
-                        url=f"https://{subdomain}",
-                        method="DNS",
-                        param="CNAME",
-                        location="dns",
-                        payload=f"CNAME {subdomain} → {cname_target} ({service_info['service']})",
-                        attack_type=AttackType.INFO_LEAK,
-                        severity=Severity.CRITICAL if service_info["severity"] == "critical"
-                                   else Severity.HIGH if service_info["severity"] == "high"
-                                   else Severity.MEDIUM,
-                        confidence=0.90,
-                        status=200,
-                        evidence=(
-                            f"Dangling CNAME: {subdomain} points to {cname_target} "
-                            f"({service_info['service']}), which is currently unclaimed. "
-                            f"{service_info['takeover_impact']}"
-                        ),
-                        diffs=[
-                            "subdomain_takeover:dangling_cname",
-                            f"service:{service_info['service']}",
-                            f"cname_target:{cname_target}",
-                        ],
-                        metadata={
-                            "subdomain": subdomain,
-                            "cname_target": cname_target,
-                            "service": service_info["service"],
-                            "takeover_impact": service_info["takeover_impact"],
-                            "claimable": True,
-                        },
-                        tags=["subdomain-takeover", "dns", service_info["service"].lower()],
-                    ))
-                    print(f"      [subdomain-takeover] ⚠️  VULNERABLE: {subdomain} → {cname_target} ({service_info['service']})")
+                    findings.append(
+                        Finding(
+                            target=target,
+                            url=f"https://{subdomain}",
+                            method="DNS",
+                            param="CNAME",
+                            location="dns",
+                            payload=f"CNAME {subdomain} → {cname_target} ({service_info['service']})",
+                            attack_type=AttackType.INFO_LEAK,
+                            severity=Severity.CRITICAL
+                            if service_info["severity"] == "critical"
+                            else Severity.HIGH
+                            if service_info["severity"] == "high"
+                            else Severity.MEDIUM,
+                            confidence=0.90,
+                            status=200,
+                            evidence=(
+                                f"Dangling CNAME: {subdomain} points to {cname_target} "
+                                f"({service_info['service']}), which is currently unclaimed. "
+                                f"{service_info['takeover_impact']}"
+                            ),
+                            diffs=[
+                                "subdomain_takeover:dangling_cname",
+                                f"service:{service_info['service']}",
+                                f"cname_target:{cname_target}",
+                            ],
+                            metadata={
+                                "subdomain": subdomain,
+                                "cname_target": cname_target,
+                                "service": service_info["service"],
+                                "takeover_impact": service_info["takeover_impact"],
+                                "claimable": True,
+                            },
+                            tags=["subdomain-takeover", "dns", service_info["service"].lower()],
+                        )
+                    )
+                    print(
+                        f"      [subdomain-takeover] ⚠️  VULNERABLE: {subdomain} → {cname_target} ({service_info['service']})"
+                    )
                 else:
                     # CNAME exists and points to a known service, but it's claimed
                     print(f"      [subdomain-takeover] {subdomain} → {cname_target} (claimed)")
@@ -577,6 +580,7 @@ class SubdomainTakeoverDetector:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                     if resp.status == 200:
                         import json
+
                         data = json.loads(await resp.text())
                         for entry in data:
                             name = entry.get("name_value", "").strip()
@@ -595,17 +599,78 @@ class SubdomainTakeoverDetector:
     async def _dns_bruteforce(self, root_domain: str) -> set[str]:
         """DNS brute-force common subdomain prefixes."""
         COMMON_PREFIXES = [
-            "www", "api", "admin", "app", "auth", "blog", "cdn", "cms",
-            "dashboard", "db", "dev", "docs", "email", "ftp", "git",
-            "grafana", "internal", "jenkins", "jira", "kibana", "mail",
-            "monitor", "ns1", "ns2", "portal", "proxy", "raw", "s3",
-            "staging", "status", "test", "vpn", "wiki", "ws", "login",
-            "signup", "register", "portal", "shop", "store", "pay",
-            "billing", "support", "help", "forum", "community", "chat",
-            "media", "static", "assets", "img", "images", "files",
-            "download", "upload", "backup", "old", "new", "beta",
-            "alpha", "demo", "sandbox", "preview", "stg", "prod",
-            "production", "uat", "qa", "ci", "cd", "build", "deploy",
+            "www",
+            "api",
+            "admin",
+            "app",
+            "auth",
+            "blog",
+            "cdn",
+            "cms",
+            "dashboard",
+            "db",
+            "dev",
+            "docs",
+            "email",
+            "ftp",
+            "git",
+            "grafana",
+            "internal",
+            "jenkins",
+            "jira",
+            "kibana",
+            "mail",
+            "monitor",
+            "ns1",
+            "ns2",
+            "portal",
+            "proxy",
+            "raw",
+            "s3",
+            "staging",
+            "status",
+            "test",
+            "vpn",
+            "wiki",
+            "ws",
+            "login",
+            "signup",
+            "register",
+            "portal",
+            "shop",
+            "store",
+            "pay",
+            "billing",
+            "support",
+            "help",
+            "forum",
+            "community",
+            "chat",
+            "media",
+            "static",
+            "assets",
+            "img",
+            "images",
+            "files",
+            "download",
+            "upload",
+            "backup",
+            "old",
+            "new",
+            "beta",
+            "alpha",
+            "demo",
+            "sandbox",
+            "preview",
+            "stg",
+            "prod",
+            "production",
+            "uat",
+            "qa",
+            "ci",
+            "cd",
+            "build",
+            "deploy",
         ]
         subdomains: set[str] = set()
         try:
@@ -632,6 +697,7 @@ class SubdomainTakeoverDetector:
         try:
             # Try dnspython first
             import dns.resolver
+
             loop = asyncio.get_event_loop()
             answers = await loop.run_in_executor(
                 None,
@@ -703,8 +769,12 @@ class SubdomainTakeoverDetector:
                         # is a strong signal — verify it's the service's 404
                         # (not a generic nginx/Apache 404)
                         service_404_indicators = [
-                            "not found", "doesn't exist", "unavailable",
-                            "no such", "error", "sorry",
+                            "not found",
+                            "doesn't exist",
+                            "unavailable",
+                            "no such",
+                            "error",
+                            "sorry",
                         ]
                         if any(ind in body_lower for ind in service_404_indicators):
                             return True
@@ -722,9 +792,7 @@ class SubdomainTakeoverDetector:
         if service_info.get("dns_fingerprint") == "NXDOMAIN":
             try:
                 loop = asyncio.get_event_loop()
-                await loop.run_in_executor(
-                    None, socket.gethostbyname, cname_target
-                )
+                await loop.run_in_executor(None, socket.gethostbyname, cname_target)
                 # If we get here, the target resolves — not NXDOMAIN
                 return False
             except socket.gaierror:
@@ -765,9 +833,23 @@ class SubdomainTakeoverDetector:
 
         # Handle multi-part TLDs (e.g., .co.ke, .com.au)
         TWO_PART_TLDS = {
-            "co.uk", "co.ke", "co.za", "com.au", "com.br", "co.in",
-            "co.jp", "co.kr", "com.cn", "com.mx", "com.sg", "com.tw",
-            "net.au", "org.uk", "or.jp", "ne.jp", "co.nz",
+            "co.uk",
+            "co.ke",
+            "co.za",
+            "com.au",
+            "com.br",
+            "co.in",
+            "co.jp",
+            "co.kr",
+            "com.cn",
+            "com.mx",
+            "com.sg",
+            "com.tw",
+            "net.au",
+            "org.uk",
+            "or.jp",
+            "ne.jp",
+            "co.nz",
         }
         tld = ".".join(parts[-2:])
         if tld in TWO_PART_TLDS and len(parts) >= 3:

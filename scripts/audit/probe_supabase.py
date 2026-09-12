@@ -16,6 +16,7 @@ Usage:
 Example:
     python probe_supabase.py xyzabc <eyJ...anon> blink-app-ten.vercel.app --tables users notifications --write
 """
+
 import argparse
 import json
 import os
@@ -76,9 +77,15 @@ def probe_write_map(project, key, target, tables):
         url = f"https://{project}.supabase.co/rest/v1/{t}"
         # probe insert; validation error (400) means RLS passed the request
         st, body = http("POST", url, {"probe_col": MARKER}, headers=anon_headers(key))
-        verdict = ("RLS-OPEN" if st in (200, 201) else
-                   "RLS-PASSED(validation-400)" if st == 400 else
-                   "RLS-DENIED" if st in (401, 403) else f"other:{st}")
+        verdict = (
+            "RLS-OPEN"
+            if st in (200, 201)
+            else "RLS-PASSED(validation-400)"
+            if st == 400
+            else "RLS-DENIED"
+            if st in (401, 403)
+            else f"other:{st}"
+        )
         print(f"  INSERT {t:22s} -> {st}  {verdict}  {body[:100]}")
 
 
@@ -87,8 +94,10 @@ def probe_role_escalation(project, key, target):
     require_write(c, "role escalation probe")
     # NOTE: requires a created throwaway account + its authenticated JWT.
     # Stub: prints the method; caller supplies token via --token.
-    print("[supabase] role escalation requires an authenticated token — "
-          "run manually: PATCH users {role:<highest>} with own token, read back.")
+    print(
+        "[supabase] role escalation requires an authenticated token — "
+        "run manually: PATCH users {role:<highest>} with own token, read back."
+    )
 
 
 def main():

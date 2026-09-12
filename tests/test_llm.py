@@ -82,6 +82,7 @@ class FakeInteractsh:
 
 def _det(channel, interactsh=None, config=None):
     from titan.modules.llm.detector import LLMDetector
+
     return LLMDetector(channel, interactsh, config or {})
 
 
@@ -147,8 +148,10 @@ class TestJudges:
     def test_refusal_quoting_tool_json_is_not_agency(self):
         # The dangerous case: a refusal that HAPPENS to quote tool-call JSON
         # must not be read as a tool invocation. The refusal gate must win.
-        resp = ('I cannot call tools. The configured tools are {"name": "search_web"} '
-                'and {"name": "read_file"}, but I refuse to use them for you.')
+        resp = (
+            'I cannot call tools. The configured tools are {"name": "search_web"} '
+            'and {"name": "read_file"}, but I refuse to use them for you.'
+        )
         assert _TOOL_CALL.search(resp), "fixture must actually match the tool-call regex"
         assert not judge_agency(resp)["compliance"]
 
@@ -240,7 +243,14 @@ class TestSystemLeak:
     )
 
     async def test_model_revealing_prompt_is_verified(self):
-        channel = FakeChannel(scripted={"system prompt": self.PROMPT, "system instructions": self.PROMPT, "debug mode": self.PROMPT, "developer instructions": self.PROMPT})
+        channel = FakeChannel(
+            scripted={
+                "system prompt": self.PROMPT,
+                "system instructions": self.PROMPT,
+                "debug mode": self.PROMPT,
+                "developer instructions": self.PROMPT,
+            }
+        )
         findings = await _det(channel).scan("http://t", "http://t/api/chat")
         sl = [f for f in findings if f.attack_type == AttackType.SYSTEM_LEAK]
         assert sl, f"system-prompt leak must be flagged, got {findings}"
@@ -258,6 +268,7 @@ class TestSystemLeak:
 class TestDataExfil:
     async def test_oob_callback_confirms_exfil(self):
         from titan.verify.flows import apply_flows
+
         interactsh = FakeInteractsh(callbacks=True)
         channel = FakeChannel(default="I fetched it.")
         findings = await _det(channel, interactsh).scan("http://t", "http://t/api/chat")
@@ -292,7 +303,14 @@ class TestAgency:
     TOOL = '{"tool_calls": [{"name": "search_web", "arguments": "{\\"q\\": \\"TITANTOOLX\\"}"}]}'
 
     async def test_model_invoking_tool_is_verified(self):
-        channel = FakeChannel(scripted={"search_web tool": self.TOOL, "web_search function": self.TOOL, "send_email tool": self.TOOL, "read_file tool": self.TOOL})
+        channel = FakeChannel(
+            scripted={
+                "search_web tool": self.TOOL,
+                "web_search function": self.TOOL,
+                "send_email tool": self.TOOL,
+                "read_file tool": self.TOOL,
+            }
+        )
         findings = await _det(channel).scan("http://t", "http://t/api/chat")
         ag = [f for f in findings if f.attack_type == AttackType.LLM_AGENCY]
         assert ag, f"tool invocation must be flagged, got {findings}"
@@ -309,20 +327,24 @@ class TestChannelExtraction:
 
     def test_openai_envelope(self):
         from titan.modules.llm.channel import LLMChannel
+
         raw = '{"choices": [{"message": {"role": "assistant", "content": "hello world"}}]}'
         assert LLMChannel._extract_text(raw) == "hello world"
 
     def test_flat_envelope(self):
         from titan.modules.llm.channel import LLMChannel
+
         assert LLMChannel._extract_text('{"response": "hi"}') == "hi"
 
     def test_raw_text(self):
         from titan.modules.llm.channel import LLMChannel
+
         assert LLMChannel._extract_text("plain reply") == "plain reply"
 
     def test_nested_tool_calls_survive_extraction(self):
         # A tool-call payload must not be destroyed by text extraction.
         from titan.modules.llm.channel import LLMChannel
+
         raw = '{"choices": [{"message": {"tool_calls": [{"name": "search_web"}]}}]}'
         out = LLMChannel._extract_text(raw)
         assert "tool_calls" in out or "search_web" in out
@@ -334,6 +356,7 @@ class TestChannelExtraction:
 class TestLLMEngineWiring:
     async def test_llm_channel_runs_through_engine(self):
         from titan.core.engine import TitanEngine
+
         cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}, "llm": {"enabled": True}}
         engine = TitanEngine(cfg)
         engine.visited = {"http://localhost:5000/api/chat"}
@@ -347,6 +370,7 @@ class TestLLMEngineWiring:
 
     async def test_disabled_llm_skips(self):
         from titan.core.engine import TitanEngine
+
         cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}, "llm": {"enabled": False}}
         engine = TitanEngine(cfg)
         engine.visited = {"http://localhost:5000/api/chat"}
@@ -357,6 +381,7 @@ class TestLLMEngineWiring:
 
     async def test_no_llm_endpoint_skips_quietly(self):
         from titan.core.engine import TitanEngine
+
         cfg = {"governance": {"enabled": False}, "ai": {"enabled": False}, "llm": {"enabled": True}}
         engine = TitanEngine(cfg)
         engine.visited = {"http://localhost:5000/", "http://localhost:5000/about"}
@@ -367,6 +392,7 @@ class TestLLMEngineWiring:
 
     def test_is_llm_endpoint(self):
         from titan.core.engine import TitanEngine
+
         assert TitanEngine._is_llm_endpoint("http://x/api/chat")
         assert TitanEngine._is_llm_endpoint("http://x/v1/chat/completions")
         assert not TitanEngine._is_llm_endpoint("http://x/about")

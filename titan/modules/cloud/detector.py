@@ -12,7 +12,6 @@ This module:
 6. Cloud function enumeration
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("detector")
 
 
-
 @dataclass
 class CloudPayload:
     """A cloud security test payload."""
+
     name: str
     provider: str
     endpoint: str
@@ -195,9 +194,7 @@ class CloudSecurityTester:
         findings = []
         for payload in self.AWS_METADATA_PAYLOADS:
             try:
-                response = await self._send_request(
-                    payload.endpoint, payload.method, payload.headers
-                )
+                response = await self._send_request(payload.endpoint, payload.method, payload.headers)
                 if response and self._check_metadata(response, payload):
                     finding = Finding(
                         target=target_url,
@@ -227,9 +224,7 @@ class CloudSecurityTester:
         findings = []
         for payload in self.GCP_METADATA_PAYLOADS:
             try:
-                response = await self._send_request(
-                    payload.endpoint, payload.method, payload.headers
-                )
+                response = await self._send_request(payload.endpoint, payload.method, payload.headers)
                 if response and self._check_metadata(response, payload):
                     finding = Finding(
                         target=target_url,
@@ -259,9 +254,7 @@ class CloudSecurityTester:
         findings = []
         for payload in self.AZURE_METADATA_PAYLOADS:
             try:
-                response = await self._send_request(
-                    payload.endpoint, payload.method, payload.headers
-                )
+                response = await self._send_request(payload.endpoint, payload.method, payload.headers)
                 if response and self._check_metadata(response, payload):
                     finding = Finding(
                         target=target_url,
@@ -297,8 +290,11 @@ class CloudSecurityTester:
     async def _send_request(self, url: str, method: str, headers: dict[str, str]) -> dict[str, Any] | None:
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
-                async with session.request(method, url, headers=headers, timeout=aiohttp.ClientTimeout(total=3)) as resp:
+                async with session.request(
+                    method, url, headers=headers, timeout=aiohttp.ClientTimeout(total=3)
+                ) as resp:
                     return {"status": resp.status, "body": await resp.text(), "headers": dict(resp.headers)}
         except Exception:
             return None

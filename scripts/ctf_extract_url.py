@@ -9,6 +9,7 @@ Single-quoted patterns work. LIKE / comparisons are CASE-INSENSITIVE by
 default, so we binary-search the character (case-insensitively) and then
 determine exact case via = (LIKE BINARY). Last resort: fetch works anyway.
 """
+
 import time
 import urllib.error
 import urllib.parse
@@ -54,8 +55,8 @@ SLEEP = 0.5  # override to be gentler on the server
 
 def main():
     # ---- sanity: comparisons work ----
-    print("sanity: url > 'a'  =>", true_cond(f"{COL}+%3E+%27a%27"))   # should be True
-    print("sanity: url < 'a'  =>", true_cond(f"{COL}+%3C+%27a%27"))   # should be False
+    print("sanity: url > 'a'  =>", true_cond(f"{COL}+%3E+%27a%27"))  # should be True
+    print("sanity: url < 'a'  =>", true_cond(f"{COL}+%3C+%27a%27"))  # should be False
     print("sanity: url LIKE 'u%' =>", true_cond(f"{COL}+LIKE+%27u%25%27"))
 
     # Quick check: is the flag already in the url?

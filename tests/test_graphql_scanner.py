@@ -119,9 +119,9 @@ async def test_executed_batch_yields_finding():
     ctx = _FakeContext(_batch_responder)
     scanner = GraphQLScanner(payload_smith=None, fingerprint={})
     findings = await scanner.scan(ctx, "http://t", "http://t/gql")
-    assert any(
-        f.diffs == ["graphql:batch_accepted"] for f in findings
-    ), "a server that EXECUTES a JSON-array batch must be flagged"
+    assert any(f.diffs == ["graphql:batch_accepted"] for f in findings), (
+        "a server that EXECUTES a JSON-array batch must be flagged"
+    )
 
 
 async def test_batch_rejection_is_not_a_finding():
@@ -133,9 +133,9 @@ async def test_batch_rejection_is_not_a_finding():
     ctx = _FakeContext(rejecting_responder)
     scanner = GraphQLScanner(payload_smith=None, fingerprint={})
     findings = await scanner.scan(ctx, "http://t", "http://t/gql")
-    assert not any(
-        f.diffs == ["graphql:batch_accepted"] for f in findings
-    ), "a 400 batch rejection means the server defended itself — no finding"
+    assert not any(f.diffs == ["graphql:batch_accepted"] for f in findings), (
+        "a 400 batch rejection means the server defended itself — no finding"
+    )
 
 
 def _mutation_responder(query: str):

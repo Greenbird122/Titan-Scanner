@@ -52,6 +52,7 @@ async def lab_pair(tmp_path):
                                  test but reachable through the sink.
     Returns (sink_url, inner_url, ports) with both apps running.
     """
+
     async def handle_inner(request: web.Request) -> web.Response:
         return web.Response(text="ami-id: i-0123abcd\nroot: x:0:0:root:/root:/bin/bash")
 
@@ -91,6 +92,7 @@ async def lab_pair(tmp_path):
 # Relay helper
 # ---------------------------------------------------------------------------
 
+
 async def test_relay_through_sink_captures_internal_content(lab_pair):
     sink_url, inner_url, _, _ = lab_pair
     finding = _ssrf_finding(sink_url)
@@ -109,6 +111,7 @@ async def test_relay_reflection_never_verifies(lab_pair):
     the URL string itself contains 'meta-data'/'169.254' — the strip must
     remove it in every encoding before markers are matched."""
     sink_url, inner_url, _, _ = lab_pair
+
     # Echo sink: returns the probe URL verbatim (server reflects the param).
     async def handle_echo(request: web.Request) -> web.Response:
         return web.Response(text=request.query.get("url", ""))
@@ -121,9 +124,7 @@ async def test_relay_reflection_never_verifies(lab_pair):
     await site.start()
     port = site._server.sockets[0].getsockname()[1]  # type: ignore[attr-defined]
     try:
-        result = await relay_through_sink(
-            _ssrf_finding(f"http://127.0.0.1:{port}/echo"), inner_url
-        )
+        result = await relay_through_sink(_ssrf_finding(f"http://127.0.0.1:{port}/echo"), inner_url)
         # The fetch itself "succeeded" (HTTP 200 echo) but there is NO
         # evidence the sink fetched the inner URL — content markers stay empty.
         assert result["status"] == 200
@@ -154,6 +155,7 @@ async def test_relay_dead_sink_raises():
 # ---------------------------------------------------------------------------
 # Planner
 # ---------------------------------------------------------------------------
+
 
 async def test_ssrf_pivot_requires_consent(tmp_path: Path, lab_pair):
     sink_url, inner_url, _, _ = lab_pair
@@ -218,6 +220,7 @@ def test_usable_ssrf_findings_filters():
 # REPL /pivot
 # ---------------------------------------------------------------------------
 
+
 async def test_repl_pivot_saves_sample(tmp_path: Path, lab_pair):
     sink_url, inner_url, _, _ = lab_pair
     key = tmp_path / "k.pem"
@@ -271,6 +274,7 @@ async def test_repl_pivot_rejects_non_ssrf_session(tmp_path: Path):
 # ---------------------------------------------------------------------------
 # Engine seam (M4 wiring) + CLI one-shot pivot
 # ---------------------------------------------------------------------------
+
 
 def _engine_config(tmp_path: Path) -> dict:
     return {

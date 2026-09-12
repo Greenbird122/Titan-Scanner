@@ -24,6 +24,7 @@ from titan.verify.oracles import enforce_evidence
 # Fuzzer: mutation dictionary + differential classification (pure)
 # ---------------------------------------------------------------------------
 
+
 def test_mutation_dictionary_is_bounded_and_varied():
     mutations = _mutate("Search")  # mixed case so both upper AND lower fire
     labels = [label for label, _ in mutations]
@@ -42,7 +43,9 @@ def test_mutation_empty_value_yields_nothing():
 
 def test_classify_new_sql_error_is_strong():
     label, sev, conf = classify_differential(
-        200, "<html>ok</html>", 200,
+        200,
+        "<html>ok</html>",
+        200,
         "<html>ok</html> SQLSTATE[42000]: syntax error",
     )
     assert label == "error:sql"
@@ -63,6 +66,7 @@ def test_classify_no_differential():
 # ---------------------------------------------------------------------------
 # Parser-differential: encodings + pure decision (the novel core)
 # ---------------------------------------------------------------------------
+
 
 def test_encodings_produce_varied_wire_forms():
     # A payload with <, > and spaces so EVERY encoding produces a distinct
@@ -86,7 +90,7 @@ def test_encoded_sink_reaching_plain_couldnt_is_confirmed():
     SQL parser -> verified (confirmed tier, scored + repro'd)."""
     label, sev, conf, verified = classify_parser_differential(
         baseline_body="<html>normal</html>",
-        plain_body="<html>normal</html>",       # plain form filtered/neutral
+        plain_body="<html>normal</html>",  # plain form filtered/neutral
         encoded_body="<html>normal SQLSTATE[42000]: syntax error</html>",
         plain_status=200,
         encoded_status=200,
@@ -137,14 +141,22 @@ def test_weak_encoded_flip_stays_suspicious():
 # A1 tiering discipline
 # ---------------------------------------------------------------------------
 
+
 def test_fuzzer_findings_tier_suspicious_never_scored():
     """Fuzzer findings are behavioral differentials by design: they must tier
     `suspicious` and never be scored as proven."""
     f = Finding(
-        target="http://lab.local", url="http://lab.local/search", method="GET",
-        param="q", location="query", payload="SEARCH",
-        attack_type=AttackType.FUZZ_DIFFERENTIAL, severity=Severity.LOW,
-        verified=False, confidence=0.5, status=200,
+        target="http://lab.local",
+        url="http://lab.local/search",
+        method="GET",
+        param="q",
+        location="query",
+        payload="SEARCH",
+        attack_type=AttackType.FUZZ_DIFFERENTIAL,
+        severity=Severity.LOW,
+        verified=False,
+        confidence=0.5,
+        status=200,
         diffs=["content_change", "fuzz:upper"],
     )
     enforce_evidence([f])
@@ -154,10 +166,17 @@ def test_fuzzer_findings_tier_suspicious_never_scored():
 
 def test_parserdiff_confirmed_finding_tiers_confirmed():
     f = Finding(
-        target="http://lab.local", url="http://lab.local/search", method="GET",
-        param="q", location="query", payload="%252e%252e%252f",
-        attack_type=AttackType.PARSER_DIFFERENTIAL, severity=Severity.HIGH,
-        verified=True, confidence=0.85, status=200,
+        target="http://lab.local",
+        url="http://lab.local/search",
+        method="GET",
+        param="q",
+        location="query",
+        payload="%252e%252e%252f",
+        attack_type=AttackType.PARSER_DIFFERENTIAL,
+        severity=Severity.HIGH,
+        verified=True,
+        confidence=0.85,
+        status=200,
         diffs=["error:filesystem", "parserdiff:double-url", "class:lfi"],
     )
     enforce_evidence([f])
@@ -168,6 +187,7 @@ def test_parserdiff_confirmed_finding_tiers_confirmed():
 # ---------------------------------------------------------------------------
 # LIVE proofs
 # ---------------------------------------------------------------------------
+
 
 class _VulnLabHandler(http.server.BaseHTTPRequestHandler):
     """A lab that models the parser disagreement:
@@ -180,6 +200,7 @@ class _VulnLabHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         import urllib.parse as up
+
         parsed = up.urlparse(self.path)
         qs = up.parse_qs(parsed.query)
         if parsed.path == "/fuzz":
@@ -189,9 +210,7 @@ class _VulnLabHandler(http.server.BaseHTTPRequestHandler):
                 # Case sensitivity changes the query result volume: a much
                 # longer results page (the length classifier must catch it).
                 body = (
-                    "<html><h1>PROCESSED ADMIN RESULTS</h1><table>"
-                    + "<tr><td>row</td></tr>" * 60
-                    + "</table></html>"
+                    "<html><h1>PROCESSED ADMIN RESULTS</h1><table>" + "<tr><td>row</td></tr>" * 60 + "</table></html>"
                 )
             payload = body.encode()
             self.send_response(200)
@@ -241,6 +260,7 @@ class _FakeRequest:
     async def get(self, url, params=None, headers=None, timeout=None):
         import urllib.parse as up
         import urllib.request as ur
+
         url = self.base + url
         if params:
             qs = up.urlencode(params, doseq=True)
@@ -277,9 +297,7 @@ def test_live_fuzzer_detects_behavioral_differential():
     try:
         detector = FuzzerDetector(AsyncMock(), {})
         ctx = _FakeContext(base)
-        findings = asyncio.run(detector.scan(
-            ctx, base, "GET", "/fuzz", {"q": "search"}
-        ))
+        findings = asyncio.run(detector.scan(ctx, base, "GET", "/fuzz", {"q": "search"}))
         # the UPPER mutation flips the response -> a differential fires
         labels = {f.metadata.get("mutation") for f in findings}
         assert any(f.attack_type == AttackType.FUZZ_DIFFERENTIAL for f in findings)
@@ -298,9 +316,7 @@ def test_live_parserdiff_encoded_form_reaches_sink():
     try:
         detector = ParserDiffDetector(AsyncMock(), {})
         ctx = _FakeContext(base)
-        findings = asyncio.run(detector.scan(
-            ctx, base, "GET", "/pdiff", {"file": "report.pdf"}
-        ))
+        findings = asyncio.run(detector.scan(ctx, base, "GET", "/pdiff", {"file": "report.pdf"}))
         pdiff = [f for f in findings if f.attack_type == AttackType.PARSER_DIFFERENTIAL]
         assert pdiff, "parser differential must fire on the disagreeing lab"
         f = pdiff[0]
@@ -340,9 +356,7 @@ def test_live_parserdiff_no_false_positive_on_agreeing_server():
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
         detector = ParserDiffDetector(AsyncMock(), {})
-        findings = asyncio.run(detector.scan(
-            _FakeContext(base), base, "GET", "/pdiff", {"file": "report.pdf"}
-        ))
+        findings = asyncio.run(detector.scan(_FakeContext(base), base, "GET", "/pdiff", {"file": "report.pdf"}))
         assert findings == [], "a filter that treats both forms the same is NOT a differential"
     finally:
         server.shutdown()
@@ -409,11 +423,16 @@ def test_ssrf_same_origin_internal_route_is_confirmed():
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
         detector = SSRFDetector(PayloadSmith({}), {})
-        findings = asyncio.run(detector.scan(
-            _FakeContext(base), base, "GET", "/ssrf",
-            {"url": "http://example.com/"},
-            internal_paths=[base + "/internal/meta"],
-        ))
+        findings = asyncio.run(
+            detector.scan(
+                _FakeContext(base),
+                base,
+                "GET",
+                "/ssrf",
+                {"url": "http://example.com/"},
+                internal_paths=[base + "/internal/meta"],
+            )
+        )
         ssrf = [f for f in findings if f.attack_type == AttackType.SSRF]
         assert ssrf, "same-origin internal probe must fire"
         f = ssrf[0]
@@ -436,11 +455,16 @@ def test_ssrf_without_internal_paths_stays_clean():
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
         detector = SSRFDetector(PayloadSmith({}), {})
-        findings = asyncio.run(detector.scan(
-            _FakeContext(base), base, "GET", "/ssrf",
-            {"url": "http://example.com/"},
-            internal_paths=[],
-        ))
+        findings = asyncio.run(
+            detector.scan(
+                _FakeContext(base),
+                base,
+                "GET",
+                "/ssrf",
+                {"url": "http://example.com/"},
+                internal_paths=[],
+            )
+        )
         ssrf = [f for f in findings if f.attack_type == AttackType.SSRF and "content_leak" in f.diffs]
         assert ssrf == [], "no discovered route must mean no same-origin SSRF claim"
     finally:

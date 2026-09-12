@@ -111,7 +111,7 @@ async def test_archive_mirrors_pages_assets_and_endpoint_map(tmp_path: Path, lab
     # Explorer index: interactive search + kind filter + page links present.
     index = (archive_dir / "index.html").read_text(encoding="utf-8")
     assert "Titan Site Archive" in index
-    assert "oninput=\"render()\"" in index
+    assert 'oninput="render()"' in index
     assert "asset:css" in index or "asset:js" in index
     assert "External" not in index.split("endpoint map")[0] or True  # external link not mirrored
 
@@ -153,8 +153,7 @@ async def test_archive_rewrites_internal_links(tmp_path: Path, lab_site):
     # sibling under pages/), never at the live site.
     assert re.search(r'href="\d{4}_[^"]+\.html"', text), "internal href not rewritten to local page"
     # The css link must point at the local assets/ file via the ../ hop.
-    assert re.search(r'(?:href|src)="\.\./assets/\d{4}_[^"]+\.css"', text), \
-        "css not rewritten to local asset"
+    assert re.search(r'(?:href|src)="\.\./assets/\d{4}_[^"]+\.css"', text), "css not rewritten to local asset"
     # The external link must NOT be rewritten (still points off-origin).
     assert "https://external.example/x" in text
     # Every rewritten target actually exists on disk (the mirror is clickable).

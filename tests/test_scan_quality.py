@@ -35,11 +35,28 @@ class _FakePage:
     route guess (second evaluate, identified by the 'const common' vocabulary)
     returns the health-app list so the fast/deep asymmetry is observable."""
 
-    COMMON = ['/', '/login', '/register', '/dashboard', '/admin', '/profile',
-              '/settings', '/patients', '/appointments', '/referrals',
-              '/clinical', '/triage', '/analytics', '/notifications',
-              '/followup', '/payments', '/facilities', '/voice', '/ussd',
-              '/transcription']
+    COMMON = [
+        "/",
+        "/login",
+        "/register",
+        "/dashboard",
+        "/admin",
+        "/profile",
+        "/settings",
+        "/patients",
+        "/appointments",
+        "/referrals",
+        "/clinical",
+        "/triage",
+        "/analytics",
+        "/notifications",
+        "/followup",
+        "/payments",
+        "/facilities",
+        "/voice",
+        "/ussd",
+        "/transcription",
+    ]
 
     async def evaluate(self, js, *args):
         if "const common" in js and "routes.push" in js:
@@ -79,6 +96,7 @@ class TestM3ProfileGate:
         never be enumerated for a fast-profile scan — only the JS route-table
         enumeration (content-derived) runs, and this fake page has none."""
         from titan.core.engine import TitanEngine
+
         e_fast = TitanEngine({"target": "https://weather.co.ke", "crawl": {}, "ai": {}, "modules": {}})
         e_deep = TitanEngine({"target": "https://weather.co.ke", "crawl": {"profile": "deep"}, "ai": {}, "modules": {}})
 
@@ -115,17 +133,32 @@ class TestM3ProfileGate:
         deep-only probes empty."""
         e = TitanEngine({"crawl": {}, "ai": {}, "modules": {}})
         # None of the gated probes may even be reached in fast mode.
-        for name in ("_discover_apis", "_parse_swagger_spec",
-                     "_parse_postman_collection", "_discover_graphql_endpoints",
-                     "_brute_force_common_params", "_brute_force_http_methods"):
+        for name in (
+            "_discover_apis",
+            "_parse_swagger_spec",
+            "_parse_postman_collection",
+            "_discover_graphql_endpoints",
+            "_brute_force_common_params",
+            "_brute_force_http_methods",
+        ):
+
             async def _boom(*a, **k):
                 raise AssertionError(f"{name} must not run in fast mode")
+
             setattr(e, name, _boom)
 
-        (forms, links, static_apis, js_apis, spa_routes, swagger, postman,
-         graphql, common_params, methods) = await e._discover_all(
-            None, None, "http://x", "http://x"
-        )
+        (
+            forms,
+            links,
+            static_apis,
+            js_apis,
+            spa_routes,
+            swagger,
+            postman,
+            graphql,
+            common_params,
+            methods,
+        ) = await e._discover_all(None, None, "http://x", "http://x")
         assert forms == [] and links == []
         assert static_apis == [] and js_apis == [] and spa_routes == []
         assert swagger == [] and postman == [] and graphql == []
@@ -136,6 +169,7 @@ class TestM3ProfileGate:
         delay collapse toward the floor (0.05–0.18s) instead of the
         configured 0.15–0.6s — the dominant scan cost on fast targets."""
         from titan.core.stealth import StealthEngine
+
         s = StealthEngine(jitter=0.3, min_delay=0.15, max_delay=0.6)
         s.observe_latency(0.08)
         assert s.max_delay <= 0.18, f"fast target must collapse max_delay, got {s.max_delay}"
@@ -152,6 +186,7 @@ class TestM3ProfileGate:
 
     async def test_adaptive_disabled_keeps_configured_range(self):
         from titan.core.stealth import StealthEngine
+
         s = StealthEngine(jitter=0.3, min_delay=0.5, max_delay=2.0)
         s.adaptive = False
         s.observe_latency(0.05)
@@ -161,16 +196,37 @@ class TestM3ProfileGate:
         """Deep profile must call every probe (each stubbed) and return all
         ten slots populated — the other side of the fast no-op contract."""
         e = TitanEngine({"crawl": {"profile": "deep"}, "ai": {}, "modules": {}})
-        async def forms(page): return [{"action": "http://x/f", "method": "GET", "inputs": []}]
-        async def links(page, base): return ["http://x/a"]
-        async def apis(page, base): return ["http://x/api/a"]
-        async def jsapis(page, base): return ["http://x/api/js"]
-        async def spa(ctx, page, base): return ["http://x#/route"]
-        async def swagger(ctx, base): return [{"path": "http://x/sw"}]
-        async def postman(ctx, base): return [{"path": "http://x/pm"}]
-        async def graphql(ctx, base): return ["http://x/graphql"]
-        async def common(ctx, base, max_endpoints=3): return {"http://x/": ["id"]}
-        async def methods(ctx, base, max_endpoints=3): return [{"path": "http://x/m"}]
+
+        async def forms(page):
+            return [{"action": "http://x/f", "method": "GET", "inputs": []}]
+
+        async def links(page, base):
+            return ["http://x/a"]
+
+        async def apis(page, base):
+            return ["http://x/api/a"]
+
+        async def jsapis(page, base):
+            return ["http://x/api/js"]
+
+        async def spa(ctx, page, base):
+            return ["http://x#/route"]
+
+        async def swagger(ctx, base):
+            return [{"path": "http://x/sw"}]
+
+        async def postman(ctx, base):
+            return [{"path": "http://x/pm"}]
+
+        async def graphql(ctx, base):
+            return ["http://x/graphql"]
+
+        async def common(ctx, base, max_endpoints=3):
+            return {"http://x/": ["id"]}
+
+        async def methods(ctx, base, max_endpoints=3):
+            return [{"path": "http://x/m"}]
+
         e._extract_forms, e._extract_links, e._discover_apis = forms, links, apis
         e._extract_apis_from_js = jsapis
         e._crawl_spa_routes = spa
@@ -189,26 +245,33 @@ class TestM3SkimmerGate:
     async def _scan(self, evaluate_results):
         from tests.test_clientside import FakePage, StubSmith
         from titan.modules.clientside.thirdparty.detector import ThirdPartyDetector
+
         page = FakePage(evaluate_results={"document.querySelectorAll('script[src]')": evaluate_results})
-        return await ThirdPartyDetector(StubSmith(), {}).scan(page, "http://localhost:5000", "http://localhost:5000/", {})
+        return await ThirdPartyDetector(StubSmith(), {}).scan(
+            page, "http://localhost:5000", "http://localhost:5000/", {}
+        )
 
     async def test_ads_script_without_sensitive_fields_is_not_flagged(self):
         """The weather.co.ke FP: adsbygoogle is external + unlisted-until-now,
         but the page collects no card/password fields — a tracker, not a
         skimmer."""
-        findings = await self._scan({
-            "scripts": [{"src": "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"}],
-            "sensitive_inputs": [],
-            "origin": "https://weather.co.ke",
-        })
+        findings = await self._scan(
+            {
+                "scripts": [{"src": "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"}],
+                "sensitive_inputs": [],
+                "origin": "https://weather.co.ke",
+            }
+        )
         assert findings == [], f"ad script on a page with no sensitive fields must not be a skimmer, got {findings}"
 
     async def test_ads_script_with_sensitive_fields_is_flagged(self):
         """A card form page loading an external unlisted script IS suspicious."""
-        findings = await self._scan({
-            "scripts": [{"src": "https://skimmer-evil.example/analytics.js"}],
-            "sensitive_inputs": ["cardnumber", "cvv"],
-            "origin": "https://shop.example",
-        })
+        findings = await self._scan(
+            {
+                "scripts": [{"src": "https://skimmer-evil.example/analytics.js"}],
+                "sensitive_inputs": ["cardnumber", "cvv"],
+                "origin": "https://shop.example",
+            }
+        )
         assert findings, "external script + sensitive fields must be flagged"
         assert findings[0].attack_type.value == "Skimmer"

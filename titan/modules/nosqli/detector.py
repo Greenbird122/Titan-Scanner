@@ -20,7 +20,6 @@ Features:
   9. Data volume oracle: $ne/$regex returning more rows than baseline.
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -125,40 +124,27 @@ class NoSQLiDetector:
 
         # Smith payloads + core matrix
         base_payloads = self.payload_smith.get_base_payloads("nosqli", context_data)
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf))
         all_str_payloads = list(dict.fromkeys(list(_STRING_PAYLOADS) + base_payloads))
 
         # ── Engine 1: String payloads on all params (no whitelist) ────
         for param_name in list(params.keys()):
-            f = await self._test_param(
-                context, target, method, url, param_name, params, all_str_payloads
-            )
+            f = await self._test_param(context, target, method, url, param_name, params, all_str_payloads)
             if f:
                 findings.append(f)
 
         # ── Engine 2: JSON operator injection on all params ───────────
-        json_findings = await self._scan_json_operators(
-            context, target, method, url, params
-        )
+        json_findings = await self._scan_json_operators(context, target, method, url, params)
         findings.extend(json_findings)
 
         # ── Engine 3: Nested JSON body AST walker ─────────────────────
-        ast_findings = await self._scan_json_body_ast(
-            context, target, method, url, params
-        )
+        ast_findings = await self._scan_json_body_ast(context, target, method, url, params)
         findings.extend(ast_findings)
 
         # ── Engine 4: Header-based NoSQLi ─────────────────────────────
-        header_findings = await self._scan_headers(
-            context, target, method, url, params
-        )
+        header_findings = await self._scan_headers(context, target, method, url, params)
         findings.extend(header_findings)
 
         return findings
@@ -207,9 +193,17 @@ class NoSQLiDetector:
                     )
                     body = await resp.text()
                     f = self._evaluate(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, "POST", param_name, "json_body",
-                        str(op_value), params,
+                        baseline_body,
+                        baseline_status,
+                        body,
+                        resp,
+                        target,
+                        url,
+                        "POST",
+                        param_name,
+                        "json_body",
+                        str(op_value),
+                        params,
                     )
                     if f:
                         findings.append(f)
@@ -272,10 +266,17 @@ class NoSQLiDetector:
                     )
                     body = await resp.text()
                     f = self._evaluate(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, "POST",
-                        ".".join(str(p) for p in path), "json_ast",
-                        str(op_value), params,
+                        baseline_body,
+                        baseline_status,
+                        body,
+                        resp,
+                        target,
+                        url,
+                        "POST",
+                        ".".join(str(p) for p in path),
+                        "json_ast",
+                        str(op_value),
+                        params,
                     )
                     if f:
                         findings.append(f)
@@ -302,13 +303,9 @@ class NoSQLiDetector:
 
         try:
             if method == "GET":
-                r0 = await context.request.get(
-                    url, params=params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.get(url, params=params, headers={"Referer": target}, timeout=3000)
             else:
-                r0 = await context.request.post(
-                    url, data=params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.post(url, data=params, headers={"Referer": target}, timeout=3000)
             baseline_body = await r0.text()
             baseline_status = r0.status
         except Exception:
@@ -324,8 +321,17 @@ class NoSQLiDetector:
                         resp = await context.request.post(url, data=params, headers=h, timeout=3000)
                     body = await resp.text()
                     f = self._evaluate(
-                        baseline_body, baseline_status, body, resp,
-                        target, url, method, header, "header", payload, params,
+                        baseline_body,
+                        baseline_status,
+                        body,
+                        resp,
+                        target,
+                        url,
+                        method,
+                        header,
+                        "header",
+                        payload,
+                        params,
                     )
                     if f:
                         findings.append(f)
@@ -365,8 +371,8 @@ class NoSQLiDetector:
             ("$ne", "$eq"),
             ("$gte", "$lte"),
             ("$lte", "$gte"),
-            ("$gt\"", "$lt\""),
-            ("$lt\"", "$gt\""),
+            ('$gt"', '$lt"'),
+            ('$lt"', '$gt"'),
             ("return true", "return false"),
             ("1==1", "1==2"),
         ]:
@@ -470,13 +476,9 @@ class NoSQLiDetector:
 
         try:
             if method == "GET":
-                r0 = await context.request.get(
-                    url, params=all_params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.get(url, params=all_params, headers={"Referer": target}, timeout=3000)
             else:
-                r0 = await context.request.post(
-                    url, data=all_params, headers={"Referer": target}, timeout=3000
-                )
+                r0 = await context.request.post(url, data=all_params, headers={"Referer": target}, timeout=3000)
             baseline_body = await r0.text()
             baseline_status = r0.status
         except Exception as exc:
@@ -488,20 +490,23 @@ class NoSQLiDetector:
                 test_params = dict(all_params)
                 test_params[param_name] = payload
                 if method == "GET":
-                    resp = await context.request.get(
-                        url, params=test_params, headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.get(url, params=test_params, headers={"Referer": target}, timeout=3000)
                 else:
-                    resp = await context.request.post(
-                        url, data=test_params, headers={"Referer": target}, timeout=3000
-                    )
+                    resp = await context.request.post(url, data=test_params, headers={"Referer": target}, timeout=3000)
                 body = await resp.text()
 
                 f = self._evaluate(
-                    baseline_body, baseline_status, body, resp,
-                    target, url, method, param_name,
+                    baseline_body,
+                    baseline_status,
+                    body,
+                    resp,
+                    target,
+                    url,
+                    method,
+                    param_name,
                     "query" if method == "GET" else "body",
-                    payload, all_params,
+                    payload,
+                    all_params,
                 )
                 if f:
                     return f

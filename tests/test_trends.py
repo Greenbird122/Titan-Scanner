@@ -1,4 +1,5 @@
 """Tests for the trend & anomaly analyzer."""
+
 import json
 import sys
 from pathlib import Path
@@ -15,13 +16,18 @@ from titan.learn.trends import (
 )
 
 
-def _site(root: Path, slug: str, target: str, findings: list, notes: str = "",
-          techs: list | None = None, reverified: bool = False):
+def _site(
+    root: Path,
+    slug: str,
+    target: str,
+    findings: list,
+    notes: str = "",
+    techs: list | None = None,
+    reverified: bool = False,
+):
     d = root / slug
     d.mkdir(parents=True, exist_ok=True)
-    (d / "findings.json").write_text(
-        json.dumps({"target": target, "findings": findings}), encoding="utf-8"
-    )
+    (d / "findings.json").write_text(json.dumps({"target": target, "findings": findings}), encoding="utf-8")
     meta = {"target": target, "technologies": techs or []}
     if reverified:
         meta["reverification_round"] = "2026-08-17"
@@ -35,12 +41,22 @@ def _fixture(tmp_path: Path) -> Path:
     root.mkdir()
     # A git-vizor-shaped site: Firebase key + DOM XSS + missing CSP.
     _site(
-        root, "git-vizor-vercel-app", "https://git-vizor.vercel.app",
+        root,
+        "git-vizor-vercel-app",
+        "https://git-vizor.vercel.app",
         [
-            {"attack_type": "Hardcoded Secret", "verified": True, "severity": "medium",
-             "payload": "Firebase client config exposed: AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345"},
-            {"attack_type": "CSP Weakness", "verified": True, "severity": "medium",
-             "diffs": ["headers:missing", "missing:Content-Security-Policy", "missing:X-Frame-Options"]},
+            {
+                "attack_type": "Hardcoded Secret",
+                "verified": True,
+                "severity": "medium",
+                "payload": "Firebase client config exposed: AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345",
+            },
+            {
+                "attack_type": "CSP Weakness",
+                "verified": True,
+                "severity": "medium",
+                "diffs": ["headers:missing", "missing:Content-Security-Policy", "missing:X-Frame-Options"],
+            },
             {"attack_type": "DOM XSS", "verified": False, "severity": "high"},
         ],
         notes="NEW F6: DOM XSS via GitHub API description -> innerHTML, verified executing. localStorage architect_access gate.",
@@ -49,10 +65,16 @@ def _fixture(tmp_path: Path) -> Path:
     )
     # A sibling Vercel SPA with the same two header gaps — no secrets, no XSS.
     _site(
-        root, "sales-ten-xi-vercel-app", "https://sales-ten-xi.vercel.app",
+        root,
+        "sales-ten-xi-vercel-app",
+        "https://sales-ten-xi.vercel.app",
         [
-            {"attack_type": "CSP Weakness", "verified": True, "severity": "medium",
-             "diffs": ["headers:missing", "missing:Content-Security-Policy", "missing:X-Frame-Options"]},
+            {
+                "attack_type": "CSP Weakness",
+                "verified": True,
+                "severity": "medium",
+                "diffs": ["headers:missing", "missing:Content-Security-Policy", "missing:X-Frame-Options"],
+            },
         ],
         notes="Firebase rules exposed via open Firestore reads; write-verified tamper.",
         techs=["Vercel"],
@@ -60,14 +82,19 @@ def _fixture(tmp_path: Path) -> Path:
     )
     # A clean static site — the control (alone on its lovable platform).
     _site(
-        root, "coast-palmresort-lovable-app", "https://coast-palmresort.lovable.app",
-        [], notes="static site, no backend, no API.",
+        root,
+        "coast-palmresort-lovable-app",
+        "https://coast-palmresort.lovable.app",
+        [],
+        notes="static site, no backend, no API.",
         techs=["Lovable"],
         reverified=True,
     )
     # A well-secured Vercel sibling — deviates from its platform peers.
     _site(
-        root, "tulia-admin-vercel-app", "https://tulia-admin.vercel.app",
+        root,
+        "tulia-admin-vercel-app",
+        "https://tulia-admin.vercel.app",
         [],
         techs=["Vercel"],
         reverified=True,
@@ -97,7 +124,8 @@ def test_trend_groups_shared_across_sites(tmp_path):
     by_sig = {g["signal"]: g for g in groups}
     assert "missing_csp" in by_sig
     assert set(by_sig["missing_csp"]["members"]) == {
-        "git-vizor-vercel-app", "sales-ten-xi-vercel-app",
+        "git-vizor-vercel-app",
+        "sales-ten-xi-vercel-app",
     }
     # single-site signals are NOT trends
     assert "firebase_key" not in by_sig
@@ -122,10 +150,14 @@ def test_note_negation_guards(tmp_path):
     root = tmp_path / "guards"
     root.mkdir()
     _site(
-        root, "coast-x-lovable-app", "https://coast-x.lovable.app", [],
+        root,
+        "coast-x-lovable-app",
+        "https://coast-x.lovable.app",
+        [],
         notes="R2 bucket listing attempts -> 404 (not listable); "
-              "the project page is a client-side auth shell on the hosting platform",
-        techs=["Lovable"], reverified=True,
+        "the project page is a client-side auth shell on the hosting platform",
+        techs=["Lovable"],
+        reverified=True,
     )
     p = build_profile("coast-x-lovable-app", root)
     assert p["signals"]["public_storage"] is False
@@ -133,15 +165,19 @@ def test_note_negation_guards(tmp_path):
 
 
 def test_stored_xss_is_not_dom_sink(tmp_path):
-    """"Stored XSS via innerHTML concatenation" is the XSS class, not the
+    """ "Stored XSS via innerHTML concatenation" is the XSS class, not the
     API-fed DOM-sink (F6) class."""
     root = tmp_path / "gb"
     root.mkdir()
     _site(
-        root, "greenbird122-github-io-recipie-api", "https://greenbird122.github.io/recipie-api/", [],
+        root,
+        "greenbird122-github-io-recipie-api",
+        "https://greenbird122.github.io/recipie-api/",
+        [],
         notes="F1 stored XSS: strings concatenated into innerHTML with zero sanitization; "
-              "TheMealDB is community-contributed.",
-        techs=["GitHub Pages"], reverified=True,
+        "TheMealDB is community-contributed.",
+        techs=["GitHub Pages"],
+        reverified=True,
     )
     p = build_profile("greenbird122-github-io-recipie-api", root)
     assert p["signals"]["api_dom_sink"] is False

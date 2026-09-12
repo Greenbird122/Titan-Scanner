@@ -18,6 +18,7 @@ from titan.brain.strategy import ModuleScore, ProbeStrategy
 # ProbeStrategy tests
 # ---------------------------------------------------------------------------
 
+
 class TestModuleScore:
     def test_sample_rate(self):
         score = ModuleScore(name="sqli", successes=3, attempts=5)
@@ -155,6 +156,7 @@ class TestProbeStrategy:
 # ---------------------------------------------------------------------------
 # BrainLoop tests
 # ---------------------------------------------------------------------------
+
 
 class TestBrainLoop:
     @pytest.fixture
@@ -350,6 +352,7 @@ class TestBrainLoop:
     @pytest.mark.asyncio
     async def test_run_with_module_runner(self, loop):
         """Brain loop should call the module_runner when provided."""
+
         async def mock_runner(module, target, attack_type, payload=None):
             return {
                 "type": attack_type,
@@ -384,6 +387,7 @@ class TestBrainLoop:
 # ---------------------------------------------------------------------------
 # EvolutionEngine tests
 # ---------------------------------------------------------------------------
+
 
 class TestEvolutionEngine:
     @pytest.fixture

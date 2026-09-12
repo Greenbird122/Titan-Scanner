@@ -7,7 +7,6 @@ engine owns the state these touch (``config``, ``proxy_rotator``,
 ``stealth``, ``redirect_chain``); the mixin only supplies behavior.
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +16,6 @@ from titan.core.constants import DRIVER_DEATH_MARKERS
 from titan.core.logger import get_logger
 
 logger = get_logger("browser_lifecycle")
-
 
 
 class BrowserLifecycleMixin:
@@ -71,9 +69,7 @@ class BrowserLifecycleMixin:
         )
 
         def _persistent() -> Any:
-            return p.chromium.launch_persistent_context(
-                user_data_dir=profile_dir, **browser_args, **context_kwargs
-            )
+            return p.chromium.launch_persistent_context(user_data_dir=profile_dir, **browser_args, **context_kwargs)
 
         try:
             if profile_dir:
@@ -136,11 +132,13 @@ class BrowserLifecycleMixin:
             if response.status in (301, 302, 303, 307, 308):
                 req = getattr(response, "request", None)
                 src = req.url if req is not None else ""
-                self.redirect_chain.append({
-                    "from": src,
-                    "status": response.status,
-                    "to": (response.headers or {}).get("location", ""),
-                })
+                self.redirect_chain.append(
+                    {
+                        "from": src,
+                        "status": response.status,
+                        "to": (response.headers or {}).get("location", ""),
+                    }
+                )
                 if len(self.redirect_chain) > 200:
                     self.redirect_chain.pop(0)
         except Exception as exc:

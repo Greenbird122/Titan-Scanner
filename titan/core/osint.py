@@ -10,7 +10,6 @@ Usage:
     report = await engine.enumerate("example.com")
 """
 
-
 from __future__ import annotations
 
 import asyncio
@@ -53,6 +52,7 @@ class PortInfo:
 @dataclass
 class JSSecret:
     """A secret found in JavaScript bundles."""
+
     file_url: str
     secret_type: str  # api_key, token, endpoint, password
     value: str
@@ -62,6 +62,7 @@ class JSSecret:
 @dataclass
 class IntelligenceReport:
     """Complete intelligence report for a target."""
+
     target: str
     subdomains: list[SubdomainInfo] = field(default_factory=list)
     dns_records: list[DNSRecord] = field(default_factory=list)
@@ -96,11 +97,40 @@ class OSINTEngine:
 
     # Common subdomain prefixes
     COMMON_SUBDOMAINS = [
-        "www", "api", "admin", "app", "auth", "blog", "cdn", "cms",
-        "dashboard", "db", "dev", "docs", "email", "ftp", "git",
-        "grafana", "internal", "jenkins", "jira", "kibana", "mail",
-        "monitor", "ns1", "ns2", "portal", "proxy", "raw", "s3",
-        " staging", "status", "test", "vpn", "wiki", "ws",
+        "www",
+        "api",
+        "admin",
+        "app",
+        "auth",
+        "blog",
+        "cdn",
+        "cms",
+        "dashboard",
+        "db",
+        "dev",
+        "docs",
+        "email",
+        "ftp",
+        "git",
+        "grafana",
+        "internal",
+        "jenkins",
+        "jira",
+        "kibana",
+        "mail",
+        "monitor",
+        "ns1",
+        "ns2",
+        "portal",
+        "proxy",
+        "raw",
+        "s3",
+        " staging",
+        "status",
+        "test",
+        "vpn",
+        "wiki",
+        "ws",
     ]
 
     async def enumerate(self, target: str) -> IntelligenceReport:
@@ -144,11 +174,13 @@ class OSINTEngine:
         # Method 1: Certificate transparency (crt.sh)
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 url = f"https://crt.sh/?q=%.{target}&output=json"
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     if resp.status == 200:
                         import json
+
                         data = json.loads(await resp.text())
                         seen = set()
                         for entry in data:
@@ -157,10 +189,12 @@ class OSINTEngine:
                                 sub = sub.strip().lower()
                                 if sub and sub not in seen and sub.endswith(target):
                                     seen.add(sub)
-                                    subdomains.append(SubdomainInfo(
-                                        host=sub,
-                                        source="crt.sh",
-                                    ))
+                                    subdomains.append(
+                                        SubdomainInfo(
+                                            host=sub,
+                                            source="crt.sh",
+                                        )
+                                    )
         except Exception as e:
             logger.debug(f"Certificate transparency lookup failed: {e}")
 
@@ -170,12 +204,15 @@ class OSINTEngine:
             if subdomain not in [s.host for s in subdomains]:
                 try:
                     import socket
+
                     ip = socket.gethostbyname(subdomain)
-                    subdomains.append(SubdomainInfo(
-                        host=subdomain,
-                        ip_addresses=[ip],
-                        source="dns_bruteforce",
-                    ))
+                    subdomains.append(
+                        SubdomainInfo(
+                            host=subdomain,
+                            ip_addresses=[ip],
+                            source="dns_bruteforce",
+                        )
+                    )
                 except socket.gaierror as exc:
                     logger.debug(f"suppressed exception: {exc}")
                     pass
@@ -189,16 +226,19 @@ class OSINTEngine:
         # Use dnspython if available, fallback to socket
         try:
             import dns.resolver
+
             for rtype in ["A", "AAAA", "MX", "NS", "TXT", "CNAME", "SOA"]:
                 try:
                     answers = dns.resolver.resolve(target, rtype)
                     for answer in answers:
-                        records.append(DNSRecord(
-                            type=rtype,
-                            name=target,
-                            value=str(answer),
-                            ttl=answer.ttl if hasattr(answer, "ttl") else 0,
-                        ))
+                        records.append(
+                            DNSRecord(
+                                type=rtype,
+                                name=target,
+                                value=str(answer),
+                                ttl=answer.ttl if hasattr(answer, "ttl") else 0,
+                            )
+                        )
                 except Exception as exc:
                     logger.debug(f"suppressed exception: {exc}")
                     pass
@@ -206,6 +246,7 @@ class OSINTEngine:
             # Fallback: basic A record lookup
             try:
                 import socket
+
                 ips = socket.gethostbyname_ex(target)
                 for ip in ips[2]:
                     records.append(DNSRecord(type="A", name=target, value=ip))
@@ -243,15 +284,17 @@ class OSINTEngine:
                 js_urls = [urljoin(base_url, url) for url in js_urls[:5]]  # Limit to first 5
 
                 # Also check inline scripts
-                inline_scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.DOTALL)
+                inline_scripts = re.findall(r"<script[^>]*>(.*?)</script>", html, re.DOTALL)
                 for i, script in enumerate(inline_scripts):
                     for pattern, secret_type in self.JS_SECRET_PATTERNS:
                         for match in re.finditer(pattern, script, re.IGNORECASE):
-                            secrets.append(JSSecret(
-                                file_url=f"{base_url}#inline-{i}",
-                                secret_type=secret_type,
-                                value=match.group(1) if match.lastindex else match.group(0),
-                            ))
+                            secrets.append(
+                                JSSecret(
+                                    file_url=f"{base_url}#inline-{i}",
+                                    secret_type=secret_type,
+                                    value=match.group(1) if match.lastindex else match.group(0),
+                                )
+                            )
 
                 # Check external JS files
                 for js_url in js_urls:
@@ -261,11 +304,13 @@ class OSINTEngine:
                                 js_content = await resp.text()
                                 for pattern, secret_type in self.JS_SECRET_PATTERNS:
                                     for match in re.finditer(pattern, js_content, re.IGNORECASE):
-                                        secrets.append(JSSecret(
-                                            file_url=js_url,
-                                            secret_type=secret_type,
-                                            value=match.group(1) if match.lastindex else match.group(0),
-                                        ))
+                                        secrets.append(
+                                            JSSecret(
+                                                file_url=js_url,
+                                                secret_type=secret_type,
+                                                value=match.group(1) if match.lastindex else match.group(0),
+                                            )
+                                        )
                     except Exception as exc:
                         logger.debug(f"variant failed, continuing: {exc}")
                         continue

@@ -157,6 +157,7 @@ class AIEscalator:
     def _build_client(self) -> None:
         try:
             from titan.integrations.deepseek import DeepSeekClient
+
             client = DeepSeekClient(self.config)
             self._client = client if getattr(client, "_client", None) is not None else None
         except Exception:
@@ -224,9 +225,7 @@ RULES:
         candidates.sort(key=lambda f: (-_severity_rank(f.severity), f.confidence))
 
         timeout = _safe_float(self.gate.get("timeout"), _DEFAULT_TIMEOUT)
-        deadline = time.monotonic() + _safe_float(
-            self.gate.get("overall_deadline"), _DEFAULT_OVERALL_DEADLINE
-        )
+        deadline = time.monotonic() + _safe_float(self.gate.get("overall_deadline"), _DEFAULT_OVERALL_DEADLINE)
         for finding in candidates[:max_calls]:
             if report["sent"] > 0 and time.monotonic() >= deadline:
                 # Wall-clock budget exhausted: stop spending on this scan.

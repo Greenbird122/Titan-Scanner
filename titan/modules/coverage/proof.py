@@ -24,6 +24,7 @@ from titan.modules.coverage.tracker import CoverageTracker, TestRecord
 @dataclass
 class TestProof:
     """Proof that a specific test was executed."""
+
     test_id: str
     endpoint: str
     attack_type: str
@@ -38,6 +39,7 @@ class TestProof:
 @dataclass
 class CoverageProofBundle:
     """Complete proof bundle for coverage."""
+
     root_hash: str
     timestamp: str
     total_tests: int
@@ -70,17 +72,19 @@ class CoverageProof:
         test_proofs = []
         for i, record in enumerate(records):
             merkle_proof = self._get_merkle_proof(merkle_tree, i)
-            test_proofs.append(TestProof(
-                test_id=f"test_{i}_{hash(record.endpoint + record.attack_type)}",
-                endpoint=record.endpoint,
-                attack_type=record.attack_type,
-                status=record.status,
-                response_code=record.response_code,
-                response_hash=record.response_hash,
-                timestamp=record.timestamp,
-                merkle_proof=merkle_proof,
-                verification_command=self._generate_verification_command(record),
-            ))
+            test_proofs.append(
+                TestProof(
+                    test_id=f"test_{i}_{hash(record.endpoint + record.attack_type)}",
+                    endpoint=record.endpoint,
+                    attack_type=record.attack_type,
+                    status=record.status,
+                    response_code=record.response_code,
+                    response_hash=record.response_hash,
+                    timestamp=record.timestamp,
+                    merkle_proof=merkle_proof,
+                    verification_command=self._generate_verification_command(record),
+                )
+            )
 
         # Generate verification script
         verification_script = self._generate_verification_script(test_proofs)
@@ -96,14 +100,17 @@ class CoverageProof:
 
     def _hash_record(self, record: TestRecord) -> str:
         """Hash a test record."""
-        data = json.dumps({
-            "endpoint": record.endpoint,
-            "attack_type": record.attack_type,
-            "status": record.status,
-            "response_code": record.response_code,
-            "response_hash": record.response_hash,
-            "timestamp": record.timestamp,
-        }, sort_keys=True)
+        data = json.dumps(
+            {
+                "endpoint": record.endpoint,
+                "attack_type": record.attack_type,
+                "status": record.status,
+                "response_code": record.response_code,
+                "response_hash": record.response_hash,
+                "timestamp": record.timestamp,
+            },
+            sort_keys=True,
+        )
         return hashlib.sha256(data.encode()).hexdigest()
 
     def _build_merkle_tree(self, leaves: list[str]) -> list[list[str]]:
@@ -180,7 +187,7 @@ class CoverageProof:
             lines.append(f'echo "  Timestamp: {proof.timestamp}"')
             lines.append(f'echo "  Verification: {proof.verification_command}"')
             lines.append('echo ""')
-            lines.append(f'{proof.verification_command}')
+            lines.append(f"{proof.verification_command}")
             lines.append('echo ""')
 
         lines.append("echo '=== Verification Complete ==='")
@@ -202,11 +209,14 @@ class CoverageProof:
         self._previous_root = proof_bundle.root_hash
 
         # Generate verification hash
-        verification_data = json.dumps({
-            "root_hash": proof_bundle.root_hash,
-            "total_tests": proof_bundle.total_tests,
-            "timestamp": proof_bundle.timestamp,
-        }, sort_keys=True)
+        verification_data = json.dumps(
+            {
+                "root_hash": proof_bundle.root_hash,
+                "total_tests": proof_bundle.total_tests,
+                "timestamp": proof_bundle.timestamp,
+            },
+            sort_keys=True,
+        )
         verification_hash = hashlib.sha256(verification_data.encode()).hexdigest()
 
         return {
@@ -228,14 +238,17 @@ class CoverageProof:
         # Rebuild tree from leaves using the same hashing as generate()
         leaves = []
         for proof in proofs:
-            record_data = json.dumps({
-                "endpoint": proof.endpoint,
-                "attack_type": proof.attack_type,
-                "status": proof.status,
-                "response_code": proof.response_code,
-                "response_hash": proof.response_hash,
-                "timestamp": proof.timestamp,
-            }, sort_keys=True)
+            record_data = json.dumps(
+                {
+                    "endpoint": proof.endpoint,
+                    "attack_type": proof.attack_type,
+                    "status": proof.status,
+                    "response_code": proof.response_code,
+                    "response_hash": proof.response_hash,
+                    "timestamp": proof.timestamp,
+                },
+                sort_keys=True,
+            )
             leaf_hash = hashlib.sha256(record_data.encode()).hexdigest()
             leaves.append(leaf_hash)
 

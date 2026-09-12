@@ -32,10 +32,12 @@ async def test_transports():
     http = registry.get("http")
     if http:
         print("\n[2] Testing HTTP transport...")
-        resp = await http.send(AttackRequest(
-            url="https://httpbin.org/get",
-            method=RequestMethod.GET,
-        ))
+        resp = await http.send(
+            AttackRequest(
+                url="https://httpbin.org/get",
+                method=RequestMethod.GET,
+            )
+        )
         print(f"    Status: {resp.status}")
         print(f"    Body length: {len(resp.body)} bytes")
         print(f"    Elapsed: {resp.elapsed:.2f}s")
@@ -47,13 +49,16 @@ async def test_transports():
     tor = registry.get("tor")
     if tor:
         print("\n[3] Testing Tor transport...")
-        resp = await tor.send(AttackRequest(
-            url="https://check.torproject.org/api/ip",
-            method=RequestMethod.GET,
-        ))
+        resp = await tor.send(
+            AttackRequest(
+                url="https://check.torproject.org/api/ip",
+                method=RequestMethod.GET,
+            )
+        )
         print(f"    Status: {resp.status}")
         if resp.ok:
             import json
+
             data = json.loads(resp.body)
             print(f"    IsTor: {data.get('IsTor')}")
             print(f"    IP: {data.get('IP')}")
@@ -67,6 +72,7 @@ async def test_transports():
     # 4. Test .onion resolution (without actually connecting)
     print("\n[4] Testing .onion URL handling...")
     from titan.transport.base import TargetDescriptor
+
     target = TargetDescriptor(url="http://example.onion/api/test")
     print(f"    Host: {target.host}")
     print(f"    Protocol: {target.protocol}")

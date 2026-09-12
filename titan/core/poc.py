@@ -49,7 +49,7 @@ class PoCGenerator:
             "import requests",
             "",
             f'url = "{url}"',
-            f"method = \"{method}\"",
+            f'method = "{method}"',
             "headers = {",
         ]
         for key, value in headers.items():
@@ -68,9 +68,11 @@ class PoCGenerator:
         else:
             lines.append("response = requests.request(method, url, headers=headers)")
 
-        lines.extend([
-            "",
-            "print(response.status_code)",
-            'print(response.text[:2000])',
-        ])
+        lines.extend(
+            [
+                "",
+                "print(response.status_code)",
+                "print(response.text[:2000])",
+            ]
+        )
         return "\n".join(lines)

@@ -17,7 +17,6 @@ Features:
      • Zero false positives on reflected query strings or catch-all routes.
 """
 
-
 from __future__ import annotations
 
 import copy
@@ -69,10 +68,21 @@ class LFIDetector:
 
     # File *content* markers only — never path strings that the payload itself contains
     CONTENT_MARKERS = [
-        "root:x:0:0:", "daemon:x:", "bin:x:", "sys:x:", "nobody:x:",
-        "www-data:x:", "0:0:root", "uid=", "[extensions]",
-        "extension_dir", "safe_mode", "disable_functions",
-        "[fonts]", "[boot loader]", "; for 16-bit app support",
+        "root:x:0:0:",
+        "daemon:x:",
+        "bin:x:",
+        "sys:x:",
+        "nobody:x:",
+        "www-data:x:",
+        "0:0:root",
+        "uid=",
+        "[extensions]",
+        "extension_dir",
+        "safe_mode",
+        "disable_functions",
+        "[fonts]",
+        "[boot loader]",
+        "; for 16-bit app support",
     ]
 
     # Error classes that prove the parameter reached a filesystem sink
@@ -105,14 +115,9 @@ class LFIDetector:
 
         # Build payload pool
         base_payloads = self.payload_smith.get_base_payloads("lfi", context_data)
-        waf = (
-            self.payload_smith.detect_waf({}, "", 0)
-            or self.fingerprint.get("waf", "unknown")
-        )
+        waf = self.payload_smith.detect_waf({}, "", 0) or self.fingerprint.get("waf", "unknown")
         if waf and waf != "unknown":
-            base_payloads.extend(
-                self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf)
-            )
+            base_payloads.extend(self.payload_smith.get_waf_bypass_payloads(base_payloads[:3], waf))
 
         all_payloads = list(dict.fromkeys(list(_TRAVERSAL_CORE_PROBES) + base_payloads))
 
@@ -180,32 +185,36 @@ class LFIDetector:
                     for form in payload_encodings(payload):
                         body_peeled = body_peeled.replace(form.lower(), "")
 
-                    leaks = [m for m in self.CONTENT_MARKERS if m.lower() in body_peeled and m.lower() not in baseline_lower]
+                    leaks = [
+                        m for m in self.CONTENT_MARKERS if m.lower() in body_peeled and m.lower() not in baseline_lower
+                    ]
                     if leaks:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
                         for m in leaks:
                             diffs.append(f"lfi:content:{m}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method=method.upper(),
-                            param=header_name,
-                            location="header",
-                            payload=payload,
-                            attack_type=AttackType.LFI,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.95,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "http_header"},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method=method.upper(),
+                                param=header_name,
+                                location="header",
+                                payload=payload,
+                                attack_type=AttackType.LFI,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.95,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "http_header"},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -275,32 +284,36 @@ class LFIDetector:
                     for form in payload_encodings(payload):
                         body_peeled = body_peeled.replace(form.lower(), "")
 
-                    leaks = [m for m in self.CONTENT_MARKERS if m.lower() in body_peeled and m.lower() not in baseline_lower]
+                    leaks = [
+                        m for m in self.CONTENT_MARKERS if m.lower() in body_peeled and m.lower() not in baseline_lower
+                    ]
                     if leaks:
                         diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
                         for m in leaks:
                             diffs.append(f"lfi:content:{m}")
-                        findings.append(Finding(
-                            target=target,
-                            url=str(resp.url or url),
-                            method="POST",
-                            param=".".join(str(p) for p in path),
-                            location="json_body",
-                            payload=payload,
-                            attack_type=AttackType.LFI,
-                            severity=Severity.CRITICAL,
-                            verified=True,
-                            confidence=0.92,
-                            status=resp.status,
-                            headers=dict(resp.headers),
-                            body=body[:2000],
-                            diffs=diffs,
-                            baseline_body=baseline_body[:2000],
-                            baseline_status=baseline_status,
-                            verification_body=body[:2000],
-                            verification_status=resp.status,
-                            metadata={"injection_location": "json_ast", "json_path": path},
-                        ))
+                        findings.append(
+                            Finding(
+                                target=target,
+                                url=str(resp.url or url),
+                                method="POST",
+                                param=".".join(str(p) for p in path),
+                                location="json_body",
+                                payload=payload,
+                                attack_type=AttackType.LFI,
+                                severity=Severity.CRITICAL,
+                                verified=True,
+                                confidence=0.92,
+                                status=resp.status,
+                                headers=dict(resp.headers),
+                                body=body[:2000],
+                                diffs=diffs,
+                                baseline_body=baseline_body[:2000],
+                                baseline_status=baseline_status,
+                                verification_body=body[:2000],
+                                verification_status=resp.status,
+                                metadata={"injection_location": "json_ast", "json_path": path},
+                            )
+                        )
                         break
                 except Exception as exc:
                     logger.debug(f"variant failed, continuing: {exc}")
@@ -368,8 +381,7 @@ class LFIDetector:
                     body_peeled = body_peeled.replace(form.lower(), "")
 
                 leaks = [
-                    m for m in self.CONTENT_MARKERS
-                    if m.lower() in body_peeled and m.lower() not in baseline_lower
+                    m for m in self.CONTENT_MARKERS if m.lower() in body_peeled and m.lower() not in baseline_lower
                 ]
                 if leaks:
                     signals.append("content_leak")
@@ -420,6 +432,3 @@ class LFIDetector:
                 continue
 
         return None
-
-
-

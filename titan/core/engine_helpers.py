@@ -8,7 +8,6 @@ State the helpers read (``config``, ``_scan_target``, ``_coverage``,
 this mixin only supplies behavior.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -23,7 +22,6 @@ from titan.core.logger import get_logger
 from titan.core.models import ScanResult
 
 logger = get_logger("engine_helpers")
-
 
 
 class EngineHelpersMixin:
@@ -46,9 +44,7 @@ class EngineHelpersMixin:
         try:
             parsed = urlparse(url)
             hostname = parsed.hostname or ""
-            target_hostname = urlparse(
-                self._scan_target or self.config.get("target", "")
-            ).hostname or ""
+            target_hostname = urlparse(self._scan_target or self.config.get("target", "")).hostname or ""
             if not target_hostname:
                 return False
             if not hostname:
@@ -63,14 +59,32 @@ class EngineHelpersMixin:
     @staticmethod
     def _is_state_changing_path(url: str) -> bool:
         path = urlparse(url).path.lower()
-        return any(k in path for k in (
-            "update", "create", "delete", "remove", "edit", "register",
-            "signup", "add", "save", "set", "change", "reset",
-            "upload", "transfer", "send", "approve", "role",
-        ))
+        return any(
+            k in path
+            for k in (
+                "update",
+                "create",
+                "delete",
+                "remove",
+                "edit",
+                "register",
+                "signup",
+                "add",
+                "save",
+                "set",
+                "change",
+                "reset",
+                "upload",
+                "transfer",
+                "send",
+                "approve",
+                "role",
+            )
+        )
 
     def _authorization_status(self, target: str) -> str | None:
         from titan.core.authorization import authorize_target
+
         status: str | None = authorize_target(
             target,
             consent_dir=self.config.get("exploit", {}).get("consent_dir", "consent"),
@@ -82,6 +96,7 @@ class EngineHelpersMixin:
     def _has_consent(self, target: str) -> bool:
         try:
             from titan.exploit.consent import verify_consent
+
             verify_consent(
                 target,
                 consent_dir=self.config.get("exploit", {}).get("consent_dir", "consent"),
@@ -89,7 +104,6 @@ class EngineHelpersMixin:
             return True
         except Exception:
             return False
-
 
     # ==================================================================
     # Checkpoint detection
@@ -114,9 +128,12 @@ class EngineHelpersMixin:
 
     def _finalize_coverage(self, result: ScanResult) -> dict[str, Any]:
         from titan.verify.coverage import finalize_coverage
+
         return finalize_coverage(
-            self._coverage, driver_dead=self._driver_dead,
-            max_pages=self.max_pages, max_depth=self.max_depth,
+            self._coverage,
+            driver_dead=self._driver_dead,
+            max_pages=self.max_pages,
+            max_depth=self.max_depth,
         )
 
     def _select_platform_brain(self, fingerprint: dict, html: str, headers: dict) -> Any | None:
@@ -134,6 +151,7 @@ class EngineHelpersMixin:
             from pathlib import Path
 
             from titan.reporting import site_slug as _slug
+
             out_dir = Path(self.config.get("output_dir", "findings"))
             p = out_dir / _slug(target) / "intel.json"
             if p.exists():
@@ -150,4 +168,3 @@ class EngineHelpersMixin:
         api_indicators = ["/api/", "/sales/", "/v1/", "/v2/", "/rest/", "/graphql", "api.", ".json"]
         path = urlparse(url.lower()).path
         return any(ind in path for ind in api_indicators)
-

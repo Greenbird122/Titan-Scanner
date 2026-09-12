@@ -11,7 +11,6 @@ This module tests:
 8. User role escalation
 """
 
-
 from __future__ import annotations
 
 import json
@@ -24,10 +23,10 @@ from titan.core.models import AttackType, Finding, Severity
 logger = get_logger("appwrite")
 
 
-
 @dataclass
 class AppWritePayload:
     """An AppWrite-specific test payload."""
+
     name: str
     category: str
     endpoint: str
@@ -397,9 +396,7 @@ class AppWriteTester:
                             endpoint = endpoint.replace("{document}", doc)
                             url = f"{self._endpoint}/v1{endpoint}"
 
-                            response = await self._send_request(
-                                url, payload.method, payload.payload, auth_headers
-                            )
+                            response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                             if response and self._check_permission(response, payload):
                                 finding = Finding(
@@ -443,9 +440,7 @@ class AppWriteTester:
                     endpoint = endpoint.replace("{user_id}", user_ids[0])
                 url = f"{self._endpoint}/v1{endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_permission(response, payload):
                     finding = Finding(
@@ -491,9 +486,7 @@ class AppWriteTester:
                         endpoint = endpoint.replace("{file}", files[0])
                     url = f"{self._endpoint}/v1{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, auth_headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                     if response and self._check_permission(response, payload):
                         finding = Finding(
@@ -537,9 +530,7 @@ class AppWriteTester:
                     endpoint = endpoint.replace("{team_id}", team_ids[0])
                 url = f"{self._endpoint}/v1{endpoint}"
 
-                response = await self._send_request(
-                    url, payload.method, payload.payload, auth_headers
-                )
+                response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                 if response and self._check_permission(response, payload):
                     finding = Finding(
@@ -582,9 +573,7 @@ class AppWriteTester:
                     endpoint = payload.endpoint.replace("{function_id}", function_id)
                     url = f"{self._endpoint}/v1{endpoint}"
 
-                    response = await self._send_request(
-                        url, payload.method, payload.payload, auth_headers
-                    )
+                    response = await self._send_request(url, payload.method, payload.payload, auth_headers)
 
                     if response and self._check_permission(response, payload):
                         finding = Finding(
@@ -624,6 +613,7 @@ class AppWriteTester:
         """Send HTTP request."""
         try:
             import aiohttp
+
             async with aiohttp.ClientSession() as session:
                 req_headers = headers or {}
                 if self._api_key and "X-Appwrite-Key" not in req_headers:
@@ -657,8 +647,7 @@ class AppWriteTester:
                 try:
                     data = json.loads(body)
                     if isinstance(data, (dict, list)) and (
-                        (isinstance(data, dict) and len(data) > 0) or
-                        (isinstance(data, list) and len(data) > 0)
+                        (isinstance(data, dict) and len(data) > 0) or (isinstance(data, list) and len(data) > 0)
                     ):
                         return True
                 except json.JSONDecodeError as exc:

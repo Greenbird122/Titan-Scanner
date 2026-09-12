@@ -54,9 +54,7 @@ class BrowserInteractionMixin:
                 except asyncio.TimeoutError:
                     return
                 try:
-                    api_endpoints = await asyncio.wait_for(
-                        self._interact_and_capture(context, i_page, vu), timeout=30
-                    )
+                    api_endpoints = await asyncio.wait_for(self._interact_and_capture(context, i_page, vu), timeout=30)
                     for api_url in api_endpoints:
                         if api_url not in self.visited and self._is_in_scope(api_url):
                             self.visited.add(api_url)
@@ -74,6 +72,7 @@ class BrowserInteractionMixin:
                     except Exception as exc:
                         logger.debug(f"suppressed exception: {exc}")
                         pass
+
             try:
                 await asyncio.wait_for(_interact(), timeout=budget)
             except (asyncio.TimeoutError, asyncio.CancelledError, Exception) as exc:
@@ -129,7 +128,7 @@ class BrowserInteractionMixin:
             pass
 
         try:
-            clickable = await page.evaluate('''() => {
+            clickable = await page.evaluate("""() => {
                 const elements = [];
                 for (const el of document.querySelectorAll('button, a[href], [role="button"], input[type="submit"]')) {
                     elements.push({
@@ -140,11 +139,11 @@ class BrowserInteractionMixin:
                     });
                 }
                 return elements.slice(0, 10);
-            }''')
+            }""")
             for el in clickable:
                 try:
-                    el_id = el.get('id', '')
-                    el_class = el.get('class', '').split()[0] if el.get('class') else ''
+                    el_id = el.get("id", "")
+                    el_class = el.get("class", "").split()[0] if el.get("class") else ""
                     if el_id:
                         element = await page.query_selector(f"#{el_id}")
                         if element:
@@ -158,7 +157,7 @@ class BrowserInteractionMixin:
                         if element:
                             await element.click(force=True)
                     await page.wait_for_timeout(500)
-                    forms_count = await page.evaluate('''() => document.querySelectorAll('form').length''')
+                    forms_count = await page.evaluate("""() => document.querySelectorAll('form').length""")
                     if forms_count > 0:
                         form_data = await self._extract_forms(page)
                         for form in form_data:
@@ -176,7 +175,7 @@ class BrowserInteractionMixin:
             pass
 
         try:
-            await page.evaluate('''() => window.scrollTo(0, document.body.scrollHeight)''')
+            await page.evaluate("""() => window.scrollTo(0, document.body.scrollHeight)""")
             await page.wait_for_timeout(1000)
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
@@ -184,7 +183,9 @@ class BrowserInteractionMixin:
 
         page.remove_listener("request", capture_request)
         api_endpoints = select_runtime_apis(
-            captured_urls, ws_urls=ws_urls, base_url=base_url,
+            captured_urls,
+            ws_urls=ws_urls,
+            base_url=base_url,
             scope_host=urlparse(self._scan_target).hostname or "",
         )
         logger.info(f"[+] Interaction captured {len(api_endpoints)} API endpoints ({len(ws_urls)} websocket)")
@@ -197,14 +198,17 @@ class BrowserInteractionMixin:
                 name = inp.get("name", "")
                 if not name:
                     continue
-                await page.evaluate('''(name) => {
+                await page.evaluate(
+                    """(name) => {
                     const el = document.querySelector('[name="{name}"]');
                     if (el) {
                         el.value = 'test';
                         el.dispatchEvent(new Event('input', { bubbles: true }));
                         el.dispatchEvent(new Event('change', { bubbles: true }));
                     }
-                }''', name)
+                }""",
+                    name,
+                )
             except Exception as exc:
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
@@ -249,6 +253,7 @@ class BrowserInteractionMixin:
                 probe_url = strip_fragment(route)
                 captured: list[str] = []
                 try:
+
                     async def _walk_one():
                         nonlocal captured
                         await spa_page.goto(probe_url, wait_until="domcontentloaded", timeout=15000)
@@ -258,6 +263,7 @@ class BrowserInteractionMixin:
                             logger.debug(f"suppressed exception: {exc}")
                             pass
                         captured = await self._interact_and_capture(context, spa_page, route)
+
                     await asyncio.wait_for(_walk_one(), timeout=per_route_budget)
                 except asyncio.TimeoutError as exc:
                     logger.debug(f"suppressed exception: {exc}")
@@ -291,11 +297,12 @@ class BrowserInteractionMixin:
 
     async def _hydrate_spa_routes(self, context, page, base_url, budget=10.0):
         from titan.core.spa import route_table_candidates
+
         deadline = time.monotonic() + budget
         seen_routes: list[str] = []
         while time.monotonic() < deadline:
             try:
-                blob = await page.evaluate('''() => {
+                blob = await page.evaluate("""() => {
                     const routes = [], pathLinks = [], hashLinks = [], dataRoutes = [];
                     const origin = window.location.origin;
                     const pushRoute = (r) => { if (r && typeof r === 'string') routes.push(r); };
@@ -326,16 +333,13 @@ class BrowserInteractionMixin:
                         if (val) dataRoutes.push(origin + val);
                     });
                     return { routes, hash_links: hashLinks, path_links: pathLinks, data_routes: dataRoutes };
-                }''')
+                }""")
             except Exception:
                 break
             if not isinstance(blob, dict):
                 break
             urlparse(self._scan_target).hostname or ""
-            found = [
-                r for r in route_table_candidates(blob, base_url=base_url)
-                if self._is_in_scope(r)
-            ]
+            found = [r for r in route_table_candidates(blob, base_url=base_url) if self._is_in_scope(r)]
             if found:
                 seen_routes = found
                 break
@@ -344,4 +348,3 @@ class BrowserInteractionMixin:
             except Exception:
                 break
         return seen_routes
-

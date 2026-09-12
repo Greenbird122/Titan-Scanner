@@ -20,7 +20,6 @@ Everything is pure and deterministic — the tests pin the exact shapes. The
 CLI (``titan_learn_cli.py trends``) writes findings/TRENDS.md + TRENDS.json.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -125,16 +124,12 @@ def build_profile(slug: str, root: Path, scoreboard_rounds: list[dict[str, Any]]
     missing_headers = {m.group(1).lower() for m in HEADER_MISS_RE.finditer(diffs_joined)}
 
     signals = {
-        "exposed_bundle_secret": "Hardcoded Secret" in attack_types
-        or "hardcoded secret" in notes_l,
-        "firebase_key": "AIza" in notes_l
-        or any("AIza" in (f.get("payload") or "") for f in findings),
-        "missing_csp": "CSP Weakness" in attack_types
-        or "content-security-policy" in missing_headers,
-        "clickjackable": "x-frame-options" in missing_headers
-        or "clickjack" in notes_l or "frameable" in notes_l,
-        "hsts_present": ("strict-transport-security" not in missing_headers
-        and "hsts" in notes_l) or "strict-transport-security" in notes_l,
+        "exposed_bundle_secret": "Hardcoded Secret" in attack_types or "hardcoded secret" in notes_l,
+        "firebase_key": "AIza" in notes_l or any("AIza" in (f.get("payload") or "") for f in findings),
+        "missing_csp": "CSP Weakness" in attack_types or "content-security-policy" in missing_headers,
+        "clickjackable": "x-frame-options" in missing_headers or "clickjack" in notes_l or "frameable" in notes_l,
+        "hsts_present": ("strict-transport-security" not in missing_headers and "hsts" in notes_l)
+        or "strict-transport-security" in notes_l,
         # Note-text signals are guarded against discussion-of-a-control reading
         # as a finding: "bucket not listable" is not public storage, "client-side
         # auth shell" describing a hosting platform is not the site's bypass,
@@ -152,8 +147,7 @@ def build_profile(slug: str, root: Path, scoreboard_rounds: list[dict[str, Any]]
         "client_auth_bypass": "Auth Bypass" in attack_types
         or "architect_access" in notes_l
         or ("localstorage" in notes_l and re.search(r"\bgate\b", notes_l)),
-        "static_no_backend": (not findings and not mined)
-        or ("static" in notes_l and "no backend" in notes_l),
+        "static_no_backend": (not findings and not mined) or ("static" in notes_l and "no backend" in notes_l),
         "missing_headers": "Info Leak" in attack_types or "headers:missing" in diffs_joined,
     }
 
@@ -164,10 +158,14 @@ def build_profile(slug: str, root: Path, scoreboard_rounds: list[dict[str, Any]]
         "technologies": meta.get("technologies", []),
         "findings": len(findings),
         "verified": verified,
-        "critical": max(sum(1 for f in findings if f.get("severity") == "critical"),
-                        sum(1 for r in mined if r.get("severity") == "critical")),
-        "high": max(sum(1 for f in findings if f.get("severity") == "high"),
-                     sum(1 for r in mined if r.get("severity") == "high")),
+        "critical": max(
+            sum(1 for f in findings if f.get("severity") == "critical"),
+            sum(1 for r in mined if r.get("severity") == "critical"),
+        ),
+        "high": max(
+            sum(1 for f in findings if f.get("severity") == "high"),
+            sum(1 for r in mined if r.get("severity") == "high"),
+        ),
         "mined_findings": len(mined),
         "attack_types": sorted(a for a in attack_types if a),
         "severities": sorted(s for s in severities if s),
@@ -177,7 +175,9 @@ def build_profile(slug: str, root: Path, scoreboard_rounds: list[dict[str, Any]]
     }
 
 
-def build_profiles(findings_root: str = "findings", scoreboard_path: str = "purple/scoreboard.json") -> list[dict[str, Any]]:
+def build_profiles(
+    findings_root: str = "findings", scoreboard_path: str = "purple/scoreboard.json"
+) -> list[dict[str, Any]]:
     """Pure: profiles for every site in the ledger."""
     root = Path(findings_root)
     rounds: list[dict[str, Any]] = []
@@ -203,6 +203,7 @@ def build_profiles(findings_root: str = "findings", scoreboard_path: str = "purp
 # grouping + anomalies
 # ---------------------------------------------------------------------------
 
+
 def find_trend_groups(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Signals shared by >= 2 sites — the trends the estate repeats."""
     groups: list[dict[str, Any]] = []
@@ -211,12 +212,14 @@ def find_trend_groups(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
         members = [p["slug"] for p in profiles if p["signals"].get(sig)]
         if len(members) >= 2:
             platforms = sorted({p["platform"] for p in profiles if p["signals"].get(sig)})
-            groups.append({
-                "signal": sig,
-                "members": members,
-                "count": len(members),
-                "platforms": platforms,
-            })
+            groups.append(
+                {
+                    "signal": sig,
+                    "members": members,
+                    "count": len(members),
+                    "platforms": platforms,
+                }
+            )
     groups.sort(key=lambda g: -g["count"])
     return groups
 
@@ -231,12 +234,14 @@ def flag_anomalies(profiles: list[dict[str, Any]], groups: list[dict[str, Any]])
     for p in profiles:
         for sig, present in p["signals"].items():
             if present and sig not in group_sigs:
-                anomalies.append({
-                    "slug": p["slug"],
-                    "kind": "unique",
-                    "signal": sig,
-                    "message": f"only site with {sig.replace('_', ' ')}",
-                })
+                anomalies.append(
+                    {
+                        "slug": p["slug"],
+                        "kind": "unique",
+                        "signal": sig,
+                        "message": f"only site with {sig.replace('_', ' ')}",
+                    }
+                )
 
     # platform — a site deviating from its platform peers on a control
     controls = ("missing_csp", "clickjackable", "hsts_present")
@@ -251,15 +256,16 @@ def flag_anomalies(profiles: list[dict[str, Any]], groups: list[dict[str, Any]])
             majority = sum(1 for v in values if v) >= (len(values) + 1) // 2
             for m in members:
                 if m["signals"].get(control, False) != majority:
-                    anomalies.append({
-                        "slug": m["slug"],
-                        "kind": "platform",
-                        "signal": control,
-                        "message": (
-                            f"{control.replace('_', ' ')} deviates from {len(members)} "
-                            f"{plat} platform peers"
-                        ),
-                    })
+                    anomalies.append(
+                        {
+                            "slug": m["slug"],
+                            "kind": "platform",
+                            "signal": control,
+                            "message": (
+                                f"{control.replace('_', ' ')} deviates from {len(members)} {plat} platform peers"
+                            ),
+                        }
+                    )
 
     # severity — critical/high findings where the platform cluster has none
     for plat, members in platforms.items():
@@ -270,15 +276,16 @@ def flag_anomalies(profiles: list[dict[str, Any]], groups: list[dict[str, Any]])
             if cluster_has_severe and not (m["critical"] or m["high"]):
                 continue
             if not cluster_has_severe and (m["critical"] or m["high"]):
-                anomalies.append({
-                    "slug": m["slug"],
-                    "kind": "severity",
-                    "signal": "severe_findings",
-                    "message": (
-                        f"critical/high findings ({m['critical']}c/{m['high']}h) while "
-                        f"all {plat} peers have none"
-                    ),
-                })
+                anomalies.append(
+                    {
+                        "slug": m["slug"],
+                        "kind": "severity",
+                        "signal": "severe_findings",
+                        "message": (
+                            f"critical/high findings ({m['critical']}c/{m['high']}h) while all {plat} peers have none"
+                        ),
+                    }
+                )
 
     anomalies.sort(key=lambda a: (a["slug"], a["kind"]))
     return anomalies
@@ -287,6 +294,7 @@ def flag_anomalies(profiles: list[dict[str, Any]], groups: list[dict[str, Any]])
 # ---------------------------------------------------------------------------
 # rendering
 # ---------------------------------------------------------------------------
+
 
 def render_profiles_table(profiles: list[dict[str, Any]]) -> str:
     lines = [
@@ -313,10 +321,7 @@ def render_trends(profiles: list[dict[str, Any]], groups: list[dict[str, Any]], 
     ]
     if groups:
         for g in groups:
-            lines.append(
-                f"- **{g['signal'].replace('_', ' ')}** — {g['count']} sites "
-                f"({', '.join(g['members'])})"
-            )
+            lines.append(f"- **{g['signal'].replace('_', ' ')}** — {g['count']} sites ({', '.join(g['members'])})")
     else:
         lines.append("- none")
     lines += ["", "## Anomalies", ""]
@@ -324,9 +329,7 @@ def render_trends(profiles: list[dict[str, Any]], groups: list[dict[str, Any]], 
         lines.append("| Site | Kind | Signal | Detail |")
         lines.append("|---|---|---|---|")
         for a in anomalies:
-            lines.append(
-                f"| {a['slug']} | {a['kind']} | {a['signal']} | {a['message']} |"
-            )
+            lines.append(f"| {a['slug']} | {a['kind']} | {a['signal']} | {a['message']} |")
     else:
         lines.append("- none")
     lines += ["", "## Per-site profiles", "", render_profiles_table(profiles), ""]

@@ -11,6 +11,7 @@ git-vizor and database-tulia JS bundles. Tests:
   3. lookup         — enumerate providers for a known email
   4. getProjectConfig — leak the project's authorized domains
 """
+
 import asyncio
 import json
 import os
@@ -33,9 +34,7 @@ async def probe():
         try:
             async with s.get(f"{ITKIT}/projects?key={API_KEY}", timeout=15) as r:
                 text = await r.text()
-                results["tests"]["getProjectConfig_v1"] = {
-                    "status": r.status, "body": text[:800]
-                }
+                results["tests"]["getProjectConfig_v1"] = {"status": r.status, "body": text[:800]}
         except Exception as e:
             results["tests"]["getProjectConfig_v1"] = {"error": str(e)}
 
@@ -43,9 +42,7 @@ async def probe():
             url = f"https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig?key={API_KEY}"
             async with s.get(url, timeout=15) as r:
                 text = await r.text()
-                results["tests"]["getProjectConfig"] = {
-                    "status": r.status, "body": text[:1200]
-                }
+                results["tests"]["getProjectConfig"] = {"status": r.status, "body": text[:1200]}
         except Exception as e:
             results["tests"]["getProjectConfig"] = {"error": str(e)}
 
@@ -58,9 +55,7 @@ async def probe():
             url = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/createAuthUri?key=" + API_KEY
             async with s.post(url, json=payload, timeout=15) as r:
                 text = await r.text()
-                results["tests"]["createAuthUri"] = {
-                    "status": r.status, "body": text[:800]
-                }
+                results["tests"]["createAuthUri"] = {"status": r.status, "body": text[:800]}
         except Exception as e:
             results["tests"]["createAuthUri"] = {"error": str(e)}
 
@@ -95,9 +90,7 @@ async def probe():
             try:
                 url = f"{ITKIT}/accounts:delete?key={API_KEY}"
                 async with s.post(url, json={"idToken": id_token}, timeout=15) as r:
-                    results["tests"]["cleanup_delete"] = {
-                        "status": r.status, "cleaned": r.status == 200
-                    }
+                    results["tests"]["cleanup_delete"] = {"status": r.status, "cleaned": r.status == 200}
             except Exception as e:
                 results["tests"]["cleanup_delete"] = {"error": str(e)}
         else:
@@ -113,9 +106,7 @@ async def probe():
             url = f"{ITKIT}/accounts:signInWithPassword?key={API_KEY}"
             async with s.post(url, json=payload, timeout=15) as r:
                 text = await r.text()
-                results["tests"]["signInWithPassword"] = {
-                    "status": r.status, "body": text[:400]
-                }
+                results["tests"]["signInWithPassword"] = {"status": r.status, "body": text[:400]}
         except Exception as e:
             results["tests"]["signInWithPassword"] = {"error": str(e)}
 

@@ -12,7 +12,6 @@ A page with NO CSP at all is the strongest signal (MEDIUM). A weak CSP
 protections. A strong CSP produces no finding.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -22,7 +21,6 @@ from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
 
 logger = get_logger("detector")
-
 
 
 class CSPDetector:
@@ -44,20 +42,32 @@ class CSPDetector:
 
             meta_csp = ""
             try:
-                meta_csp = await page.evaluate(
-                    """() => {
+                meta_csp = (
+                    await page.evaluate(
+                        """() => {
                         const el = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
                         return el ? el.getAttribute('content') || '' : '';
                     }"""
-                ) or ""
+                    )
+                    or ""
+                )
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass
 
             policy = csp_header or meta_csp
             if not policy:
-                findings.append(self._finding(target, url, "", "No Content-Security-Policy header or meta tag present",
-                                              Severity.MEDIUM, 0.7, ["csp:missing"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        "",
+                        "No Content-Security-Policy header or meta tag present",
+                        Severity.MEDIUM,
+                        0.7,
+                        ["csp:missing"],
+                    )
+                )
                 return findings
 
             directive_sources = self._parse_directives(policy)
@@ -67,23 +77,77 @@ class CSPDetector:
             # ("'unsafe-inline'"), so the membership check must use the
             # quoted forms — matching "unsafe-inline" alone never fires.
             if "'unsafe-inline'" in script_src or "unsafe-inline" in script_src:
-                findings.append(self._finding(target, url, policy, "script-src allows unsafe-inline — inline XSS is executable",
-                                              Severity.HIGH, 0.85, ["csp:script-unsafe-inline"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        policy,
+                        "script-src allows unsafe-inline — inline XSS is executable",
+                        Severity.HIGH,
+                        0.85,
+                        ["csp:script-unsafe-inline"],
+                    )
+                )
             if "'unsafe-eval'" in script_src or "unsafe-eval" in script_src:
-                findings.append(self._finding(target, url, policy, "script-src allows unsafe-eval — eval() based attacks are not blocked",
-                                              Severity.MEDIUM, 0.75, ["csp:script-unsafe-eval"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        policy,
+                        "script-src allows unsafe-eval — eval() based attacks are not blocked",
+                        Severity.MEDIUM,
+                        0.75,
+                        ["csp:script-unsafe-eval"],
+                    )
+                )
             if "'*'" in script_src or "*" in script_src:
-                findings.append(self._finding(target, url, policy, "script-src allows wildcard origin — any domain can load scripts",
-                                              Severity.HIGH, 0.8, ["csp:script-wildcard"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        policy,
+                        "script-src allows wildcard origin — any domain can load scripts",
+                        Severity.HIGH,
+                        0.8,
+                        ["csp:script-wildcard"],
+                    )
+                )
             if not directive_sources.get("frame-ancestors"):
-                findings.append(self._finding(target, url, policy, "CSP lacks frame-ancestors — clickjacking not blocked by CSP",
-                                              Severity.LOW, 0.6, ["csp:no-frame-ancestors"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        policy,
+                        "CSP lacks frame-ancestors — clickjacking not blocked by CSP",
+                        Severity.LOW,
+                        0.6,
+                        ["csp:no-frame-ancestors"],
+                    )
+                )
             if not directive_sources.get("object-src"):
-                findings.append(self._finding(target, url, policy, "CSP lacks object-src — plugin/media injection not blocked",
-                                              Severity.MEDIUM, 0.6, ["csp:no-object-src"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        policy,
+                        "CSP lacks object-src — plugin/media injection not blocked",
+                        Severity.MEDIUM,
+                        0.6,
+                        ["csp:no-object-src"],
+                    )
+                )
             if not directive_sources.get("base-uri"):
-                findings.append(self._finding(target, url, policy, "CSP lacks base-uri — dangling markup / base-tag hijack possible",
-                                              Severity.LOW, 0.55, ["csp:no-base-uri"]))
+                findings.append(
+                    self._finding(
+                        target,
+                        url,
+                        policy,
+                        "CSP lacks base-uri — dangling markup / base-tag hijack possible",
+                        Severity.LOW,
+                        0.55,
+                        ["csp:no-base-uri"],
+                    )
+                )
 
         except Exception:
             return findings

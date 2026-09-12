@@ -10,7 +10,6 @@ This module:
 4. Feeds into coverage tracker
 """
 
-
 from __future__ import annotations
 
 import re
@@ -24,10 +23,10 @@ from titan.modules.coverage.tracker import CoverageTracker
 logger = get_logger("surfacemapper")
 
 
-
 @dataclass
 class SurfaceEndpoint:
     """A discovered endpoint on the attack surface."""
+
     url: str
     method: str
     category: str  # "api", "page", "admin", "auth", "static"
@@ -104,29 +103,33 @@ class AttackSurfaceMapper:
                 continue
 
             category = self._categorize_endpoint(url)
-            self._surface.append(SurfaceEndpoint(
-                url=url,
-                method="GET",
-                category=category,
-                parameters=[],
-                auth_required=category in ("admin", "auth", "payment", "user"),
-                risk_level=self._assess_risk(category),
-                relevant_attacks=[],
-            ))
+            self._surface.append(
+                SurfaceEndpoint(
+                    url=url,
+                    method="GET",
+                    category=category,
+                    parameters=[],
+                    auth_required=category in ("admin", "auth", "payment", "user"),
+                    risk_level=self._assess_risk(category),
+                    relevant_attacks=[],
+                )
+            )
 
         # Find all API calls
         api_calls = re.findall(r'["\'](/api/[^"\']+)["\']', source)
         for api in api_calls:
             url = f"{base_url.rstrip('/')}{api}"
-            self._surface.append(SurfaceEndpoint(
-                url=url,
-                method="POST",
-                category="api",
-                parameters=self._extract_params(api),
-                auth_required=True,
-                risk_level="high",
-                relevant_attacks=[],
-            ))
+            self._surface.append(
+                SurfaceEndpoint(
+                    url=url,
+                    method="POST",
+                    category="api",
+                    parameters=self._extract_params(api),
+                    auth_required=True,
+                    risk_level="high",
+                    relevant_attacks=[],
+                )
+            )
 
         # Find forms
         forms = re.findall(r'<form[^>]*action=["\']([^"\']*)["\']', source)
@@ -139,28 +142,43 @@ class AttackSurfaceMapper:
                 continue
 
             category = self._categorize_endpoint(url)
-            self._surface.append(SurfaceEndpoint(
-                url=url,
-                method="POST",
-                category=category,
-                parameters=[],
-                auth_required=category in ("auth", "payment", "user"),
-                risk_level=self._assess_risk(category),
-                relevant_attacks=[],
-            ))
+            self._surface.append(
+                SurfaceEndpoint(
+                    url=url,
+                    method="POST",
+                    category=category,
+                    parameters=[],
+                    auth_required=category in ("auth", "payment", "user"),
+                    risk_level=self._assess_risk(category),
+                    relevant_attacks=[],
+                )
+            )
 
     async def _probe_common_endpoints(self, target_url: str):
         """Probe common endpoints."""
         common_paths = [
-            "/api/users", "/api/products", "/api/orders", "/api/payment",
-            "/api/auth/login", "/api/auth/signup", "/api/admin",
-            "/api/settings", "/api/upload", "/api/search",
-            "/admin", "/login", "/signup", "/dashboard",
-            "/profile", "/account", "/settings",
+            "/api/users",
+            "/api/products",
+            "/api/orders",
+            "/api/payment",
+            "/api/auth/login",
+            "/api/auth/signup",
+            "/api/admin",
+            "/api/settings",
+            "/api/upload",
+            "/api/search",
+            "/admin",
+            "/login",
+            "/signup",
+            "/dashboard",
+            "/profile",
+            "/account",
+            "/settings",
         ]
 
         try:
             import aiohttp
+
             parsed = urlparse(target_url)
             base = f"{parsed.scheme}://{parsed.netloc}"
 
@@ -171,15 +189,17 @@ class AttackSurfaceMapper:
                         async with session.get(url, timeout=aiohttp.ClientTimeout(total=3)) as resp:
                             if resp.status not in (404, 405, 500, 502, 503):
                                 category = self._categorize_endpoint(url)
-                                self._surface.append(SurfaceEndpoint(
-                                    url=url,
-                                    method="GET",
-                                    category=category,
-                                    parameters=[],
-                                    auth_required=category in ("admin", "auth", "payment", "user"),
-                                    risk_level=self._assess_risk(category),
-                                    relevant_attacks=[],
-                                ))
+                                self._surface.append(
+                                    SurfaceEndpoint(
+                                        url=url,
+                                        method="GET",
+                                        category=category,
+                                        parameters=[],
+                                        auth_required=category in ("admin", "auth", "payment", "user"),
+                                        risk_level=self._assess_risk(category),
+                                        relevant_attacks=[],
+                                    )
+                                )
                     except Exception as exc:
                         logger.debug(f"variant failed, continuing: {exc}")
                         continue

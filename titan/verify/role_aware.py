@@ -10,6 +10,7 @@ This does NOT change the module set arbitrarily.  It:
     (e.g. a stored-XSS in an admin-only editor is low-risk when found as `user`)
   - feeds the hostile surface profiler so platform brains can specialize
 """
+
 from __future__ import annotations
 
 import logging
@@ -119,6 +120,7 @@ class RoleAwareScanner:
     def record_access(self, url: str, status: int, body: str = "") -> None:
         try:
             from urllib.parse import urlparse
+
             path = urlparse(url).path.lower()
         except Exception:
             return
@@ -132,7 +134,10 @@ class RoleAwareScanner:
             self._capabilities.can_read_users = True
         if any(k in path for k in ("/admin", "/dashboard", "/panel")) and self._role in (Role.ADMIN, Role.STAFF):
             self._capabilities.can_read_admin = True
-        if any(k in path for k in ("/payments", "/transactions", "/billing")) and self._role in (Role.ADMIN, Role.STAFF):
+        if any(k in path for k in ("/payments", "/transactions", "/billing")) and self._role in (
+            Role.ADMIN,
+            Role.STAFF,
+        ):
             self._capabilities.can_manage_payments = True
         if any(k in path for k in ("/analytics", "/reports", "/stats")) and self._role in (Role.ADMIN, Role.STAFF):
             self._capabilities.can_view_analytics = True
@@ -158,6 +163,7 @@ class RoleAwareScanner:
         if attack_type == "XSS" and location == "body":
             try:
                 from urllib.parse import urlparse
+
                 path = urlparse(url).path.lower()
             except Exception:
                 path = ""
@@ -170,7 +176,9 @@ class RoleAwareScanner:
                 return
 
         if attack_type == "IDOR":
-            if not self._capabilities.can_read_users and any(k in (param or "").lower() for k in ("user_id", "account_id", "id")):
+            if not self._capabilities.can_read_users and any(
+                k in (param or "").lower() for k in ("user_id", "account_id", "id")
+            ):
                 finding.metadata = getattr(finding, "metadata", {}) or {}
                 finding.metadata["role_gated"] = True
                 finding.metadata["role_gate_reason"] = "user object reference, current role=%s" % self._role.value
@@ -182,7 +190,9 @@ class RoleAwareScanner:
             if not self._capabilities.can_read_users and not self._capabilities.can_read_admin:
                 finding.metadata = getattr(finding, "metadata", {}) or {}
                 finding.metadata["role_gated"] = True
-                finding.metadata["role_gate_reason"] = "object access requires admin/staff, current role=%s" % self._role.value
+                finding.metadata["role_gate_reason"] = (
+                    "object access requires admin/staff, current role=%s" % self._role.value
+                )
                 finding.severity = _downgrade(getattr(finding, "severity", None))
                 finding.confidence = max(0.1, getattr(finding, "confidence", 0.5) - 0.2)
                 return

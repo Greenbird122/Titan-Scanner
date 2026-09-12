@@ -1,4 +1,5 @@
 """Titan — setup.py fallback for older pip versions."""
+
 from setuptools import find_packages, setup
 
 setup(
@@ -10,8 +11,6 @@ setup(
     author="Titan Security Lab",
     url="https://github.com/titan-security-lab/titan",
     packages=find_packages(exclude=["tests*", "docs*"]),
-
-
     python_requires=">=3.10",
     install_requires=[
         "aiohttp>=3.9.0",

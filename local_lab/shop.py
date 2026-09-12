@@ -120,8 +120,7 @@ def reseed() -> None:
     """Drop + rebuild every table with a deterministic seed (hermetic runs)."""
     with _LOCK:
         db = _db()
-        for table in ("reset_tokens", "reviews", "payments", "order_items",
-                      "orders", "sessions", "products", "users"):
+        for table in ("reset_tokens", "reviews", "payments", "order_items", "orders", "sessions", "products", "users"):
             db.execute(f"DROP TABLE IF EXISTS {table}")
         db.executescript(_SCHEMA)
         now = _now()
@@ -131,40 +130,36 @@ def reseed() -> None:
             (3, "bob", _md5("bob123"), "user", now),
             (4, "guest", _md5("guest123"), "user", now),
         ]
-        db.executemany(
-            "INSERT INTO users(id, username, password_hash, role, created_at) VALUES (?,?,?,?,?)",
-            users)
+        db.executemany("INSERT INTO users(id, username, password_hash, role, created_at) VALUES (?,?,?,?,?)", users)
         products = [
             (1, "Bespoke Titan Widget", "premium", 499900, 12),
             (2, "USB-C Power Bank", "accessories", 2999, 200),
             (3, "Titan T-Shirt", "apparel", 1999, 50),
             (4, "Enterprise License", "premium", 999900, 3),
         ]
-        db.executemany(
-            "INSERT INTO products(id, name, category, price_cents, stock) VALUES (?,?,?,?,?)",
-            products)
+        db.executemany("INSERT INTO products(id, name, category, price_cents, stock) VALUES (?,?,?,?,?)", products)
         # Order 1 belongs to bob, order 2 to alice — the cross-user read pair.
         orders = [
             (1, 3, 499900, "pending", "", now),
             (2, 2, 2999, "paid", "", now),
         ]
         db.executemany(
-            "INSERT INTO orders(id, user_id, total_cents, status, note, created_at) VALUES (?,?,?,?,?,?)",
-            orders)
+            "INSERT INTO orders(id, user_id, total_cents, status, note, created_at) VALUES (?,?,?,?,?,?)", orders
+        )
         db.executemany(
             "INSERT INTO order_items(order_id, product_id, qty, unit_price_cents) VALUES (?,?,?,?)",
-            [(1, 1, 1, 499900), (2, 2, 1, 2999)])
+            [(1, 1, 1, 499900), (2, 2, 1, 2999)],
+        )
         # Plaintext PANs stored verbatim — the PCI violation red must find.
         payments = [
-            (1, 1, 3, "4111-1111-1111-1111", "1111", 499900, "captured",
-             "tok_test_bob", now),
-            (2, 2, 2, "5500-0000-0000-0004", "0004", 2999, "captured",
-             "tok_test_alice", now),
+            (1, 1, 3, "4111-1111-1111-1111", "1111", 499900, "captured", "tok_test_bob", now),
+            (2, 2, 2, "5500-0000-0000-0004", "0004", 2999, "captured", "tok_test_alice", now),
         ]
         db.executemany(
             "INSERT INTO payments(id, order_id, user_id, card_number, card_last4, "
             "amount_cents, status, provider_ref, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-            payments)
+            payments,
+        )
         db.commit()
 
 
@@ -178,10 +173,14 @@ def _require_user():
     if not token:
         return None
     with _LOCK:
-        row = _db().execute(
-            "SELECT u.id, u.username, u.role FROM sessions s "
-            "JOIN users u ON u.id = s.user_id WHERE s.token = ?",
-            (token,)).fetchone()
+        row = (
+            _db()
+            .execute(
+                "SELECT u.id, u.username, u.role FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?",
+                (token,),
+            )
+            .fetchone()
+        )
     return dict(row) if row else None
 
 
@@ -198,20 +197,17 @@ def register():
     if not username or not password:
         return jsonify({"error": "username and password required"}), 400
     # Legacy accounts: passwords stored as unsalted MD5.
-    rec = {"username": username, "password_hash": _md5(password),
-           "role": "user", "created_at": _now()}
+    rec = {"username": username, "password_hash": _md5(password), "role": "user", "created_at": _now()}
     # Mass assignment: every OTHER client-supplied field is written straight
     # into the record — including `role`, so anyone can self-register as admin.
-    rec.update({k: v for k, v in data.items()
-                if k not in ("username", "password", "password_hash")})
+    rec.update({k: v for k, v in data.items() if k not in ("username", "password", "password_hash")})
     with _LOCK:
         _db().execute(
-            "INSERT OR REPLACE INTO users(username, password_hash, role, created_at) "
-            "VALUES (?,?,?,?)",
-            (rec["username"], rec["password_hash"], rec["role"], rec["created_at"]))
+            "INSERT OR REPLACE INTO users(username, password_hash, role, created_at) VALUES (?,?,?,?)",
+            (rec["username"], rec["password_hash"], rec["role"], rec["created_at"]),
+        )
         _db().commit()
-    return jsonify({"created": True,
-                    "user": {"username": rec["username"], "role": rec["role"]}})
+    return jsonify({"created": True, "user": {"username": rec["username"], "role": rec["role"]}})
 
 
 @shop_bp.route("/login", methods=["POST"])
@@ -219,10 +215,14 @@ def login():
     username = request.form.get("username", "")
     password = request.form.get("password", "")
     with _LOCK:
-        row = _db().execute(
-            "SELECT id, username, role FROM users "
-            "WHERE username = ? AND password_hash = ?",
-            (username, _md5(password))).fetchone()
+        row = (
+            _db()
+            .execute(
+                "SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?",
+                (username, _md5(password)),
+            )
+            .fetchone()
+        )
     if not row:
         return jsonify({"error": "invalid credentials"}), 401
     # Session fixation: an attacker-supplied sid cookie is REUSED verbatim
@@ -231,8 +231,8 @@ def login():
     token = request.cookies.get("sid") or ("s-" + _md5(f"{username}:{row[0]}:lab")[:24])
     with _LOCK:
         _db().execute(
-            "INSERT OR REPLACE INTO sessions(token, user_id, created_at) VALUES (?,?,?)",
-            (token, row[0], _now()))
+            "INSERT OR REPLACE INTO sessions(token, user_id, created_at) VALUES (?,?,?)", (token, row[0], _now())
+        )
         _db().commit()
     resp = make_response(jsonify({"session": token, "user": username}))
     resp.set_cookie("sid", token)
@@ -256,10 +256,15 @@ def account():
     user = _require_user()
     if not user:
         return jsonify({"error": "login required"}), 401
-    return jsonify({"user": user, "account": {
-        "email": f"{user['username']}@shop.local",
-        "rewards_balance": 42,
-    }})
+    return jsonify(
+        {
+            "user": user,
+            "account": {
+                "email": f"{user['username']}@shop.local",
+                "rewards_balance": 42,
+            },
+        }
+    )
 
 
 @shop_bp.route("/admin")
@@ -272,10 +277,8 @@ def admin_panel():
     if user["role"] != "admin":
         return "TITAN-SHOP-ADMIN-GATED forbidden", 403
     with _LOCK:
-        revenue = _db().execute(
-            "SELECT COALESCE(SUM(amount_cents), 0) FROM payments").fetchone()[0]
-    return ("TITAN-SHOP-ADMIN-OK panel | total revenue: "
-            f"${revenue / 100:.2f} | welcome {user['username']}")
+        revenue = _db().execute("SELECT COALESCE(SUM(amount_cents), 0) FROM payments").fetchone()[0]
+    return f"TITAN-SHOP-ADMIN-OK panel | total revenue: ${revenue / 100:.2f} | welcome {user['username']}"
 
 
 @shop_bp.route("/reset", methods=["POST"])
@@ -285,8 +288,7 @@ def reset_password():
     if not username:
         return jsonify({"error": "username required"}), 400
     with _LOCK:
-        row = _db().execute("SELECT id FROM users WHERE username = ?",
-                            (username,)).fetchone()
+        row = _db().execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     if not row:
         return jsonify({"error": "unknown user"}), 404
     # Deterministic + guessable token derived from the username alone, and
@@ -294,8 +296,8 @@ def reset_password():
     token = "tk-" + _md5(username)[:8]
     with _LOCK:
         _db().execute(
-            "INSERT OR REPLACE INTO reset_tokens(token, user_id, created_at) VALUES (?,?,?)",
-            (token, row[0], _now()))
+            "INSERT OR REPLACE INTO reset_tokens(token, user_id, created_at) VALUES (?,?,?)", (token, row[0], _now())
+        )
         _db().commit()
     return jsonify({"ok": True, "token": token})
 
@@ -304,8 +306,7 @@ def reset_password():
 def reset_confirm():
     token = request.args.get("token", "")
     with _LOCK:
-        row = _db().execute(
-            "SELECT user_id FROM reset_tokens WHERE token = ?", (token,)).fetchone()
+        row = _db().execute("SELECT user_id FROM reset_tokens WHERE token = ?", (token,)).fetchone()
     if not row:
         return jsonify({"error": "invalid or expired token"}), 400
     return jsonify({"ok": True, "message": "RESET-OK password updated"})
@@ -314,12 +315,14 @@ def reset_confirm():
 # -- catalog ----------------------------------------------------------------
 @shop_bp.route("/")
 def shop_home():
-    return ("<html><head><title>Titan Shop</title></head><body>"
-            "<h1>Titan Shop</h1>"
-            "<p>Your one-stop store for premium widgets.</p>"
-            "<ul><li><a href='/shop/products'>Catalog</a></li>"
-            "<li><a href='/shop/account'>My account</a></li>"
-            "<li><a href='/shop/admin'>Admin</a></li></ul></body></html>")
+    return (
+        "<html><head><title>Titan Shop</title></head><body>"
+        "<h1>Titan Shop</h1>"
+        "<p>Your one-stop store for premium widgets.</p>"
+        "<ul><li><a href='/shop/products'>Catalog</a></li>"
+        "<li><a href='/shop/account'>My account</a></li>"
+        "<li><a href='/shop/admin'>Admin</a></li></ul></body></html>"
+    )
 
 
 @shop_bp.route("/products")
@@ -328,33 +331,42 @@ def products():
     # SQLi: the search filter is built by string concatenation — the classic
     # legacy-catalog bug. A tautology in q returns the entire catalog.
     with _LOCK:
-        rows = _db().execute(
-            "SELECT id, name, category, price_cents FROM products "  # noqa: S608 — intentionally vulnerable lab endpoint
-            f"WHERE name LIKE '%{q}%' OR category LIKE '%{q}%'").fetchall()
-    cards = "".join(
-        f"<li>{r[0]} - {r[1]} ({r[2]}) ${r[3] / 100:.2f}</li>" for r in rows)
-    return (f"<html><head><title>Catalog</title></head><body>"
-            f"<h1>Catalog</h1><p>search: {q}</p><ul>{cards}</ul></body></html>")
+        rows = (
+            _db()
+            .execute(
+                "SELECT id, name, category, price_cents FROM products "  # noqa: S608 — intentionally vulnerable lab endpoint
+                f"WHERE name LIKE '%{q}%' OR category LIKE '%{q}%'"
+            )
+            .fetchall()
+        )
+    cards = "".join(f"<li>{r[0]} - {r[1]} ({r[2]}) ${r[3] / 100:.2f}</li>" for r in rows)
+    return (
+        f"<html><head><title>Catalog</title></head><body>"
+        f"<h1>Catalog</h1><p>search: {q}</p><ul>{cards}</ul></body></html>"
+    )
 
 
 @shop_bp.route("/product/<int:product_id>")
 def product_detail(product_id):
     with _LOCK:
-        prod = _db().execute(
-            "SELECT id, name, category, price_cents, stock FROM products WHERE id = ?",
-            (product_id,)).fetchone()
-        reviews = _db().execute(
-            "SELECT body FROM reviews WHERE product_id = ?", (product_id,)).fetchall()
+        prod = (
+            _db()
+            .execute("SELECT id, name, category, price_cents, stock FROM products WHERE id = ?", (product_id,))
+            .fetchone()
+        )
+        reviews = _db().execute("SELECT body FROM reviews WHERE product_id = ?", (product_id,)).fetchall()
     if not prod:
         return "product not found", 404
     # Stored XSS: review bodies are rendered unescaped.
     review_html = "".join(f"<div class='review'>{r[0]}</div>" for r in reviews)
-    return (f"<html><head><title>{prod[1]}</title></head><body>"
-            f"<h1>{prod[1]}</h1><p>{prod[3] / 100:.2f} - stock {prod[4]}</p>"
-            f"<h2>Reviews</h2>{review_html}"
-            f"<form action='/shop/product/{prod[0]}/review' method='POST'>"
-            f"<input name='body'><button>Post review</button></form>"
-            "</body></html>")
+    return (
+        f"<html><head><title>{prod[1]}</title></head><body>"
+        f"<h1>{prod[1]}</h1><p>{prod[3] / 100:.2f} - stock {prod[4]}</p>"
+        f"<h2>Reviews</h2>{review_html}"
+        f"<form action='/shop/product/{prod[0]}/review' method='POST'>"
+        f"<input name='body'><button>Post review</button></form>"
+        "</body></html>"
+    )
 
 
 @shop_bp.route("/product/<int:product_id>/review", methods=["POST"])
@@ -366,7 +378,8 @@ def add_review(product_id):
     with _LOCK:
         _db().execute(
             "INSERT INTO reviews(product_id, user_id, body, created_at) VALUES (?,?,?,?)",
-            (product_id, user["id"] if user else None, body, _now()))
+            (product_id, user["id"] if user else None, body, _now()),
+        )
         _db().commit()
     return jsonify({"stored": True, "product_id": product_id})
 
@@ -381,13 +394,10 @@ def cart_add():
     except (TypeError, ValueError):
         return jsonify({"error": "bad product_id/qty"}), 400
     with _LOCK:
-        prod = _db().execute(
-            "SELECT id, name, price_cents FROM products WHERE id = ?",
-            (product_id,)).fetchone()
+        prod = _db().execute("SELECT id, name, price_cents FROM products WHERE id = ?", (product_id,)).fetchone()
     if not prod:
         return jsonify({"error": "unknown product"}), 404
-    return jsonify({"added": True, "product": prod[1],
-                    "unit_price_cents": prod[2], "qty": qty})
+    return jsonify({"added": True, "product": prod[1], "unit_price_cents": prod[2], "qty": qty})
 
 
 @shop_bp.route("/checkout", methods=["POST"])
@@ -405,13 +415,14 @@ def checkout():
     # recomputed from the server-side cart — charge what the payload says.
     with _LOCK:
         cur = _db().execute(
-            "INSERT INTO orders(user_id, total_cents, status, note, created_at) "
-            "VALUES (?,?,?,?,?)",
-            (user["id"], total_cents, "pending", note, _now()))
+            "INSERT INTO orders(user_id, total_cents, status, note, created_at) VALUES (?,?,?,?,?)",
+            (user["id"], total_cents, "pending", note, _now()),
+        )
         order_id = cur.lastrowid
         _db().commit()
-    return jsonify({"order_id": order_id, "total_cents": total_cents,
-                    "status": "pending", "note": note, "charged": total_cents})
+    return jsonify(
+        {"order_id": order_id, "total_cents": total_cents, "status": "pending", "note": note, "charged": total_cents}
+    )
 
 
 # -- orders / payments ------------------------------------------------------
@@ -421,28 +432,56 @@ def order_detail(order_id):
     if not user:
         return jsonify({"error": "login required"}), 401
     with _LOCK:
-        order = _db().execute(
-            "SELECT id, user_id, total_cents, status, note, created_at "
-            "FROM orders WHERE id = ?", (order_id,)).fetchone()
+        order = (
+            _db()
+            .execute("SELECT id, user_id, total_cents, status, note, created_at FROM orders WHERE id = ?", (order_id,))
+            .fetchone()
+        )
         if not order:
             return jsonify({"error": "order not found"}), 404
-        items = _db().execute(
-            "SELECT oi.qty, oi.unit_price_cents, p.name FROM order_items oi "
-            "JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?",
-            (order_id,)).fetchall()
-        payment = _db().execute(
-            "SELECT card_number, card_last4, amount_cents, status, provider_ref "
-            "FROM payments WHERE order_id = ?", (order_id,)).fetchone()
+        items = (
+            _db()
+            .execute(
+                "SELECT oi.qty, oi.unit_price_cents, p.name FROM order_items oi "
+                "JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?",
+                (order_id,),
+            )
+            .fetchall()
+        )
+        payment = (
+            _db()
+            .execute(
+                "SELECT card_number, card_last4, amount_cents, status, provider_ref FROM payments WHERE order_id = ?",
+                (order_id,),
+            )
+            .fetchone()
+        )
     # BOLA: NO ownership check — any authenticated user reads any order,
     # including the stored payment card of whoever paid for it.
-    return jsonify({
-        "order": {"id": order[0], "user_id": order[1], "total_cents": order[2],
-                  "status": order[3], "note": order[4], "created_at": order[5]},
-        "items": [{"name": i[2], "qty": i[0], "unit_price_cents": i[1]} for i in items],
-        "payment": ({"card_number": payment[0], "card_last4": payment[1],
-                     "amount_cents": payment[2], "status": payment[3],
-                     "provider_ref": payment[4]} if payment else None),
-    })
+    return jsonify(
+        {
+            "order": {
+                "id": order[0],
+                "user_id": order[1],
+                "total_cents": order[2],
+                "status": order[3],
+                "note": order[4],
+                "created_at": order[5],
+            },
+            "items": [{"name": i[2], "qty": i[0], "unit_price_cents": i[1]} for i in items],
+            "payment": (
+                {
+                    "card_number": payment[0],
+                    "card_last4": payment[1],
+                    "amount_cents": payment[2],
+                    "status": payment[3],
+                    "provider_ref": payment[4],
+                }
+                if payment
+                else None
+            ),
+        }
+    )
 
 
 @shop_bp.route("/pay", methods=["POST"])
@@ -466,11 +505,19 @@ def pay():
         _db().execute(
             "INSERT INTO payments(order_id, user_id, card_number, card_last4, "
             "amount_cents, status, provider_ref, created_at) VALUES (?,?,?,?,?,?,?,?)",
-            (order_id, user["id"], card, card[-4:], amount_cents, "captured",
-             ref, _now()))
+            (order_id, user["id"], card, card[-4:], amount_cents, "captured", ref, _now()),
+        )
         _db().commit()
-    return jsonify({"paid": True, "order_id": order_id, "amount_cents": amount_cents,
-                    "card_number": card, "last4": card[-4:], "provider_ref": ref})
+    return jsonify(
+        {
+            "paid": True,
+            "order_id": order_id,
+            "amount_cents": amount_cents,
+            "card_number": card,
+            "last4": card[-4:],
+            "provider_ref": ref,
+        }
+    )
 
 
 @shop_bp.route("/payments")
@@ -481,12 +528,27 @@ def payments():
     # Data exposure: no per-user filter — every stored card, full PAN, for
     # any authenticated account.
     with _LOCK:
-        rows = _db().execute(
-            "SELECT id, order_id, user_id, card_number, card_last4, amount_cents, "
-            "status FROM payments").fetchall()
-    return jsonify({"payments": [
-        {"id": r[0], "order_id": r[1], "user_id": r[2], "card_number": r[3],
-         "card_last4": r[4], "amount_cents": r[5], "status": r[6]} for r in rows]})
+        rows = (
+            _db()
+            .execute("SELECT id, order_id, user_id, card_number, card_last4, amount_cents, status FROM payments")
+            .fetchall()
+        )
+    return jsonify(
+        {
+            "payments": [
+                {
+                    "id": r[0],
+                    "order_id": r[1],
+                    "user_id": r[2],
+                    "card_number": r[3],
+                    "card_last4": r[4],
+                    "amount_cents": r[5],
+                    "status": r[6],
+                }
+                for r in rows
+            ]
+        }
+    )
 
 
 @shop_bp.route("/refund/<int:order_id>", methods=["POST"])
@@ -502,17 +564,13 @@ def refund(order_id):
     # BOLA + amount trust: no ownership check, and the refund amount is taken
     # from the caller — refund more than was ever paid.
     with _LOCK:
-        order = _db().execute(
-            "SELECT id, total_cents, status FROM orders WHERE id = ?",
-            (order_id,)).fetchone()
+        order = _db().execute("SELECT id, total_cents, status FROM orders WHERE id = ?", (order_id,)).fetchone()
     if not order:
         return jsonify({"error": "order not found"}), 404
     with _LOCK:
-        _db().execute("UPDATE orders SET status = 'refunded' WHERE id = ?",
-                      (order_id,))
+        _db().execute("UPDATE orders SET status = 'refunded' WHERE id = ?", (order_id,))
         _db().commit()
-    return jsonify({"refunded": True, "order_id": order_id,
-                    "amount_cents": amount_cents, "prior_total": order[1]})
+    return jsonify({"refunded": True, "order_id": order_id, "amount_cents": amount_cents, "prior_total": order[1]})
 
 
 @shop_bp.route("/webhook/payment", methods=["POST"])

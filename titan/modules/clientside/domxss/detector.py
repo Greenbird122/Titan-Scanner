@@ -14,7 +14,6 @@ content) and a marker that never reaches a sink (reflected but inert) both
 produce no finding.
 """
 
-
 from __future__ import annotations
 
 import secrets
@@ -81,7 +80,9 @@ class DomXSSDetector:
         self.payload_smith = payload_smith
         self.fingerprint = fingerprint
 
-    async def scan(self, page, target: str, url: str, params: dict[str, str], marker: str | None = None) -> list[Finding]:
+    async def scan(
+        self, page, target: str, url: str, params: dict[str, str], marker: str | None = None
+    ) -> list[Finding]:
         """``page`` is a real Playwright page (or a test double exposing
         add_init_script / goto / evaluate). ``marker`` is injectable so tests
         can script the page's behaviour deterministically."""
