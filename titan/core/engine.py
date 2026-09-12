@@ -49,7 +49,15 @@ from titan.verify.role_aware import RoleAwareScanner
 logger = get_logger("engine")
 
 
-class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin, CampaignPhasesMixin, DispatchMixin, EngineHelpersMixin, PostScanPhasesMixin):
+class TitanEngine(
+    TransportMixin,
+    BrowserInteractionMixin,
+    BrowserLifecycleMixin,
+    CampaignPhasesMixin,
+    DispatchMixin,
+    EngineHelpersMixin,
+    PostScanPhasesMixin,
+):
     def __init__(self, config: dict[str, Any]):
         self.config = config
         self.fingerprinter = TechFingerprinter()
@@ -78,18 +86,22 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         self._mutation_cache: dict[str, list[str]] = {}
         self._response_cache: set = set()
         self._coverage: dict[str, Any] = {
-            "urls_crawled": 0, "duplicate_bodies_skipped": 0,
-            "endpoint_groups_run": 0, "apis_discovered": 0,
-            "apis_scanned": 0, "params_discovered": 0,
-            "fuzz_budget_spent": 0.0, "queue_exhausted": False,
-            "capped_max_pages": False, "capped_depth": False,
-            "capped_apis": False, "crawl_timed_out": False,
+            "urls_crawled": 0,
+            "duplicate_bodies_skipped": 0,
+            "endpoint_groups_run": 0,
+            "apis_discovered": 0,
+            "apis_scanned": 0,
+            "params_discovered": 0,
+            "fuzz_budget_spent": 0.0,
+            "queue_exhausted": False,
+            "capped_max_pages": False,
+            "capped_depth": False,
+            "capped_apis": False,
+            "crawl_timed_out": False,
             "checkpoint_blocked": False,
         }
 
-        self._module_semaphore = asyncio.Semaphore(
-            config.get("crawl", {}).get("module_concurrency", 8)
-        )
+        self._module_semaphore = asyncio.Semaphore(config.get("crawl", {}).get("module_concurrency", 8))
         self._module_timeouts: dict[str, int] = {}
         self._module_line_counts: dict[str, int] = {}
         self._scan_target: str = ""
@@ -111,6 +123,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         self._auth_scope: str = "unauthenticated"
 
         from titan.core.waf import WAFTracker
+
         self._waf_tracker = WAFTracker()
 
         # Transport abstraction
@@ -143,9 +156,8 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         if self.config.get("governance", {}).get("enabled", True):
             try:
                 from titan.integrations.titan_gov import request_scan_approval
-                approved = await request_scan_approval(
-                    target, self.config.get("aggression", "passive")
-                )
+
+                approved = await request_scan_approval(target, self.config.get("aggression", "passive"))
                 if not approved:
                     result.errors.append("Scan not approved by governance")
                     result.finished_at = time.time()
@@ -181,6 +193,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         if self.config.get("reporting", {}).get("enabled", True):
             try:
                 from titan.reporting import SiteReportWriter
+
                 site_dir = SiteReportWriter(self.config.get("output_dir", "findings")).write(result)
                 logger.info(f"[+] Site report written to {site_dir}")
             except Exception as exc:
@@ -200,9 +213,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             browser, context = await self._launch_crawler(p, target)
             # Hide the loudest automation signal on every page in this context.
             try:
-                await context.add_init_script(
-                    "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-                )
+                await context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass
@@ -262,20 +273,19 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                     auth_headers = self.auth_engine.get_auth_headers()
                     if auth_headers:
                         await context.set_extra_http_headers(auth_headers)
-                    self.session_pool.add(Identity(
-                        name=role_name, headers=dict(auth_headers),
-                        cookies=self.auth_engine.get_cookies(),
-                    ))
+                    self.session_pool.add(
+                        Identity(
+                            name=role_name,
+                            headers=dict(auth_headers),
+                            cookies=self.auth_engine.get_cookies(),
+                        )
+                    )
                 else:
                     logger.warning("[!] Authentication failed, continuing unauthenticated")
 
             # Crawl
-            crawl_timeout = self.config.get("crawl", {}).get(
-                "timeout", 90 if not self._deep else 300
-            )
-            crawl_task = asyncio.ensure_future(
-                self._crawler.crawl(context, page, target, result, fingerprint)
-            )
+            crawl_timeout = self.config.get("crawl", {}).get("timeout", 90 if not self._deep else 300)
+            crawl_task = asyncio.ensure_future(self._crawler.crawl(context, page, target, result, fingerprint))
             crawl_task.add_done_callback(consume_task_exception)
             done, pending = await asyncio.wait({crawl_task}, timeout=crawl_timeout)
             if crawl_task in pending:
@@ -302,9 +312,19 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                 await self._run_interactions(context, target, fingerprint, result)
                 if self.config.get("crawl", {}).get("spa", {}).get("enabled", True):
                     has_hash_routes = any("#" in u for u in self.visited)
-                    spa_frameworks = {"react", "vue", "angular", "svelte",
-                                      "ember", "backbone", "next.js", "nuxt",
-                                      "gatsby", "remix", "astro"}
+                    spa_frameworks = {
+                        "react",
+                        "vue",
+                        "angular",
+                        "svelte",
+                        "ember",
+                        "backbone",
+                        "next.js",
+                        "nuxt",
+                        "gatsby",
+                        "remix",
+                        "astro",
+                    }
                     detected_techs = {t.lower() for t in fingerprint.get("technologies", [])}
                     if has_hash_routes or bool(detected_techs & spa_frameworks):
                         try:
@@ -361,7 +381,15 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         return await self._modules.run_browser_modules(context, page, target, fingerprint, result)
 
     async def _run_modules(
-        self, context, target, forms, links, apis, fingerprint, result=None, route_score=5,
+        self,
+        context,
+        target,
+        forms,
+        links,
+        apis,
+        fingerprint,
+        result=None,
+        route_score=5,
     ):
         """Run attack modules against all endpoint groups.
 
@@ -373,6 +401,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
         form_tasks = []
         for form in forms:
             from urllib.parse import urljoin
+
             action = form.get("action") or target
             action = urljoin(target, action)
             if not self._is_in_scope(action):
@@ -382,7 +411,9 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             if not data:
                 continue
             self._coverage["params_discovered"] += len(data)
-            form_tasks.append(self._run_attack_modules(context, target, method, action, data, fingerprint, route_score=route_score))
+            form_tasks.append(
+                self._run_attack_modules(context, target, method, action, data, fingerprint, route_score=route_score)
+            )
 
         link_tasks = []
         for link in links:
@@ -391,12 +422,15 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             if not self._is_in_scope(link):
                 continue
             from urllib.parse import parse_qs, urlparse
+
             parsed = urlparse(link)
             params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
             if not params:
                 continue
             self._coverage["params_discovered"] += len(params)
-            link_tasks.append(self._run_attack_modules(context, target, "GET", link, params, fingerprint, route_score=route_score))
+            link_tasks.append(
+                self._run_attack_modules(context, target, "GET", link, params, fingerprint, route_score=route_score)
+            )
 
         api_tasks = []
         for api in apis:
@@ -485,47 +519,58 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
     async def _discover_all(self, context, page, base_url, current):
         """Forward to DiscoveryEngine. Kept for test compatibility."""
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self).discover_all(context, page, base_url, current)
 
     # Discovery probe forwards (for test monkey-patching)
     async def _extract_forms(self, page):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._extract_forms(page)
 
     async def _extract_links(self, page, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._extract_links(page, base_url)
 
     async def _discover_apis(self, page, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._discover_apis(page, base_url)
 
     async def _extract_apis_from_js(self, page, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._extract_apis_from_js(page, base_url)
 
     async def _crawl_spa_routes(self, context, page, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._crawl_spa_routes(context, page, base_url)
 
     async def _parse_swagger_spec(self, context, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._parse_swagger_spec(context, base_url)
 
     async def _parse_postman_collection(self, context, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._parse_postman_collection(context, base_url)
 
     async def _discover_graphql_endpoints(self, context, base_url):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._discover_graphql_endpoints(context, base_url)
 
     async def _brute_force_common_params(self, context, base_url, max_endpoints=3):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._brute_force_common_params(context, base_url, max_endpoints)
 
     async def _brute_force_http_methods(self, context, base_url, max_endpoints=3):
         from titan.core.discovery import DiscoveryEngine
+
         return await DiscoveryEngine(self)._brute_force_http_methods(context, base_url, max_endpoints)
 
     # ==================================================================
@@ -547,6 +592,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
 
         try:
             from playwright.async_api import async_playwright
+
             p = await async_playwright().start()
         except Exception as exc:
             result.errors.append(f"playwright start failed: {exc}")
@@ -566,6 +612,7 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
 
         class _RequestShim:
             request = _api_context
+
         context = _RequestShim()
 
         auth_cfg = self.config.get("auth", {})
@@ -576,9 +623,11 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
                     for name, value in cookies.items():
                         # add_cookies is part of the Playwright API; mypy
                         # resolves p.request to a stub without it.
-                        await _api_context.add_cookies([  # type: ignore[attr-defined]
-                            {"name": str(name), "value": str(value), "url": target}
-                        ])
+                        await _api_context.add_cookies(  # type: ignore[attr-defined]
+                            [
+                                {"name": str(name), "value": str(value), "url": target}
+                            ]
+                        )
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")
                 pass
@@ -592,8 +641,9 @@ class TitanEngine(TransportMixin, BrowserInteractionMixin, BrowserLifecycleMixin
             import re as _re
             from urllib.parse import urljoin
             from urllib.parse import urlparse as _up
+
             _host = (_up(target).hostname or "").lower()
-            for _m in _re.finditer(r'''(?:href|src|action)=["']([^"'#]+)''', body):
+            for _m in _re.finditer(r"""(?:href|src|action)=["']([^"'#]+)""", body):
                 _u = urljoin(target, _m.group(1))
                 if _u.startswith("http") and (_up(_u).hostname or "").lower() == _host:
                     self._discovered_urls.add(_u)
