@@ -53,8 +53,15 @@ BLOCKS = [
         "id": "cve-sweep-recipes",
         "canonical": _path("deep-audit", "references", "probe-techniques.md"),
         "start_anchor": "## 7. Framework CVE sweep (hunt the class, not the repo)",
-        "end_anchor": None,
+        "end_anchor": "## 8. Evidence integrity (harness, corpus and negatives)",
         "copy": _path("deep-attacker", "references", "cve-sweep.md"),
+    },
+    {
+        "id": "evidence-integrity",
+        "canonical": _path("deep-audit", "references", "probe-techniques.md"),
+        "start_anchor": "## 8. Evidence integrity (harness, corpus and negatives)",
+        "end_anchor": None,
+        "copy": _path("deep-attacker", "references", "evidence-integrity.md"),
     },
     {
         "id": "cross-assessment-diff-template",
