@@ -6,10 +6,10 @@ is compiled from requirements.in — so a dependency added only to pyproject
 would never reach the lockfile the smoke job installs from.
 """
 import re
-import tomllib
 from pathlib import Path
 
 import pytest
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
