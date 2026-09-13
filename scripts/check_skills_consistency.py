@@ -45,6 +45,40 @@ SKILLS = os.path.join(ROOT, ".agents", "skills")
 # references/ layer exists to prevent). Fail above the ceiling.
 SKILL_MD_LINE_CEILING = 400
 
+# Discovery-layer guard: every skill that has a references/ directory must
+# keep an INDEX.md listing every reference file. Without it, a growing
+# references/ layer becomes unusable — sessions can't find the right file
+# without loading all of them, which defeats the on-demand design.
+
+
+def check_references_index():
+    """Fail if references/ files exist without an INDEX.md entry (or vice versa)."""
+    problems = []
+    if not os.path.isdir(SKILLS):
+        return problems
+    for skill in sorted(os.listdir(SKILLS)):
+        refs_dir = os.path.join(SKILLS, skill, "references")
+        if not os.path.isdir(refs_dir):
+            continue
+        index_path = os.path.join(refs_dir, "INDEX.md")
+        if not os.path.isfile(index_path):
+            problems.append(
+                f"{skill}/references/: files exist but no INDEX.md — "
+                "add the discovery-layer index"
+            )
+            continue
+        with open(index_path, encoding="utf-8", errors="replace") as f:
+            index_text = f.read()
+        for fname in sorted(os.listdir(refs_dir)):
+            if not fname.endswith(".md") or fname == "INDEX.md":
+                continue
+            if fname not in index_text:
+                problems.append(
+                    f"{skill}/references/{fname}: not listed in INDEX.md "
+                    "— the discovery layer is stale"
+                )
+    return problems
+
 
 def check_skill_md_sizes():
     """Fail if any SKILL.md exceeds the context-budget ceiling."""
@@ -210,7 +244,7 @@ def main():
             print("  - " + p)
         return 1
 
-    size_problems = check_skill_md_sizes()
+    size_problems = check_skill_md_sizes() + check_references_index()
     if size_problems:
         print(f"[check_skills_consistency] {len(size_problems)} context-budget violation(s):")
         for p in size_problems:
