@@ -83,6 +83,7 @@ FINDINGS_ALLOWLIST = {
     "sites.json",  # roster of audited targets
     "TRENDS.json",  # cross-target trend data
     "GAP-ANALYSIS.md",  # cross-target gap analysis
+    "MARKET-SCAN.md",  # cross-target market intelligence (agentic pentest platforms)
     "AUTHORIZED-PRACTICE.json",  # global practice ledger
     "scan_",  # global scan records (prefix)
 }
@@ -92,7 +93,7 @@ JUNK_DIRS = {"C:", "~"}
 
 # Container dirs at findings root that hold per-program / sub-target artifacts
 # rather than a single site slug (their children are still checked as subdirs).
-CONTAINER_DIRS = {"bounties"}
+CONTAINER_DIRS = {"bounties", "own-sites"}
 
 
 def slug_from_consent(filename):
