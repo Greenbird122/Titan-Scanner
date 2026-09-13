@@ -39,6 +39,31 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS = os.path.join(ROOT, ".agents", "skills")
 
+# Context-budget guard: SKILL.md files are loaded into context on EVERY
+# engagement start; references/ files load on demand. A SKILL.md that grows
+# unbounded silently burns context budget forever (the exact failure the
+# references/ layer exists to prevent). Fail above the ceiling.
+SKILL_MD_LINE_CEILING = 400
+
+
+def check_skill_md_sizes():
+    """Fail if any SKILL.md exceeds the context-budget ceiling."""
+    problems = []
+    if not os.path.isdir(SKILLS):
+        return problems
+    for skill in sorted(os.listdir(SKILLS)):
+        skill_md = os.path.join(SKILLS, skill, "SKILL.md")
+        if not os.path.isfile(skill_md):
+            continue
+        with open(skill_md, encoding="utf-8") as f:
+            n = sum(1 for _ in f)
+        if n > SKILL_MD_LINE_CEILING:
+            problems.append(
+                f"{skill}/SKILL.md: {n} lines > ceiling {SKILL_MD_LINE_CEILING} "
+                "— move detail into references/ (load-on-demand layer)"
+            )
+    return problems
+
 
 def _path(*parts):
     return os.path.join(SKILLS, *parts)
@@ -184,7 +209,18 @@ def main():
         for p in problems:
             print("  - " + p)
         return 1
-    print(f"[check_skills_consistency] clean: {ok_count} canonical blocks match their embedded copies.")
+
+    size_problems = check_skill_md_sizes()
+    if size_problems:
+        print(f"[check_skills_consistency] {len(size_problems)} context-budget violation(s):")
+        for p in size_problems:
+            print("  - " + p)
+        return 1
+
+    print(
+        f"[check_skills_consistency] clean: {ok_count}/{len(BLOCKS)} blocks match, "
+        f"all SKILL.md files within the {SKILL_MD_LINE_CEILING}-line context budget."
+    )
     return 0
 
 
