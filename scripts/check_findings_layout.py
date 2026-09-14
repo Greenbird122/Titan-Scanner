@@ -58,8 +58,6 @@ ROOT_ALLOWLIST = {
     "deep_verify.py",
     "discover_endpoints.py",
     "extract_bundle.py",
-    "extract_keys.py",
-    "find_secret.py",
     "firebase_probe.py",
     "firebase_rtdb_probe.py",
     "firebase_surface.py",
