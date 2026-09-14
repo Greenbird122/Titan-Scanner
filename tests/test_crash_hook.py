@@ -34,7 +34,6 @@ class TestInstallCrashHook:
         suppress that by temporarily replacing it with a no-op, then
         verify the structured sink received a crash entry.
         """
-        import io
 
         original_hook = sys.excepthook
         sink_entries_before = len(_SINK._entries)
