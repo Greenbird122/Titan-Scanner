@@ -296,6 +296,19 @@ class PolymorphicEngine:
             return payload
         return payload
 
+    def _random_changed(self, payload: str, transforms: list) -> str:
+        """Pick a random transform that actually modifies the payload.
+
+        No-op transforms (pattern absent from the payload) are excluded, so
+        the polymorphic engine never silently returns its input unchanged
+        when an applicable transform exists. Returns the payload as-is only
+        when nothing applies.
+        """
+        applicable = [t for t in transforms if t(payload) != payload]
+        if not applicable:
+            return payload
+        return random.choice(applicable)(payload)
+
     def _xss_transform(self, payload: str) -> str:
         """XSS-specific transformations."""
         transforms = [
@@ -306,7 +319,7 @@ class PolymorphicEngine:
             lambda p: p.replace('"', "&quot;"),
             lambda p: p.replace("'", "&#x27;"),
         ]
-        return random.choice(transforms)(payload)
+        return self._random_changed(payload, transforms)
 
     def _sqli_transform(self, payload: str) -> str:
         """SQLi-specific transformations."""
@@ -317,7 +330,7 @@ class PolymorphicEngine:
             lambda p: p.replace("'", "''"),
             lambda p: p.replace("--", "#"),
         ]
-        return random.choice(transforms)(payload)
+        return self._random_changed(payload, transforms)
 
     def _ssrf_transform(self, payload: str) -> str:
         """SSRF-specific transformations."""
@@ -328,7 +341,7 @@ class PolymorphicEngine:
             lambda p: p.replace("169.254.169.254", "169.254.169.254.nip.io"),
             lambda p: p.replace("@", "%40"),
         ]
-        return random.choice(transforms)(payload)
+        return self._random_changed(payload, transforms)
 
 
 # ---------------------------------------------------------------------------
