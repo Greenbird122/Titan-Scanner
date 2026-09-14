@@ -188,7 +188,6 @@ exclude = [
     "titan/modules/postexploit/exploitgen.py",
     "titan/modules/postexploit/killchain.py",
     "titan/modules/ratelimit/detector.py",
-    "titan/modules/sqli/detector.py",
     "titan/modules/subdomain_takeover/detector.py",
     "titan/modules/supplychain/detector.py",
     "titan/modules/tls/detector.py",
@@ -404,10 +403,6 @@ follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.modules.ratelimit.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.modules.sqli.detector"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
