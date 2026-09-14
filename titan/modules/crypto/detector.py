@@ -254,7 +254,7 @@ class CryptoDetector:
         if any(k in login_hint for k in ["login", "auth", "signin", "token", "jwt", "session"]):
             for creds in (
                 {"username": "admin", "password": "admin"},
-                {"email": "admin@test.com", "password": "admin123"},
+                {"email": "admin@test.com", "password": "admin123"},  # pragma: allowlist secret
             ):
                 try:
                     login_resp = await context.request.post(
