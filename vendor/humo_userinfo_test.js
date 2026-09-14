@@ -53,7 +53,7 @@ async function main() {
   console.log('\n=== /userinfo (fake bearer) ===');
   const t2 = await evalAsync(`
     const r = await fetch('https://login.dpgmedia.be/userinfo', {
-      headers: { 'Authorization': 'Bearer eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.fake' }
+      headers: { 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.fake' } // pragma: allowlist secret
     });
     return r.status + ' | ' + (await r.text()).slice(0, 300);
   `);
