@@ -115,7 +115,6 @@ async def test_http_transport_blocks_denied_urls():
 
 
 async def test_http_transport_allows_pinned_and_none_policy():
-    from titan.transport.base import AttackRequest
     from titan.transport.http_transport import HttpTransport
 
     # No policy installed -> transport behaves exactly as before.

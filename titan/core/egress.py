@@ -27,8 +27,12 @@ from titan.core.logger import get_logger
 logger = get_logger("egress")
 
 
-class EgressDenied(PermissionError):
+class EgressDeniedError(PermissionError):
     """Raised when a request URL is outside the scan's egress policy."""
+
+
+# Short alias used at call sites.
+EgressDenied = EgressDeniedError
 
 
 def _host_ips(host: str) -> set[str]:
