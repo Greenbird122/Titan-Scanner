@@ -104,8 +104,9 @@ async def test_reattach_webshell_rep(tmp_path: Path):
         )
         assert len(summary["reattached"]) == 1 and not summary["failed"]
         assert summary["reattached"][0]["session_id"] == "s-1"
-        # the ?rep= payload carried the new listener + same sid
-        assert captured["rep"] == {"listener": "http://127.0.0.1:19999", "sid": "s-1"}
+        # the ?rep= payload carried the new listener + same sid (+ empty nonce:
+        # no local listener, so there is no fresh secret to hand over)
+        assert captured["rep"] == {"listener": "http://127.0.0.1:19999", "sid": "s-1", "nonce": ""}
         # session meta: listener_url updated + event recorded
         meta = store.read_meta()
         assert meta["listener_url"] == "http://127.0.0.1:19999"
@@ -274,7 +275,7 @@ async def test_reattach_verify_ping_unconfirmed(tmp_path: Path):
     """verify=True with a live listener but no agent: the ping times out and
     the entry is marked verified=False — still reattached, not fatal."""
     rce, runner, _ = await _rce_endpoint()
-    listener = ExploitListener(host="127.0.0.1", port=0)
+    listener = ExploitListener(host="127.0.0.1", port=0, nonce="")
     await listener.start()
     try:
         _store(tmp_path, "s-3", "http-poll", extra={"finding": {"url": f"{rce}/cmd", "method": "GET", "param": "host"}})

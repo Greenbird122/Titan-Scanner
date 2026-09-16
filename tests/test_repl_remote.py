@@ -30,13 +30,13 @@ def _free_port() -> int:
     return port
 
 
-async def _fake_agent(base: str, sid: str):
+async def _fake_agent(base: str, sid: str, nonce: str = ""):
     """Poll -> echo command -> report, mirroring the real bash agent's loop."""
     for _ in range(60):
         resp = None
         async with ClientSession() as c:
             try:
-                async with c.post(f"{base}/poll", json={"sid": sid}) as r:
+                async with c.post(f"{base}/poll", json={"sid": sid, "nonce": nonce}) as r:
                     resp = await r.json()
             except Exception:
                 await asyncio.sleep(0.1)
@@ -50,7 +50,7 @@ async def _fake_agent(base: str, sid: str):
         async with ClientSession() as c:
             await c.post(
                 f"{base}/report",
-                json={"sid": sid, "job_id": job["job_id"], "exit_code": 0, "output": out},
+                json={"sid": sid, "job_id": job["job_id"], "exit_code": 0, "output": out, "nonce": nonce},
             )
 
 
@@ -78,15 +78,15 @@ async def test_job_endpoints_roundtrip():
     try:
         base = listener.bound_url
         async with ClientSession() as c:
-            # submit -> 201 + job_id
-            async with c.post(f"{base}/job", json={"sid": "s-x", "command": "id"}) as r:
+            # submit -> 201 + job_id (operator authenticates with the nonce)
+            async with c.post(f"{base}/job", json={"sid": "s-x", "command": "id", "nonce": listener.nonce}) as r:
                 assert r.status == 201
                 job_id = (await r.json())["job_id"]
             # pending until claimed by the agent
             async with c.get(f"{base}/job/{job_id}") as r:
                 assert (await r.json())["status"] == "pending"
             # validation: missing command / unknown job
-            async with c.post(f"{base}/job", json={"sid": "s-x", "command": ""}) as r:
+            async with c.post(f"{base}/job", json={"sid": "s-x", "command": "", "nonce": listener.nonce}) as r:
                 assert r.status == 400
             async with c.get(f"{base}/job/nope") as r:
                 assert r.status == 404
@@ -96,7 +96,7 @@ async def test_job_endpoints_roundtrip():
             out = base64.b64encode(b"uid=0(root)").decode("ascii")
             async with c.post(
                 f"{base}/report",
-                json={"sid": "s-x", "job_id": job_id, "exit_code": 0, "output": out},
+                json={"sid": "s-x", "job_id": job_id, "exit_code": 0, "output": out, "nonce": listener.nonce},
             ) as r:
                 assert (await r.json())["ok"] is True
             # result readable, output decoded back to text
@@ -119,9 +119,9 @@ async def test_remote_queue_roundtrip():
     await listener.start()
     agent = None
     try:
-        rq = RemoteQueue(listener.bound_url)
+        rq = RemoteQueue(listener.bound_url, nonce=listener.nonce)
         job_id = await rq.submit("s-x", "echo hi")
-        agent = asyncio.create_task(_fake_agent(listener.bound_url, "s-x"))
+        agent = asyncio.create_task(_fake_agent(listener.bound_url, "s-x", nonce=listener.nonce))
         result = await asyncio.wait_for(rq.wait_result(job_id, timeout=15), timeout=20)
         assert result["output"] == "executed:echo hi"
         assert result["exit_code"] == 0
@@ -136,7 +136,7 @@ async def test_remote_queue_timeout_returns_none():
     listener = ExploitListener(host="127.0.0.1", port=0, queue=q)
     await listener.start()
     try:
-        rq = RemoteQueue(listener.bound_url)
+        rq = RemoteQueue(listener.bound_url, nonce=listener.nonce)
         job_id = await rq.submit("s-x", "sleep 60")  # nobody reports it
         t0 = time.monotonic()
         result = await rq.wait_result(job_id, timeout=0.7)
@@ -160,10 +160,20 @@ async def test_cmd_session_remote_join(tmp_path: Path, capsys):
     orig_input = builtins.input
     lines = iter(["id", "exit"])
     builtins.input = lambda _p: next(lines)
-    agent = asyncio.create_task(_fake_agent(listener.bound_url, "s-rem"))
+    agent = asyncio.create_task(_fake_agent(listener.bound_url, "s-rem", nonce=listener.nonce))
     try:
         code = await asyncio.wait_for(
-            cmd_session_async(["s-rem", "--store", str(tmp_path / "findings"), "--listener-url", listener.bound_url]),
+            cmd_session_async(
+                [
+                    "s-rem",
+                    "--store",
+                    str(tmp_path / "findings"),
+                    "--listener-url",
+                    listener.bound_url,
+                    "--nonce",
+                    listener.nonce,
+                ]
+            ),
             timeout=30,
         )
         assert code == 0
