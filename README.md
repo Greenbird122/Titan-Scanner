@@ -125,9 +125,10 @@ See [REPRO.md](REPRO.md) for the full scan output.
 Titan is a consent-gated testing tool: active scanning and exploitation require a
 signed consent file for the target. See [SECURITY.md](SECURITY.md) for the full
 security policy — vulnerability disclosure, the tool's threat model (consent &
-authorization, credential handling, network safety, data handling), and scope.
-API keys and tokens are supplied via environment variables only (see
-`.env.example`); nothing sensitive is committed.
+authorization, credential handling, network safety, data handling, payload at-rest
+protection), and scope. Exploit-artifact templates are kept base64-encoded on
+disk ([vault](titan/exploit/atrest.py)); API keys and tokens are supplied via
+environment variables only (see `.env.example`); nothing sensitive is committed.
 
 ## License
 

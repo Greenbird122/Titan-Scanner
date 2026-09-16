@@ -68,6 +68,16 @@ Titan Scanner is a security testing tool. Key security considerations:
 - No data is sent to external services without explicit configuration
 - AI escalation (optional) sends only finding summaries to configured LLM providers
 
+### Payload At-Rest Protection
+- Exploit-artifact templates (PHP webshell, bash polling agent) are stored
+  base64-encoded in `titan/exploit/vault.b64` — no plaintext payload exists on
+  disk. Content is decoded in memory only at serve time.
+- The vault module (`titan/exploit/atrest.py`) provides `get`/`set`/`encode`/
+  `decode` operations and a CLI (`python -m titan.exploit.atrest`) for
+  inspecting and updating entries.
+- Secrets and API keys are never stored in the vault or in source control;
+  they are supplied via environment variables only (see `.env.example`).
+
 ## Scope
 
 This security policy covers the Titan Scanner tool itself. Vulnerabilities found

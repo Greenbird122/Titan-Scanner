@@ -92,6 +92,13 @@ jobs:
             echo "no stale draft for ${next}"
           fi
 
+      - name: Build sdist + wheel
+        run: |
+          pip install build
+          python -m build
+          echo "artifacts:"
+          ls -lh dist/
+
       - name: Draft release
         uses: softprops/action-gh-release@v2
         with:
@@ -99,3 +106,4 @@ jobs:
           name: ${{ steps.release.outputs.next }}
           body_path: ${{ runner.temp }}/release_body.md
           draft: true
+          files: dist/*
