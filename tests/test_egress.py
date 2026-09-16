@@ -129,3 +129,53 @@ async def test_http_transport_allows_pinned_and_none_policy():
     assert not p.url_allowed("http://evil.invalid/x")
     await t.close()
     await t_none.close()
+
+
+# ---------------------------------------------------------------------------
+# Engine wiring: the scan installs the policy before any detector traffic
+# ---------------------------------------------------------------------------
+
+
+async def test_engine_installs_egress_policy(monkeypatch):
+    """_ensure_transport must build the policy from the scan target and
+    install it on the HTTP transport."""
+    from titan.core import transport_mixin as tm
+
+    installed = {}
+
+    class _FakeHttp:
+        def set_egress_policy(self, p):
+            installed["policy"] = p
+
+    class _FakeRegistry:
+        available = ["http"]
+
+        async def auto_register(self):
+            return None
+
+        def get(self, name):
+            return _FakeHttp() if name == "http" else None
+
+    async def _fake_auto(self):
+        return None
+
+    monkeypatch.setattr(tm, "TransportRegistry", _FakeRegistry, raising=False)
+
+    import titan.transport as transport_pkg
+
+    monkeypatch.setattr(transport_pkg, "TransportRegistry", _FakeRegistry, raising=False)
+
+    class _Engine(tm.TransportMixin):
+        config = {"egress": {"allow_hosts": ["cdn.target.example"]}}
+        _scan_target = "http://target.example"
+        _transport_ready = False
+        _transport_registry = None
+        _transport_http = None
+
+    eng = _Engine()
+    await eng._ensure_transport()
+    p = installed.get("policy")
+    assert p is not None
+    assert p.target_host == "target.example"
+    assert "cdn.target.example" in p.extra_allowed_hosts
+    assert eng._transport_ready is True
