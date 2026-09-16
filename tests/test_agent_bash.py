@@ -46,10 +46,15 @@ async def test_real_bash_agent_executes_and_reports(tmp_path: Path):
     await listener.start()
     job_id = await q.submit("sess-x", "printf t1t4n_agent_ok")
     try:
+        # Download exactly the way the staging command does: agent.sh now
+        # authenticates with k=<nonce> (the listener's secure default).
         async with (
             ClientSession() as client,
-            client.get(f"{listener.bound_url}/agent.sh", params={"sid": "sess-x"}) as r,
+            client.get(
+                f"{listener.bound_url}/agent.sh", params={"sid": "sess-x", "k": listener.nonce}
+            ) as r,
         ):
+            assert r.status == 200, f"agent.sh download failed: HTTP {r.status}"
             script = await r.text()
         sf = tmp_path / "agent.sh"
         sf.write_text(script, encoding="utf-8")
