@@ -514,6 +514,12 @@ class CampaignPhasesMixin:
 
                 logger.info(f"[+] Track E: listener up at {listener.bound_url}")
 
+                # The listener generates its protocol nonce when config does
+                # not set one; print it so the operator can drive sessions
+                # later with `titan session <id> --nonce ...`.
+                if listener.nonce:
+                    logger.info(f"[+] Track E: listener protocol nonce: {listener.nonce}")
+
             except Exception as exc:
                 result.errors.append(f"Track E listener failed to start: {exc}")
 
