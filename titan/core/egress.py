@@ -41,7 +41,7 @@ def _host_ips(host: str) -> set[str]:
         infos = socket.getaddrinfo(host, None)
     except OSError:
         return set()
-    return {info[4][0] for info in infos}
+    return {str(info[4][0]) for info in infos}
 
 
 _CGNAT_V4 = ipaddress.ip_network("100.64.0.0/10")  # Azure IMDS lives here
