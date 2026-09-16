@@ -51,6 +51,7 @@ order, before any push:
 ruff check .
 mypy titan/ --ignore-missing-imports
 python -m pytest tests/ -q
+python scripts/secrets_baseline.py check
 detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
 ```
 
@@ -63,11 +64,13 @@ hour. This rule exists because it was learned the hard way.
 - Run `detect-secrets-hook` **after** `git add`, not before — it checks the
   staged tree.
 - If the hook ever reports "The baseline file was updated... Please
-  `git add .secrets.baseline`", do not just re-add and push. Regenerate the
-  baseline (`detect-secrets scan $(git ls-files) > .secrets.baseline`) so
-  path keys stay forward-slashed and line numbers match what CI's Linux
-  runner sees. Cross-platform line-number drift has broken CI here before;
-  the regeneration is the permanent fix.
+  `git add .secrets.baseline`", do not just re-add and push. Regenerate with
+  `python scripts/secrets_baseline.py regenerate`, which normalises every path
+  to forward slashes and merges rather than re-snapshotting.
+- Do **not** regenerate with `detect-secrets scan > .secrets.baseline`. It writes
+  the host's native path separators, and it silently deletes every entry it does
+  not re-find — entries for secrets that are still in the tree. That is how a
+  live finding came to be missing from the baseline and turned the lint job red.
 
 ## Traps specific to your task
 

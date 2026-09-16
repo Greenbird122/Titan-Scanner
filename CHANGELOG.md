@@ -14,6 +14,7 @@ All notable changes to Titan Scanner are documented here. The format follows
 - Fresh-clone smoke-test job in CI (`scripts/smoke_setup.sh`)
 - `pip-audit` dependency audit in CI
 - `TITAN_LOG_LEVEL` environment variable for log level control
+- `scripts/secrets_baseline.py` — platform-safe `.secrets.baseline` regeneration that merges instead of re-snapshotting and refuses to drop an entry, plus a scan-free canonical check gated in CI
 
 ### Changed
 - Silent exception swallows eliminated repo-wide; ruff `S110`/`S112` now enforced instead of ignored
@@ -26,6 +27,7 @@ All notable changes to Titan Scanner are documented here. The format follows
 ### Fixed
 - GraphQL batch engine no longer flags servers that reject batched queries
 - Business-logic detector baselines log failures instead of silently continuing
+- Secrets gate no longer fails on a baseline regenerated with `detect-secrets scan`, which silently deleted entries for secrets still present in the tree and, by failing mid-job, prevented `mypy` and `pip-audit` from running at all
 
 ### Removed
 - Dead `titan/modules/bizlogic/` package (4,400 LOC): never wired into the module matrix, incompatible with the current `Finding` model, and duplicated by the live `logic`, `idor`, `auth`, and `ratelimit` modules. SaaS-specific ideas (credit manipulation, trial abuse, feature gating) are backlog items for the live `logic` module with proper baseline-diff oracles.

@@ -44,10 +44,20 @@ jobs:
       # 282-file reformat would be pure churn. Re-enable once the formatting
       # campaign lands (specs/engine-800-feasibility.md tracks it).
 
+      - name: Secrets baseline is canonical
+        # Scan-free guard against a baseline regenerated on a non-POSIX host:
+        # detect-secrets records paths with the generating host's separator, so
+        # a Windows regeneration rewrites the file and the Linux runner churns
+        # or diverges. `check --deep` additionally verifies every finding in the
+        # tree is still catalogued, which the hook below already enforces.
+        run: python scripts/secrets_baseline.py check
+
       - name: Detect-secrets scan
         # Fails the build if a secret-like literal is committed beyond the
-        # audited baseline (.secrets.baseline). Regenerate the baseline with
-        # `detect-secrets scan > .secrets.baseline` after an intentional change.
+        # audited baseline (.secrets.baseline). To change the baseline use
+        # `python scripts/secrets_baseline.py regenerate`: it merges instead of
+        # re-snapshotting and refuses to drop an entry that still exists.
+        # `detect-secrets scan > .secrets.baseline` silently deletes those.
         run: detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
 
       - name: Mypy typecheck

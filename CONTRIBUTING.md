@@ -46,6 +46,15 @@ All four must be green. If `detect-secrets-hook` flags a line and it is a
 false positive (test fixture, honeypot bait), mark it inline with
 `# pragma: allowlist secret` and refresh the baseline in the same commit.
 
+Do **not** refresh it with `detect-secrets scan > .secrets.baseline`. That mode
+takes a fresh snapshot, so every entry it does not re-find is silently deleted,
+and it records paths with the current host's separator. Use the supported path:
+
+```bash
+python scripts/secrets_baseline.py check       # scan-free canonical check
+python scripts/secrets_baseline.py regenerate  # merges; refuses to drop entries
+```
+
 ## Commit conventions
 
 - One logical change per commit, with its tests in the same commit.
