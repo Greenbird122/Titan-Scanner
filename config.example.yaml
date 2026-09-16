@@ -217,7 +217,20 @@ exploit:
     host: "127.0.0.1"
     port: 8770
     start: false
+    # Protocol nonce: the listener is an RCE endpoint and authenticates every
+    # caller. Unset -> a secret is generated per run and printed in the scan
+    # log. Set it to pin a known value for later `titan session <id> --nonce`.
+    # Empty string ("") disables auth -- loopback-only testing ONLY.
+    nonce: ""
 dawn:
   memory: false
   voice: false
   gov: false
+# Egress pinning: every request the scanner sends is checked against the
+# consented target's resolved IP space. Private/link-local ranges (incl. all
+# cloud IMDS endpoints) are denied even if a payload smuggles them through a
+# detector. Extra operator-owned hosts can be allow-listed here.
+egress:
+  # allow_private: false   # true ONLY for internal-network targets (IMDS and
+  #                        # loopback stay blocked regardless)
+  allow_hosts: []         # e.g. ["cdn.target.example", "auth.target.example"]
