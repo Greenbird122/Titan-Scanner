@@ -94,3 +94,38 @@ def test_from_config_defaults():
     p2 = from_config("http://example.com", {"allow_private": True, "allow_hosts": ["a.internal"]})
     assert p2.allow_private is True
     assert p2.extra_allowed_hosts == {"a.internal"}
+
+
+# ---------------------------------------------------------------------------
+# Transport enforcement (the actual egress choke point)
+# ---------------------------------------------------------------------------
+
+
+async def test_http_transport_blocks_denied_urls():
+    from titan.transport.base import AttackRequest
+    from titan.transport.http_transport import HttpTransport
+
+    t = HttpTransport()
+    t.set_egress_policy(EgressPolicy("http://example.com", allowed_ips={"93.184.216.34"}))
+    resp = await t.send(AttackRequest(url="http://169.254.169.254/latest/meta-data/"))
+    assert resp.status == 0 and "egress denied" in (resp.error or "")
+    resp2 = await t.send(AttackRequest(url="http://192.168.0.1/"))
+    assert resp2.status == 0 and "egress denied" in (resp2.error or "")
+    await t.close()
+
+
+async def test_http_transport_allows_pinned_and_none_policy():
+    from titan.transport.base import AttackRequest
+    from titan.transport.http_transport import HttpTransport
+
+    # No policy installed -> transport behaves exactly as before.
+    t_none = HttpTransport()
+    assert t_none._egress is None
+    # A pinned in-scope URL passes the check layer (network itself untested).
+    p = EgressPolicy("http://example.com", allowed_ips={"93.184.216.34"})
+    t = HttpTransport()
+    t.set_egress_policy(p)
+    assert p.url_allowed("http://example.com/x")
+    assert not p.url_allowed("http://evil.invalid/x")
+    await t.close()
+    await t_none.close()

@@ -65,6 +65,19 @@ class HttpTransport(Transport):
         )
         self._identity = TransportIdentity(protocol="http")
         self._session: Any = None  # Lazy-init on first send()
+        # Egress policy (optional until the engine installs one per scan).
+        # When set, every send() is checked BEFORE any bytes hit the wire:
+        # DNS rebinding / SSRF payloads that point detectors at internal or
+        # IMDS addresses are denied at the transport layer.
+        self._egress: Any = None
+
+    def set_egress_policy(self, policy: Any) -> None:
+        """Install the scan's egress policy (titan.core.egress.EgressPolicy).
+
+        Pass None to remove the check (default; keeps the transport usable
+        standalone and in tests that construct it directly).
+        """
+        self._egress = policy
 
     @property
     def identity(self) -> TransportIdentity:
@@ -94,6 +107,23 @@ class HttpTransport(Transport):
         import aiohttp
 
         start = time.time()
+        # Egress check first: a denied URL returns an error response instead
+        # of a network attempt, so detectors see a normal failure and the
+        # packet never leaves.
+        if self._egress is not None:
+            try:
+                self._egress.check(request.url)
+            except Exception as exc:
+                logger.warning("EGRESS DENIED %s: %s", request.url, exc)
+                return AttackResponse(
+                    status=0,
+                    headers={},
+                    body=b"",
+                    elapsed=time.time() - start,
+                    url=request.url,
+                    protocol="http",
+                    error=f"egress denied: {exc}",
+                )
         headers = dict(request.headers)
         if self.user_agent and "User-Agent" not in headers:
             headers["User-Agent"] = self.user_agent
