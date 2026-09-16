@@ -18,7 +18,7 @@ from titan.exploit.consent import ConsentError, create_consent, write_consent
 from titan.exploit.listener import ExploitListener
 from titan.exploit.reattach import REATTACH_TOKEN, list_target_sessions, reattach_target
 from titan.exploit.session import SessionStore
-from titan_exploit_cli import cmd_reattach_async
+from titan.exploit_cli.reattach import cmd_reattach_async
 
 # ---------------------------------------------------------------------------
 # Helpers

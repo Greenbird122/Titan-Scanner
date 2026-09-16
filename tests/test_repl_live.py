@@ -16,7 +16,7 @@ from aiohttp import ClientSession
 from titan.core.logger import get_logger
 from titan.exploit.listener import ExploitListener, JobQueue
 from titan.exploit.session import SessionStore
-from titan_exploit_cli import _repl_listener, cmd_session_async
+from titan.exploit_cli.session import _repl_listener, cmd_session_async
 
 logger = get_logger("test_repl_live")
 

@@ -19,7 +19,7 @@ from aiohttp import ClientSession
 
 from titan.exploit.listener import ExploitListener, JobQueue, RemoteQueue
 from titan.exploit.session import SessionStore
-from titan_exploit_cli import cmd_session_async
+from titan.exploit_cli.session import cmd_session_async
 
 
 def _free_port() -> int:
