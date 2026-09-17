@@ -77,33 +77,33 @@ class TestNormalizeVolatile:
     Hash or diff bodies only after scrubbing volatile values."""
 
     def test_identical_bodies_with_different_nonces_compare_equal(self):
-        baseline = '{"data":{"route":"ok"},"sentry-trace":"aa11bb22cc33dd44ee55ff"}'
-        injected = '{"data":{"route":"ok"},"sentry-trace":"9988ff00ee11dd22cc33bb44"}'
+        baseline = '{"data":{"route":"ok"},"sentry-trace":"aaaaaaaaaaaaaaaaaaaaaa"}'
+        injected = '{"data":{"route":"ok"},"sentry-trace":"11111111111111111111"}'
         # Raw comparison manufactures the false "differs" verdict...
         assert "content_hash_changed" in BaselineAnalyzer.diff_responses(baseline, injected, "")
         # ...normalized comparison does not.
         assert BaselineAnalyzer.diff_responses(baseline, injected, "", normalize=True) == []
 
     def test_trace_context_variants_scrubbed(self):
-        a = "<html data-traceparent=\"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\">x</html>"
-        b = "<html data-traceparent=\"00-11111111111111111111111111111111-2222222222222222-01\">x</html>"
+        a = "<html data-traceparent=\"00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1111111111111111-01\">x</html>"
+        b = "<html data-traceparent=\"00-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2222222222222222-01\">x</html>"
         assert normalize_volatile(a) == normalize_volatile(b)
 
     def test_echoed_request_id_scrubbed(self):
-        a = '{"request-id": "8f3c9d2a1b", "status": "ok"}'
-        b = '{"request-id": "00aa11bb22", "status": "ok"}'
+        a = '{"request-id": "aaaaaaaaaa", "status": "ok"}'
+        b = '{"request-id": "1111111111", "status": "ok"}'
         assert BaselineAnalyzer.diff_responses(a, b, "", normalize=True) == []
 
     def test_reflection_survives_normalization(self):
         """Scrubbing must never eat a reflected payload or error signature."""
         baseline = "welcome"
-        injected = "welcome UNION_SELECT_MARKER_42 and sentry-trace=aa11bb22cc33dd44ee55"
+        injected = "welcome UNION_SELECT_MARKER_42 and sentry-trace=aaaaaaaaaaaaaaaaaaaa"
         diffs = BaselineAnalyzer.diff_responses(baseline, injected, "UNION_SELECT_MARKER_42", normalize=True)
         assert "payload_reflected" in diffs
 
     def test_error_signature_survives_normalization(self):
         baseline = "ok"
-        injected = "sentry-trace=aa11bb22cc33dd44ee55 -- you have an error in your SQL syntax"
+        injected = "sentry-trace=aaaaaaaaaaaaaaaaaaaa -- you have an error in your SQL syntax"
         diffs = BaselineAnalyzer.diff_responses(baseline, injected, "p", normalize=True)
         assert any(d.startswith("error:") for d in diffs)
 
@@ -118,7 +118,7 @@ class TestNormalizeVolatile:
         assert BaselineAnalyzer.diff_responses(a, b, "", normalize=True) == []
 
     def test_keys_preserved_for_debuggability(self):
-        out = normalize_volatile('sentry-trace=aa11bb22cc33dd44ee55')
+        out = normalize_volatile("sentry-trace=aaaaaaaaaaaaaaaaaaaa")
         assert "sentry-trace=<volatile>" in out
 
     def test_empty_body_safe(self):
