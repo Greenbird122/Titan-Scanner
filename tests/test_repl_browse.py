@@ -241,7 +241,7 @@ def test_browse_commands_exposed():
 def test_find_browse_parses_ordering():
     """`--store` before or after the browse command must resolve to the same
     (command, args); a flag VALUE is never mistaken for a command."""
-    import titan_exploit_cli as cli
+    import titan.exploit_cli.session as cli
 
     # session <id> rows 5
     assert cli._find_browse(["abc123", "rows", "5"]) == ("rows", ["5"])
@@ -262,7 +262,7 @@ def test_find_browse_parses_ordering():
 
 def test_find_browse_export_preserves_flag_and_value():
     """`export --out <path>` must pass BOTH the flag and its value through."""
-    import titan_exploit_cli as cli
+    import titan.exploit_cli.session as cli
 
     assert cli._find_browse(["abc123", "export", "--out", "/tmp/x.zip"]) == (
         "export",

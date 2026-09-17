@@ -345,7 +345,7 @@ async def test_cli_one_shot_pivot(tmp_path: Path, lab_pair):
     """`session <id> pivot <url>` one-shot (no REPL) must resolve the session
     dir correctly and relay through the recorded sink. Regression for the
     session_id bug (parent.name vs session dir name)."""
-    import titan_exploit_cli as cli
+    import titan.exploit_cli.session as cli
 
     sink_url, inner_url, _, _ = lab_pair
     key = tmp_path / "k.pem"
