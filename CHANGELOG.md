@@ -7,6 +7,8 @@ All notable changes to Titan Scanner are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Verdict classification in `titan.verify` (`Verdict`, `classify`, `VerdictLedger`) — validation errors and server faults are UNVERDICTED non-answers that never count as positives or negatives; coverage math separates verdicted from re-probe work and includes registered-but-never-probed operations in the denominator
+- `normalize_volatile` and opt-in `normalize=True` for `BaselineAnalyzer.diff_responses` — scrubs trace contexts, request IDs, CSRF tokens, nonces, sessions, and timestamps before hash/length comparison so per-request nonces cannot manufacture a false "route differs" verdict; reflection and error-signature checks still run on original bodies
 - GraphQL scanner triggers on technology fingerprint, not just URL path — catches GraphQL at nonstandard routes (`/gql`, `/query`, renamed endpoints)
 - GraphQL depth-abuse and mutation-abuse engines, ported from the standalone detector (now removed in favour of the merged scanner)
 - Batch/alias engine flags only servers that actually execute JSON-array batches

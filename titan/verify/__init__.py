@@ -14,7 +14,93 @@ from titan.verify.verdicts import Verdict, VerdictLedger, classify
 
 logger = get_logger("__init__")
 
-__all__ = ["BaselineAnalyzer", "BlindDetector", "ConfirmationOracle", "OOBDetector", "Verdict", "VerdictLedger", "classify"]
+__all__ = [
+    "BaselineAnalyzer",
+    "BlindDetector",
+    "ConfirmationOracle",
+    "OOBDetector",
+    "Verdict",
+    "VerdictLedger",
+    "classify",
+    "normalize_volatile",
+]
+
+
+# ---------------------------------------------------------------------------
+# Volatile-content normalization
+# ---------------------------------------------------------------------------
+
+# Scrubbed before body comparison. Folded from the 2026-09-12 Parool
+# engagement: a raw body diff "confirmed" a route difference that was
+# actually per-request sentry-trace/traceparent/baggage nonces plus the
+# echoed request path. Hash or diff bodies only after removing values that
+# change on every request by design.
+_VOLATILE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "trace_context",
+        re.compile(
+            r"\b(sentry-trace|traceparent|tracestate|baggage)\b['\"\s:=]+['\"]?[0-9a-zA-Z-]{16,}['\"]?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "request_id",
+        re.compile(
+            r"\b(request|trace|correlation|transaction)[-_]?(id|key)\b['\"\s:=]+['\"]?[0-9a-zA-Z-]{8,}['\"]?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "csrf",
+        re.compile(
+            r"\b(csrf[_-]?token|authenticity_token|x-csrf-token)\b['\"\s:=]+['\"]?[0-9a-zA-Z+/=]{16,}['\"]?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "nonce",
+        re.compile(
+            r"\bnonce\b['\"\s:=]+['\"]?[0-9a-zA-Z+/=_-]{16,}['\"]?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "session",
+        re.compile(
+            r"\bsession(_id)?\b['\"\s:=]+['\"]?[0-9a-zA-Z]{20,}['\"]?",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "iso_timestamp",
+        re.compile(r"\b20\d{2}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\b"),
+    ),
+    (
+        "epoch_seconds",
+        re.compile(r"\b1[67]\d{8,10}\b"),
+    ),
+)
+
+
+def normalize_volatile(body: str) -> str:
+    """Remove per-request volatile values from a response body.
+
+    Replaces trace contexts, request/transaction IDs, CSRF tokens, CSP
+    nonces, session identifiers, and timestamps with a stable marker so
+    two responses that differ ONLY by such values compare equal. Keys are
+    preserved (``sentry-trace=<volatile>``) for debuggability; pure data
+    like timestamps becomes ``<volatile>``.
+
+    This is a heuristic layer for structural comparison — never apply it
+    to evidence you intend to quote, only to bodies you intend to diff.
+    """
+    out = body or ""
+    for _name, pattern in _VOLATILE_PATTERNS:
+        out = pattern.sub(
+            lambda m: (f"{m.group(1)}=<volatile>" if m.lastindex else "<volatile>"),
+            out,
+        )
+    return out
 
 
 class ConfirmationOracle:
@@ -97,18 +183,35 @@ class ConfirmationOracle:
 
 class BaselineAnalyzer:
     @staticmethod
-    def diff_responses(baseline: str, injected: str, payload: str) -> list[str]:
+    def diff_responses(
+        baseline: str,
+        injected: str,
+        payload: str,
+        *,
+        normalize: bool = False,
+    ) -> list[str]:
         diffs = []
         if not baseline:
             return diffs
 
-        b_hash = hashlib.sha256(baseline.encode()).hexdigest()
-        i_hash = hashlib.sha256(injected.encode()).hexdigest()
+        if normalize:
+            # Compare normalized copies: hash/length gates run on
+            # volatile-scrubbed text so per-request nonces cannot manufacture
+            # a "this route differs" verdict. Reflection and error-signature
+            # checks still run on the ORIGINAL bodies below — scrubbing must
+            # never eat a reflected payload or an error signature.
+            baseline_cmp = normalize_volatile(baseline)
+            injected_cmp = normalize_volatile(injected)
+        else:
+            baseline_cmp, injected_cmp = baseline, injected
+
+        b_hash = hashlib.sha256(baseline_cmp.encode()).hexdigest()
+        i_hash = hashlib.sha256(injected_cmp.encode()).hexdigest()
         if b_hash != i_hash:
             diffs.append("content_hash_changed")
 
-        b_len = len(baseline)
-        i_len = len(injected)
+        b_len = len(baseline_cmp)
+        i_len = len(injected_cmp)
         if i_len > b_len * 1.5:
             diffs.append("response_length_increased")
         elif i_len < b_len * 0.5:
