@@ -85,11 +85,11 @@ URL_SIGNATURES: dict[str, str] = {
     "hotp": "HOTP",
     "webauthn": "WebAuthn",
     "fido2": "FIDO2",
-    "password": "Password",
+    "password": "Password",  # pragma: allowlist secret — fingerprint vocabulary
     "passkey": "Passkey",
-    "credential": "Credential",
-    "secret": "Secret",
-    "api_key": "API Key",
+    "credential": "Credential",  # pragma: allowlist secret — fingerprint vocabulary, not a credential
+    "secret": "Secret",  # pragma: allowlist secret — fingerprint vocabulary
+    "api_key": "API Key",  # pragma: allowlist secret — fingerprint vocabulary
     "token": "Token",
     "cookie": "Cookie",
     "session_id": "Session ID",
