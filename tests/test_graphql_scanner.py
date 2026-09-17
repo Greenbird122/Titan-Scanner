@@ -156,5 +156,77 @@ async def test_accepted_mutation_yields_finding():
     names = {d for f in findings for d in (f.diffs or [])}
     assert "graphql:role_escalation" in names, "accepted role-escalation mutation must be flagged"
     assert "graphql:user_creation" in names, "accepted user-creation mutation must be flagged"
-    muts = [f for f in findings if f.diffs and f.diffs[0].startswith("graphql:")]
+    muts = [
+        f
+        for f in findings
+        if f.diffs and f.diffs[0].startswith("graphql:") and not f.diffs[0].startswith("graphql:coverage_")
+    ]
+    assert muts, "mutation findings must be present"
     assert all(f.severity == Severity.CRITICAL for f in muts)
+
+
+def _coverage_finding(findings):
+    cov = [f for f in findings if f.diffs and f.diffs[0].startswith("graphql:coverage_")]
+    assert len(cov) <= 1, "at most one coverage summary per scan"
+    return cov[0] if cov else None
+
+
+async def test_coverage_summary_emitted_and_counts_verdicts():
+    """Every probe answered unambiguously: coverage must be verdicted/total
+    with zero UNVERDICTED, and the summary is an INFO row, not a vuln."""
+    ctx = _FakeContext(_mutation_responder)
+    scanner = GraphQLScanner(payload_smith=None, fingerprint={})
+    findings = await scanner.scan(ctx, "http://t", "http://t/gql")
+    cov = _coverage_finding(findings)
+    assert cov is not None, "coverage summary finding must be emitted"
+    assert cov.severity == Severity.INFO
+    assert cov.verified is False
+    meta = cov.metadata["graphql_coverage"]
+    assert meta["total"] > 0
+    assert meta["verdicted"] == meta["total"], "all-answered target: every probe is a verdict"
+    assert meta["counts"]["unverdicted"] == 0
+    assert f"graphql:coverage_{meta['verdicted']}_of_{meta['total']}" == cov.diffs[0]
+
+
+async def test_validation_rejections_are_unverdicted_not_negative():
+    """The Parool doctrine at scanner level: a gateway that answers every
+    probe with an input-validation rejection has NOT been probed — coverage
+    must show zero verdicts and a populated re-probe list."""
+
+    def validation_responder(query: str):
+        return 400, json.dumps(
+            {"errors": [{"message": "Variable '$id' of required type 'String!' was not provided.", "extensions": {"code": "GRAPHQL_VALIDATION_FAILED"}}]}
+        )
+
+    ctx = _FakeContext(validation_responder)
+    scanner = GraphQLScanner(payload_smith=None, fingerprint={})
+    findings = await scanner.scan(ctx, "http://t", "http://t/gql")
+    cov = _coverage_finding(findings)
+    assert cov is not None
+    meta = cov.metadata["graphql_coverage"]
+    assert meta["verdicted"] == 0, "validation non-answers must not count as coverage"
+    assert meta["counts"]["unverdicted"] == meta["total"]
+    assert meta["unverdicted"], "re-probe list must name the unverdicted operations"
+    assert "0 UNVERDICTED" not in cov.payload and "UNVERDICTED" in cov.payload
+
+
+async def test_dead_requests_recorded_as_unverdicted():
+    """A scan that never gets a response must still emit an honest ledger:
+    every probe UNVERDICTED, no vuln findings manufactured from silence."""
+
+    class _DeadContext:
+        class _DeadRequest:
+            async def post(self, url, data=None, headers=None, timeout=None):
+                raise ConnectionError("network unreachable")
+
+        request = _DeadRequest()
+
+    scanner = GraphQLScanner(payload_smith=None, fingerprint={})
+    findings = await scanner.scan(_DeadContext(), "http://t", "http://t/gql")
+    cov = _coverage_finding(findings)
+    assert cov is not None, "even a fully dead scan emits its ledger"
+    meta = cov.metadata["graphql_coverage"]
+    assert meta["verdicted"] == 0
+    assert meta["counts"]["unverdicted"] == meta["total"]
+    vulns = [f for f in findings if f is not cov]
+    assert vulns == [], "no finding may be derived from dead requests"

@@ -7,7 +7,7 @@ from typing import Any
 
 from titan.core.logger import get_logger
 from titan.core.models import AttackType, Finding, Severity
-from titan.verify import BaselineAnalyzer
+from titan.verify import BaselineAnalyzer, VerdictLedger, classify, classify_exception
 
 logger = get_logger("graphql")
 
@@ -19,6 +19,13 @@ class GraphQLScanner:
 
     async def scan(self, context, target: str, api_url: str) -> list[Finding]:
         findings: list[Finding] = []
+        # Honest-coverage ledger: every probe outcome is classified, and
+        # non-answers (validation errors, 5xx, dead requests) are recorded as
+        # UNVERDICTED — never as positives or negatives. The scan emits one
+        # INFO finding carrying the verdicted/total pair so reports cannot
+        # inflate coverage with non-answers (see findings/LEARNINGS.md,
+        # Parool 88/93 correction).
+        ledger = VerdictLedger()
 
         # ── Engine 1: Introspection ─────────────────────────────────────
         introspection_queries = [
@@ -35,7 +42,7 @@ class GraphQLScanner:
             "query { __schema { types { name enumValues { name } } } }",
         ]
 
-        for iq in introspection_queries:
+        for i, iq in enumerate(introspection_queries):
             try:
                 resp = await context.request.post(
                     api_url,
@@ -44,6 +51,7 @@ class GraphQLScanner:
                     timeout=10000,
                 )
                 body = await resp.text()
+                ledger.record(f"introspection[{i}]", classify(resp.status, body, well_formed=True))
                 if "__schema" in body or "__type" in body:
                     findings.append(
                         Finding(
@@ -65,6 +73,7 @@ class GraphQLScanner:
                     )
                     break
             except Exception as exc:
+                ledger.record(f"introspection[{i}]", classify_exception(exc))
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
@@ -83,7 +92,7 @@ class GraphQLScanner:
             '{"query": "{ __schema { types { name fields { name } } } }"}',
         ]
 
-        for probe in field_probes:
+        for j, probe in enumerate(field_probes):
             try:
                 test_data = json.loads(probe)
                 resp = await context.request.post(
@@ -108,6 +117,7 @@ class GraphQLScanner:
                     pass
 
                 diffs = BaselineAnalyzer.diff_responses(baseline_body, body, probe)
+                ledger.record(f"field_probe[{j}]", classify(resp.status, body, well_formed=True))
 
                 if diffs or resp.status >= 500:
                     sev = Severity.MEDIUM if resp.status >= 500 else Severity.LOW
@@ -130,6 +140,7 @@ class GraphQLScanner:
                         )
                     )
             except Exception as exc:
+                ledger.record(f"field_probe[{j}]", classify_exception(exc))
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
@@ -156,7 +167,7 @@ class GraphQLScanner:
             ),
         ]
 
-        for batch in batch_probes:
+        for j, batch in enumerate(batch_probes):
             try:
                 resp = await context.request.post(
                     api_url,
@@ -165,6 +176,7 @@ class GraphQLScanner:
                     timeout=10000,
                 )
                 body = await resp.text()
+                ledger.record(f"batch[{j}]", classify(resp.status, body, well_formed=True))
 
                 # Ground truth: only a 200 whose body parses as a JSON ARRAY
                 # proves the server actually executed the batch. Anything
@@ -198,6 +210,7 @@ class GraphQLScanner:
                         )
                     )
             except Exception as exc:
+                ledger.record(f"batch[{j}]", classify_exception(exc))
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
@@ -218,7 +231,7 @@ class GraphQLScanner:
             ]
             payloads = await self.payload_smith.mutate(base_payloads, context_data)
 
-            for payload in payloads:
+            for k, payload in enumerate(payloads):
                 try:
                     test_data = json.loads(payload)
                     resp = await context.request.post(
@@ -243,6 +256,7 @@ class GraphQLScanner:
                         pass
 
                     diffs = BaselineAnalyzer.diff_responses(baseline_body, body, payload)
+                    ledger.record(f"ai_payload[{k}]", classify(resp.status, body, well_formed=True))
                     if diffs or resp.status >= 500:
                         findings.append(
                             Finding(
@@ -263,6 +277,7 @@ class GraphQLScanner:
                             )
                         )
                 except Exception as exc:
+                    ledger.record(f"ai_payload[{k}]", classify_exception(exc))
                     logger.debug(f"variant failed, continuing: {exc}")
                     continue
 
@@ -298,6 +313,7 @@ class GraphQLScanner:
                     timeout=10000,
                 )
                 body = await resp.text()
+                ledger.record(f"depth:{name}", classify(resp.status, body, well_formed=True))
                 depth_hit = resp.status == 200 and '"data"' in body
                 crash = resp.status >= 500
                 if depth_hit or crash:
@@ -323,6 +339,7 @@ class GraphQLScanner:
                         )
                     )
             except Exception as exc:
+                ledger.record(f"depth:{name}", classify_exception(exc))
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
 
@@ -352,6 +369,7 @@ class GraphQLScanner:
                     timeout=10000,
                 )
                 body = await resp.text()
+                ledger.record(f"mutation:{name}", classify(resp.status, body, well_formed=True))
                 accepted = resp.status == 200 and '"data"' in body and '"errors"' not in body
                 if accepted:
                     findings.append(
@@ -374,7 +392,46 @@ class GraphQLScanner:
                         )
                     )
             except Exception as exc:
+                ledger.record(f"mutation:{name}", classify_exception(exc))
                 logger.debug(f"variant failed, continuing: {exc}")
                 continue
+
+        # ── Coverage summary (honest-verdict doctrine) ─────────────────
+        verdicted, total = ledger.coverage()
+        if total:
+            findings.append(
+                Finding(
+                    target=target,
+                    url=api_url,
+                    method="POST",
+                    param="query",
+                    location="body",
+                    payload=f"GraphQL probe coverage: {ledger.summary()}",
+                    attack_type=AttackType.INFO_LEAK,
+                    severity=Severity.INFO,
+                    verified=False,
+                    confidence=1.0,
+                    status=None,
+                    headers={},
+                    body="",
+                    diffs=[f"graphql:coverage_{verdicted}_of_{total}"],
+                    notes=(
+                        "Probe-outcome ledger, not a vulnerability. Only "
+                        "unambiguous responses count as verdicts; UNVERDICTED "
+                        "operations are non-answers (input-validation rejections, "
+                        "server faults, dead requests) that require a re-probe "
+                        "with well-formed input and never count as positives "
+                        "or negatives."
+                    ),
+                    metadata={
+                        "graphql_coverage": {
+                            "verdicted": verdicted,
+                            "total": total,
+                            "counts": ledger.counts(),
+                            "unverdicted": ledger.unverdicted,
+                        }
+                    },
+                )
+            )
 
         return findings

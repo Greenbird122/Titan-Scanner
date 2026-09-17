@@ -10,7 +10,7 @@ import time
 from typing import Any
 
 from titan.core.logger import get_logger
-from titan.verify.verdicts import Verdict, VerdictLedger, classify
+from titan.verify.verdicts import Verdict, VerdictLedger, classify, classify_exception
 
 logger = get_logger("__init__")
 
@@ -22,6 +22,7 @@ __all__ = [
     "Verdict",
     "VerdictLedger",
     "classify",
+    "classify_exception",
     "normalize_volatile",
 ]
 
