@@ -99,9 +99,12 @@ def test_firebase_config_and_key_fire():
     # the actual exposed value must be reported verbatim
     assert any("AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345AB" in f.payload for f in findings)
     # firebase config finding carries the project id
-    fb = [
-        f for f in findings if f.metadata["secret_type"] == "Firebase client config exposed"
-    ]  # pragma: allowlist secret
+    # The label is bound to a name so the allowlist pragma stays attached to the
+    # line carrying the literal. Inline on a wrapped comprehension it lands on
+    # the closing bracket and the secrets gate flags the line the detector
+    # actually points at.
+    secret_label = "Firebase client config exposed"  # pragma: allowlist secret
+    fb = [f for f in findings if f.metadata["secret_type"] == secret_label]
     assert fb and "projectId=test-project" in fb[0].payload
 
 
