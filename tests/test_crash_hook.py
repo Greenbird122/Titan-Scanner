@@ -5,6 +5,7 @@ The hook must:
   2. Log the exception to the structured sink before the default handler runs.
   3. Not swallow the exception — sys.__excepthook__ still fires.
 """
+
 from __future__ import annotations
 
 import sys
@@ -52,8 +53,7 @@ class TestInstallCrashHook:
             crash_entries = [
                 e
                 for e in _SINK._entries[sink_entries_before:]
-                if e.category == "error"
-                and "test-crash-signal" in e.message
+                if e.category == "error" and "test-crash-signal" in e.message
             ]
             assert len(crash_entries) >= 1
             assert "ValueError" in crash_entries[0].message

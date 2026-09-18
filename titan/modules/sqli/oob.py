@@ -18,8 +18,6 @@ logger = get_logger("detector")
 
 
 class OobMixin:
-
-
     async def _scan_oob(
         self,
         context,

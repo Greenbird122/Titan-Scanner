@@ -195,7 +195,14 @@ async def test_validation_rejections_are_unverdicted_not_negative():
 
     def validation_responder(query: str):
         return 400, json.dumps(
-            {"errors": [{"message": "Variable '$id' of required type 'String!' was not provided.", "extensions": {"code": "GRAPHQL_VALIDATION_FAILED"}}]}
+            {
+                "errors": [
+                    {
+                        "message": "Variable '$id' of required type 'String!' was not provided.",
+                        "extensions": {"code": "GRAPHQL_VALIDATION_FAILED"},
+                    }
+                ]
+            }
         )
 
     ctx = _FakeContext(validation_responder)

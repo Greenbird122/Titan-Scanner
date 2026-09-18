@@ -170,7 +170,9 @@ class ParamOracleMixin:
                                 sanity_confirmed = True
                                 diffs.append("sanity_pair:boolean_confirmed")
                             else:
-                                baseline_ok = baseline_status is not None and baseline_status > 0 and baseline_status < 400
+                                baseline_ok = (
+                                    baseline_status is not None and baseline_status > 0 and baseline_status < 400
+                                )
                                 payload_ok = resp.status is not None and resp.status > 0 and resp.status < 400
                                 opp_ok = opp_resp.status is not None and opp_resp.status > 0 and opp_resp.status < 400
                                 if payload_ok != opp_ok and opp_ok == baseline_ok:
@@ -222,7 +224,6 @@ class ParamOracleMixin:
             return None
         except Exception:
             return None
-
 
     def _get_opposite_payload(self, payload: str) -> str | None:
         """Generate the logical opposite for sanity-pair testing."""

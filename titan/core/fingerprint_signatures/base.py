@@ -199,4 +199,3 @@ BASE_FINGERPRINT: dict[str, Any] = {
     "x_boringssl": None,
     "x_libressl": None,
 }
-

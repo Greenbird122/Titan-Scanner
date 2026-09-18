@@ -85,8 +85,8 @@ class TestNormalizeVolatile:
         assert BaselineAnalyzer.diff_responses(baseline, injected, "", normalize=True) == []
 
     def test_trace_context_variants_scrubbed(self):
-        a = "<html data-traceparent=\"00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1111111111111111-01\">x</html>"
-        b = "<html data-traceparent=\"00-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2222222222222222-01\">x</html>"
+        a = '<html data-traceparent="00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1111111111111111-01">x</html>'
+        b = '<html data-traceparent="00-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-2222222222222222-01">x</html>'
         assert normalize_volatile(a) == normalize_volatile(b)
 
     def test_echoed_request_id_scrubbed(self):
@@ -113,8 +113,8 @@ class TestNormalizeVolatile:
         assert BaselineAnalyzer.diff_responses(a, b, "", normalize=True) == []
 
     def test_iso_timestamps_scrubbed(self):
-        a = '<time>2026-09-17T13:45:00.123Z</time>'
-        b = '<time>2026-09-17T14:01:00Z</time>'
+        a = "<time>2026-09-17T13:45:00.123Z</time>"
+        b = "<time>2026-09-17T14:01:00Z</time>"
         assert BaselineAnalyzer.diff_responses(a, b, "", normalize=True) == []
 
     def test_keys_preserved_for_debuggability(self):

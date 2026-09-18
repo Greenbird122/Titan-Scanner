@@ -367,6 +367,7 @@ _configure_standard_logging()
 # Uncaught-exception hook — log before the process dies
 # ---------------------------------------------------------------------------
 
+
 def _crash_hook(
     exc_type: type[BaseException],
     exc_value: BaseException,

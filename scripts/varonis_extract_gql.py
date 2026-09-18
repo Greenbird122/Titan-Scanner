@@ -1,4 +1,5 @@
 """Extract GraphQL call-site contexts from Varonis SPA bundles (local files only)."""
+
 import re
 from pathlib import Path
 

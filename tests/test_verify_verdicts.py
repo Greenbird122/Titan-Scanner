@@ -20,10 +20,7 @@ class TestClassify:
 
     def test_in_envelope_validation_error_is_unverdicted(self):
         """Status 200 with errors[] still not a verdict (Parool flavor)."""
-        body = (
-            '{"errors":[{"message":"must provide a value for variable $id",'
-            '"extensions":{"code":"BAD_USER_INPUT"}}]}'
-        )
+        body = '{"errors":[{"message":"must provide a value for variable $id","extensions":{"code":"BAD_USER_INPUT"}}]}'
         assert classify(200, body) is Verdict.UNVERDICTED
 
     def test_plain_400_with_validation_marker_is_unverdicted(self):

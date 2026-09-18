@@ -27,4 +27,3 @@ COOKIE_SIGNATURES: dict[str, str] = {
     "BIGIPSERVER": "F5 BIG-IP",
     "BIGIP": "F5 BIG-IP",
 }
-

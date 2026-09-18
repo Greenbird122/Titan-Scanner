@@ -241,4 +241,3 @@ BODY_SIGNATURES: dict[str, str] = {
     "herbstluftwm": "herbstluftwm",
     "bspwm": "bspwm",
 }
-

@@ -62,10 +62,7 @@ def check_references_index():
             continue
         index_path = os.path.join(refs_dir, "INDEX.md")
         if not os.path.isfile(index_path):
-            problems.append(
-                f"{skill}/references/: files exist but no INDEX.md — "
-                "add the discovery-layer index"
-            )
+            problems.append(f"{skill}/references/: files exist but no INDEX.md — add the discovery-layer index")
             continue
         with open(index_path, encoding="utf-8", errors="replace") as f:
             index_text = f.read()
@@ -73,10 +70,7 @@ def check_references_index():
             if not fname.endswith(".md") or fname == "INDEX.md":
                 continue
             if fname not in index_text:
-                problems.append(
-                    f"{skill}/references/{fname}: not listed in INDEX.md "
-                    "— the discovery layer is stale"
-                )
+                problems.append(f"{skill}/references/{fname}: not listed in INDEX.md — the discovery layer is stale")
     return problems
 
 

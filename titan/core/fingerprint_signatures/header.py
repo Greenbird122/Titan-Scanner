@@ -184,4 +184,3 @@ HEADER_SIGNATURES: dict[str, str] = {
     "x-boringssl": "x_boringssl",
     "x-libressl": "x_libressl",
 }
-

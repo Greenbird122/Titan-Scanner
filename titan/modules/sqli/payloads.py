@@ -8,8 +8,6 @@ from __future__ import annotations
 
 
 class PayloadMixin:
-
-
     def _build_waf_polymorphic_set(self) -> list[str]:
         """
         Generate encoding-diversified variants that bypass rule-based WAFs:
@@ -54,7 +52,6 @@ class PayloadMixin:
         )
 
         return payloads
-
 
     def _build_param_payload_suite(self, param_name: str, param_val: str, generic_payloads: list[str]) -> list[str]:
         suite = list(generic_payloads)

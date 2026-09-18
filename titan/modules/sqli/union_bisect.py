@@ -19,8 +19,6 @@ logger = get_logger("detector")
 
 
 class UnionBisectMixin:
-
-
     async def _scan_union_bisect(
         self,
         context,
@@ -96,7 +94,6 @@ class UnionBisectMixin:
 
         return findings
 
-
     async def _bisect_column_count(
         self,
         context,
@@ -152,7 +149,6 @@ class UnionBisectMixin:
                 hi = mid - 1
 
         return lo
-
 
     async def _probe_string_columns(
         self,

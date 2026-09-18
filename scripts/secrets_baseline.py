@@ -129,9 +129,7 @@ def run_scan(extra: list[str]) -> dict[str, Any]:
     try:
         return json.loads(proc.stdout)
     except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            f"scan did not emit JSON ({exc}); stderr: {proc.stderr.strip()[:400]}"
-        ) from exc
+        raise RuntimeError(f"scan did not emit JSON ({exc}); stderr: {proc.stderr.strip()[:400]}") from exc
 
 
 def merged_scan() -> dict[str, Any]:
@@ -165,9 +163,7 @@ def merged_scan() -> dict[str, Any]:
             check=False,
         )
         if proc.returncode != 0:
-            raise RuntimeError(
-                f"detect-secrets scan --baseline exited {proc.returncode}\n{proc.stderr.strip()}"
-            )
+            raise RuntimeError(f"detect-secrets scan --baseline exited {proc.returncode}\n{proc.stderr.strip()}")
         with open(tmp_abs, encoding="utf-8") as fh:
             return json.load(fh)
     finally:
@@ -239,9 +235,7 @@ def non_canonical(data: dict[str, Any]) -> list[str]:
         if entry.get("path") == BASELINE_FILTER:
             name = str(entry.get("filename", ""))
             if name != SELF_NAME:
-                offenders.append(
-                    f"{BASELINE_FILTER} -> filename: {name!r} (expected {SELF_NAME!r})"
-                )
+                offenders.append(f"{BASELINE_FILTER} -> filename: {name!r} (expected {SELF_NAME!r})")
     return offenders
 
 

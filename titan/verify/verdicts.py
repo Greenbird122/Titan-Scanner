@@ -118,9 +118,7 @@ def classify(
     """
     if _is_validation_response(status, body):
         if not well_formed:
-            logger.debug(
-                "validation error on malformed probe — UNVERDICTED, re-probe required"
-            )
+            logger.debug("validation error on malformed probe — UNVERDICTED, re-probe required")
         return Verdict.UNVERDICTED
 
     if status in _GATE_STATUSES:
@@ -161,9 +159,7 @@ class VerdictLedger:
             raise ValueError("operation name required")
         previous = self._verdicts.get(operation)
         if previous is not None and previous != verdict:
-            logger.debug(
-                f"verdict change for {operation}: {previous.value} -> {verdict.value}"
-            )
+            logger.debug(f"verdict change for {operation}: {previous.value} -> {verdict.value}")
         self._verdicts[operation] = verdict
         return verdict
 
@@ -177,9 +173,7 @@ class VerdictLedger:
     @property
     def unverdicted(self) -> list[str]:
         """Operations whose current verdict is a non-answer — re-probe list."""
-        return sorted(
-            op for op, v in self._verdicts.items() if v is Verdict.UNVERDICTED
-        )
+        return sorted(op for op, v in self._verdicts.items() if v is Verdict.UNVERDICTED)
 
     def counts(self) -> dict[str, int]:
         out: dict[str, int] = {v.value: 0 for v in Verdict}
@@ -198,9 +192,7 @@ class VerdictLedger:
         verdicted = sum(1 for v in self._verdicts.values() if v in self._VERDICTED)
         total = total_registered if total_registered is not None else len(self._verdicts)
         if total_registered is not None and total_registered < len(self._verdicts):
-            raise ValueError(
-                "total_registered smaller than recorded operations"
-            )
+            raise ValueError("total_registered smaller than recorded operations")
         return verdicted, total
 
     def summary(self, total_registered: int | None = None) -> str:

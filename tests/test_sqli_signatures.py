@@ -111,18 +111,12 @@ def test_signatures_module_is_data_only():
     tree = ast.parse(inspect.getsource(signatures))
     # Every top-level assignment must target a known constant.
     targets = {
-        t.id
-        for node in tree.body
-        if isinstance(node, ast.Assign)
-        for t in node.targets
-        if isinstance(t, ast.Name)
+        t.id for node in tree.body if isinstance(node, ast.Assign) for t in node.targets if isinstance(t, ast.Name)
     }
     ann_targets = {
         t.id
         for node in tree.body
-        if isinstance(node, ast.AnnAssign)
-        and node.value is not None
-        and isinstance(node.target, ast.Name)
+        if isinstance(node, ast.AnnAssign) and node.value is not None and isinstance(node.target, ast.Name)
         for t in [node.target]
     }
     expected = {"SQLI_ERROR_SIGNATURES", "INJECTABLE_HEADERS", "OOB_TEMPLATES"}

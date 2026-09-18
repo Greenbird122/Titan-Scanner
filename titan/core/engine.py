@@ -624,9 +624,7 @@ class TitanEngine(
                         # add_cookies is part of the Playwright API; mypy
                         # resolves p.request to a stub without it.
                         await _api_context.add_cookies(  # type: ignore[attr-defined]
-                            [
-                                {"name": str(name), "value": str(value), "url": target}
-                            ]
+                            [{"name": str(name), "value": str(value), "url": target}]
                         )
             except Exception as exc:
                 logger.debug(f"suppressed exception: {exc}")

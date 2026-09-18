@@ -25,8 +25,6 @@ logger = get_logger("detector")
 
 
 class SurfacesMixin:
-
-
     async def _scan_headers(
         self,
         context,
@@ -105,7 +103,6 @@ class SurfacesMixin:
                     continue
 
         return findings
-
 
     async def _scan_json_body(
         self,
@@ -207,7 +204,6 @@ class SurfacesMixin:
 
         return findings
 
-
     def _json_leaves(self, node: Any, path: list | None = None):
         """Yield (path, value) for every string/int leaf in a nested JSON tree."""
         if path is None:
@@ -220,7 +216,6 @@ class SurfacesMixin:
                 yield from self._json_leaves(v, path + [i])
         elif isinstance(node, (str, int, float)):
             yield path
-
 
     def _json_set(self, tree: Any, path: list, value: Any) -> None:
         """Set a value at a given path in a nested JSON tree (in-place)."""

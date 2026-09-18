@@ -57,13 +57,7 @@ def _is_guarded(ip: str) -> bool:
         return True
     if addr.version == 4 and addr in _CGNAT_V4:
         return True
-    return (
-        addr.is_loopback
-        or addr.is_link_local
-        or addr.is_reserved
-        or addr.is_multicast
-        or addr.is_unspecified
-    )
+    return addr.is_loopback or addr.is_link_local or addr.is_reserved or addr.is_multicast or addr.is_unspecified
 
 
 class EgressPolicy:

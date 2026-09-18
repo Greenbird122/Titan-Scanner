@@ -40,9 +40,13 @@ jobs:
         # hardening campaigns land).
         run: ruff check .
 
-      # `ruff format --check` is parked: the tree predates ruff-format and a
-      # 282-file reformat would be pure churn. Re-enable once the formatting
-      # campaign lands (specs/engine-800-feasibility.md tracks it).
+      - name: Ruff format check
+        # The formatting campaign landed (35 files; a full repo run is now a
+        # no-op), so this is a gate instead of the parked note that used to sit
+        # here. Ruff's default line-ending handling preserves each file's
+        # existing style, so the check behaves identically on the Linux and
+        # Windows legs and stays stable under core.autocrlf.
+        run: ruff format --check .
 
       - name: Secrets baseline is canonical
         # Scan-free guard against a baseline regenerated on a non-POSIX host:

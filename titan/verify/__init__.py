@@ -98,7 +98,7 @@ def normalize_volatile(body: str) -> str:
     out = body or ""
     for _name, pattern in _VOLATILE_PATTERNS:
         out = pattern.sub(
-            lambda m: (f"{m.group(1)}=<volatile>" if m.lastindex else "<volatile>"),
+            lambda m: f"{m.group(1)}=<volatile>" if m.lastindex else "<volatile>",
             out,
         )
     return out
