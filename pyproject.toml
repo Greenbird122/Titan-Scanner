@@ -219,19 +219,11 @@ follow_imports = "skip"
 
 
 [[tool.mypy.overrides]]
-module = "titan.ai.waf_fingerprint"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.brain.strategy"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.cli"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.consent.flags"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
@@ -247,19 +239,11 @@ module = "titan.core.discovery"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "titan.core.osint"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.core.stealth"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.core.transport_mixin"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.core.webhooks"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
@@ -272,10 +256,6 @@ follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.exploit.reattach"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.exploit.redirect_poc"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
@@ -295,18 +275,6 @@ module = "titan.hostile"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "titan.hostile.offense"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.hostile.profiler"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.modules.api.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.modules.baas.appwrite"
 follow_imports = "skip"
 
@@ -316,10 +284,6 @@ follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.modules.baas.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.modules.baas.fingerprint"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
@@ -379,10 +343,6 @@ module = "titan.modules.deep_audit.prober"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "titan.modules.dns.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.modules.jwt.detector"
 follow_imports = "skip"
 
@@ -403,10 +363,6 @@ module = "titan.modules.postexploit.killchain"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "titan.modules.ratelimit.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.modules.subdomain_takeover.detector"
 follow_imports = "skip"
 
@@ -415,31 +371,11 @@ module = "titan.modules.supplychain.detector"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "titan.modules.tls.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.modules.upload.detector"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
-module = "titan.modules.websocket.detector"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
 module = "titan.reporting"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.reporting.estate"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.reporting.markdown_report"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.reporting.remediation"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]
@@ -468,10 +404,6 @@ follow_imports = "skip"
 
 [[tool.mypy.overrides]]
 module = "titan.verify.auto_verify"
-follow_imports = "skip"
-
-[[tool.mypy.overrides]]
-module = "titan.verify.kernel"
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]

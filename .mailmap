@@ -1,0 +1,4 @@
+# Canonical contributor identities — consumed by git shortlog/percentages and
+# by scoring tools that canonicalize authors. Same email under two names below.
+Ijakaa Paul <ijakaapaul2006@gmail.com> greenbird122 <ijakaapaul2006@gmail.com>
+# kipronomathewke80-debug <kipronomathew.ke.80@gmail.com> is a distinct human author; left as-is.

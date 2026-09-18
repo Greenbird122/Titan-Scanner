@@ -147,8 +147,8 @@ class TestIMDSProber:
     async def test_probe_aws_credential_extraction(self):
         """When role credentials are exposed, should extract and report."""
         role_creds = {
-            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
-            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",  # pragma: allowlist secret
+            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",  # pragma: allowlist secret
             "Token": "FwoGZXIvYXdzEBY...",
             "Expiration": "2026-08-21T12:00:00Z",
             "RoleName": "test-role",
@@ -166,7 +166,7 @@ class TestIMDSProber:
 
         assert report.accessible is True
         assert report.credentials is not None
-        assert report.credentials["AccessKeyId"] == "AKIAIOSFODNN7EXAMPLE"
+        assert report.credentials["AccessKeyId"] == "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
         # Should have a credential exposure finding
         cred_findings = [f for f in report.findings if f["type"] == "cloud_credential_exposure"]
         assert len(cred_findings) == 1
@@ -345,8 +345,8 @@ class TestCloudControlDetectorIMDS:
 
         creds_body = json.dumps(
             {
-                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
-                "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",  # pragma: allowlist secret
+                "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",  # pragma: allowlist secret
                 "Token": "FwoGZXIvYXdzEBY...",
             }
         )

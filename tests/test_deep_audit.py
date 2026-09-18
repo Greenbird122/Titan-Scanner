@@ -15,10 +15,10 @@ class TestCloudConfig:
     def test_custom_fields(self):
         cfg = CloudConfig(
             provider="supabase",
-            api_key="test-key",
+            api_key="test-key",  # pragma: allowlist secret
             project_id="my-project",
         )
-        assert cfg.api_key == "test-key"
+        assert cfg.api_key == "test-key"  # pragma: allowlist secret
         assert cfg.project_id == "my-project"
 
 
@@ -68,7 +68,7 @@ class TestDeepAuditor:
         auditor = DeepAuditor()
         js = """
         const firebaseConfig = {
-            apiKey: "AIzaSyTest123",
+            apiKey: "AIzaSyTest123",  # pragma: allowlist secret
             authDomain: "test.firebaseapp.com",
             projectId: "test-project",
             storageBucket: "test.appspot.com",
@@ -78,7 +78,7 @@ class TestDeepAuditor:
         configs = auditor._parse_js_for_config(js, "test.js")
         assert len(configs) == 1
         assert configs[0].provider == "firebase"
-        assert configs[0].api_key == "AIzaSyTest123"
+        assert configs[0].api_key == "AIzaSyTest123"  # pragma: allowlist secret
         assert configs[0].project_id == "test-project"
 
     def test_parse_supabase_config(self):
@@ -96,11 +96,11 @@ class TestDeepAuditor:
 
     def test_parse_aws_key(self):
         auditor = DeepAuditor()
-        js = 'const key = "AKIAIOSFODNN7EXAMPLE";'
+        js = 'const key = "AKIAIOSFODNN7EXAMPLE";'  # pragma: allowlist secret
         configs = auditor._parse_js_for_config(js, "test.js")
         assert len(configs) == 1
         assert configs[0].provider == "aws"
-        assert configs[0].api_key == "AKIAIOSFODNN7EXAMPLE"
+        assert configs[0].api_key == "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
 
     def test_parse_stripe_key(self):
         auditor = DeepAuditor()

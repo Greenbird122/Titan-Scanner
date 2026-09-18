@@ -405,7 +405,7 @@ module.exports = async (req, res) => {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.status(200).json({
       token:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJnZXN0Iiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjk5OTk5OTk5OTl9.demo-signature-not-real",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJnZXN0Iiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJleHAiOjk5OTk5OTk5OTl9.demo-signature-not-real",  // pragma: allowlist secret
       user: { id: "u-002", email: "guest@acme.test" },
     });
     return;

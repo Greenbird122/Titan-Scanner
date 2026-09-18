@@ -19,7 +19,7 @@ mini = Flask(__name__)
 FIREBASE = """<html><body>
 <script type="module">
 const firebaseConfig = {
-    apiKey: "AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345AB",
+    apiKey: "AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345AB",  # pragma: allowlist secret
     authDomain: "test-project.firebaseapp.com",
     projectId: "test-project",
     appId: "1:123456789:web:abcdef123456"
@@ -40,7 +40,7 @@ def bundle():
 
 @mini.route("/app.js")
 def app_js():
-    return "const token = 'ghp_123456789012345678901234567890123456';\n"
+    return "const token = 'ghp_123456789012345678901234567890123456';\n"  # pragma: allowlist secret
 
 
 @mini.route("/clean")
@@ -99,7 +99,7 @@ def test_firebase_config_and_key_fire():
     # the actual exposed value must be reported verbatim
     assert any("AIzaSyD-TEST-KEY-FOR-UNIT-TESTS-12345AB" in f.payload for f in findings)
     # firebase config finding carries the project id
-    fb = [f for f in findings if f.metadata["secret_type"] == "Firebase client config exposed"]
+    fb = [f for f in findings if f.metadata["secret_type"] == "Firebase client config exposed"]  # pragma: allowlist secret
     assert fb and "projectId=test-project" in fb[0].payload
 
 
@@ -117,7 +117,7 @@ def test_bundle_github_pat_fires():
     ctx = _ctx()
     findings = asyncio.run(SourceSecretDetector(None, {}).scan(ctx, "http://x", "GET", "http://x/bundle", {}))
     assert any("GitHub Personal Access Token" in f.payload for f in findings)
-    assert any("ghp_123456789012345678901234567890123456" in f.payload for f in findings)
+    assert any("ghp_123456789012345678901234567890123456" in f.payload for f in findings)  # pragma: allowlist secret
 
 
 def test_clean_page_no_findings():
