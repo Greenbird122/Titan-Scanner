@@ -78,6 +78,29 @@ Titan Scanner is a security testing tool. Key security considerations:
 - Secrets and API keys are never stored in the vault or in source control;
   they are supplied via environment variables only (see `.env.example`).
 
+## Repository Surface Policy
+
+Titan Scanner is a public open-source project. The repository has a strict
+public/private boundary:
+
+### Public (committed to GitHub)
+- Core scanner code (`titan/`, `tests/`, `scripts/`, `docs/`)
+- Public methodology and sanitized examples (`README.md`, `REPRO.md`, `docs/`)
+- Package metadata (`pyproject.toml`, `setup.py`, `requirements.txt`)
+
+### Private (git-ignored, never committed)
+- Engagement data: `findings/`, `consent/`
+- Operator skills and playbooks: `.agents/`
+- Engagement-specific probe scripts: `vendor/`
+- Proprietary research and OSINT notes: `intel/`
+- Verifier test fixtures: `adversarial_honeypot/`
+
+### Pre-push audit
+
+Run `python scripts/audit_repo_surface.py` before every push. It scans tracked
+files for engagement-specific patterns (target domains, bounty usernames, CDP
+ports, engagement identifiers) that must not appear in a public commit.
+
 ## Scope
 
 This security policy covers the Titan Scanner tool itself. Vulnerabilities found
