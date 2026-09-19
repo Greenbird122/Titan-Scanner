@@ -168,9 +168,11 @@ pins only `playwright==1.49.1` and leaves `aiohttp`, `pyyaml`, `requests`, `flas
 
 Use **one** lockfile strategy and stick to it:
 
-- **If you want simplest:** generate a fully pinned `requirements.txt` from
-  `requirements.in` via `pip-compile`, commit it, and keep `pyproject.toml` as the
-  metadata/manifest file.
+- **Chosen:** `pyproject.toml` is the manifest *and* the single source of truth;
+  generate a fully pinned `requirements.txt` from it
+  (`pip-compile --extra full --extra dev --output-file=requirements.txt pyproject.toml`)
+  and commit it. The former `requirements.in` duplicated the pyproject lists and
+  has been removed, so there is nothing left to drift.
 - **If you want the toolchain already declared:** run `poetry lock`, commit
   `poetry.lock`, and treat `pyproject.toml` as the source of truth.
 

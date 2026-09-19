@@ -22,7 +22,7 @@ no gain. Unknown keys pass through untouched, by design.
 | Legal crawl profiles are exactly `fast`, `deep`, `hostile` (anything else silently means fast) | `engine.py:70-71` |
 | `aggression` defaults to `"passive"`, passed to governance approval as free text | `engine.py:147`, `titan/integrations/titan_gov.py:9` |
 | Config sections the engine/core actually read: `aggression, ai, auth, clientside, crawl, governance, output_dir, proxy, reporting, stealth, exploit, modules, cloud, subdomain_takeover, llm, fleet, deep_audit, brain, headless, browser, browser_profile` | `git grep -o 'config.get("[a-z_]*"' titan/core/` |
-| **pydantic is NOT currently a dependency** (0 hits in `requirements.in` and `uv.lock`) | — |
+| **pydantic is NOT currently a dependency** (0 hits in `pyproject.toml` and `uv.lock`) | — |
 | Existing CLI-override tests use plain dicts, no YAML | `tests/test_run_cli.py` (5 tests, all on `apply_cli_overrides`) |
 | There is **no** `titan/core/errors.py`; exception lives in the new module | — |
 
@@ -203,10 +203,13 @@ Follow the plain-dict style of `tests/test_run_cli.py`. Required cases:
 
 ## 6. Dependency plumbing (its own commit, before the module)
 
-- `requirements.in`: add `pydantic>=2.7,<3`
+- `pyproject.toml [project] dependencies`: add `pydantic>=2.7,<3`
 - Regenerate **both** lockfiles (the repo carries both workflows):
-  `uv lock` and `pip-compile --output-file=requirements.txt requirements.in`
-- `pyproject.toml [project] dependencies`: add pydantic with the same bound
+  `uv lock` and
+  `pip-compile --extra full --extra dev --output-file=requirements.txt pyproject.toml`
+  (compiled on a Python 3.10 interpreter, the project's declared floor)
+- Confirms the entry lands in the lock annotated as a direct dependency
+  (`tests/test_dependency_manifest.py` enforces both)
 - Install into the venv to verify the resolved version
 
 ## 7. Commit plan (repo convention: one change per commit, short messages)

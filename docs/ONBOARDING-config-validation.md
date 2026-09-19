@@ -82,9 +82,12 @@ hour. This rule exists because it was learned the hard way.
   repo has contained dead packages before (an entire module family was
   deleted for being never-imported). Grep for importers before assuming a
   caller exists.
-- **Don't add dependencies beyond pydantic.** The manifests
-  (`requirements.in`, `requirements.txt`, `uv.lock`, `pyproject.toml`) all
-  need the pydantic entry in the same commit — all four, not one.
+- **Don't add dependencies beyond pydantic.** `pyproject.toml` is the single
+  source of truth: add the entry to `[project] dependencies`, then regenerate
+  the committed lockfile from it in the same commit —
+  `pip-compile --extra full --extra dev --output-file=requirements.txt pyproject.toml`.
+  There is no `requirements.in` any more — it duplicated pyproject and only
+  invited the two files to drift apart.
 
 ## When stuck
 
