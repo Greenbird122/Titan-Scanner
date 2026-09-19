@@ -25,7 +25,13 @@ LEAK_PATTERNS = [
     # HackerOne / Bugcrowd usernames
     (re.compile(r"HackerOne-[A-Za-z0-9_]+|bugcrowd[A-Za-z0-9_]*", re.IGNORECASE), "bounty platform username"),
     # Known target domains from engagements
-    (re.compile(r"humo\.be|varonis\.io|parool\.nl|devolkskrant\.nl|demorgen\.be|trouw\.nl|ad\.nl|rtlnieuws\.nl", re.IGNORECASE), "engagement target domain"),
+    (
+        re.compile(
+            r"humo\.be|varonis\.io|parool\.nl|devolkskrant\.nl|demorgen\.be|trouw\.nl|ad\.nl|rtlnieuws\.nl",
+            re.IGNORECASE,
+        ),
+        "engagement target domain",
+    ),
     # Engagement output paths
     (re.compile(r"findings/bounties/(humo|varonis|dpg|parool)", re.IGNORECASE), "engagement output path"),
     # Specific engagement identifiers
@@ -104,10 +110,7 @@ def main() -> int:
         rel = path.relative_to(ROOT)
         print(f"  {rel}:{line_no}  [{label}]  matched: {match!r}")
 
-    print(
-        "\nIf any of these are false positives, add the file to ALLOWLIST_PATHS "
-        "in scripts/audit_repo_surface.py."
-    )
+    print("\nIf any of these are false positives, add the file to ALLOWLIST_PATHS in scripts/audit_repo_surface.py.")
     return 1
 
 
