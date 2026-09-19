@@ -29,16 +29,24 @@ from titan.core.logger import get_logger
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from titan.core.config_schema import ConfigValidationError, validate_config
 from titan.core.engine import TitanEngine
 
 logger = get_logger("run")
 
 
 def load_config(path: str = "config.yaml") -> dict:
+    """Read a config file and validate it before anything else runs.
+
+    Validation lives here so a malformed config fails fast, naming the field,
+    instead of silently degrading a scan (a typo'd ``crawl.profile`` used to
+    mean "fast"). Raises ``ConfigValidationError`` on hard failures.
+    """
     import yaml
 
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        data = yaml.safe_load(f) or {}
+    return validate_config(data)
 
 
 def _arg_value(flag: str, default: str) -> str:
@@ -227,7 +235,11 @@ def entrypoint() -> None:
 
 async def main():
     config_path = _arg_value("--config", "config.yaml")
-    config = load_config(config_path)
+    try:
+        config = load_config(config_path)
+    except ConfigValidationError as exc:
+        print(f"[!] Invalid configuration in {config_path}:\n{exc}")
+        sys.exit(2)
     target = _arg_value("--target", config.get("target", ""))
     if not target:
         print("[!] No target. Set 'target' in config.yaml or pass --target <url>")

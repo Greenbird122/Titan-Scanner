@@ -7,6 +7,7 @@ future schema change that would reject a real config fails here first instead of
 on an operator's machine.
 """
 
+import asyncio
 import sys
 from pathlib import Path
 
@@ -188,3 +189,37 @@ def test_cli_overrides_still_apply_after_validation():
 def test_validation_preserves_a_target_so_the_cli_layer_sees_it():
     out = validate_config({"target": "http://x"})
     assert out["target"] == "http://x"
+
+
+# --- 9. wiring: the loader validates and the CLI exits 2 -------------------
+
+
+def _write(tmp_path: Path, body: str) -> Path:
+    path = tmp_path / "config.yaml"
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def test_load_config_validates(tmp_path):
+    with pytest.raises(ConfigValidationError):
+        runner.load_config(str(_write(tmp_path, "crawl:\n  profile: depp\n")))
+
+
+def test_main_exits_2_on_invalid_config_naming_the_field(tmp_path, capsys):
+    """A bad config must stop the run before any network or browser work."""
+    sys.argv = ["run.py", "--config", str(_write(tmp_path, "crawl:\n  profile: depp\n"))]
+    with pytest.raises(SystemExit) as exc:
+        asyncio.run(runner.main())
+    assert exc.value.code == 2
+    captured = capsys.readouterr()
+    assert "profile" in captured.out
+    assert "depp" in captured.out
+
+
+def test_main_accepts_a_valid_config_file(tmp_path, monkeypatch):
+    """The happy path still reaches the no-target check, not the validator."""
+    cfg = _write(tmp_path, "crawl:\n  profile: fast\n")
+    sys.argv = ["run.py", "--config", str(cfg)]
+    with pytest.raises(SystemExit) as exc:
+        asyncio.run(runner.main())
+    assert exc.value.code == 1  # "No target" — validator passed
