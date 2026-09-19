@@ -18,12 +18,15 @@ All notable changes to Titan Scanner are documented here. The format follows
 - `pip-audit` dependency audit in CI
 - `TITAN_LOG_LEVEL` environment variable for log level control
 - `scripts/secrets_baseline.py` — platform-safe `.secrets.baseline` regeneration that merges instead of re-snapshotting and refuses to drop an entry, plus a scan-free canonical check gated in CI
+- Config validation at load time via pydantic (`titan/core/config_schema.py`) — malformed `config.yaml` fails fast (exit 2) naming the offending field before any network activity; profile-aware engine defaults preserved for omitted keys
+- `requirements.txt` regenerated directly from `pyproject.toml` via pip-compile — every direct dependency annotated `# via titan-scanner (pyproject.toml)`, guarded by `tests/test_dependency_manifest.py`
 
 ### Changed
 - Silent exception swallows eliminated repo-wide; ruff `S110`/`S112` now enforced instead of ignored
 - Technology signature tables extracted to `titan/core/fingerprint_signatures.py`
 - Coverage gate raised from 44% to 45%
-- Reporting subsystem split into focused modules (`remediation.py`, `estate.py`, `markdown_report.py`) — no file over 500 LOC
+- Reporting subsystem split into focused modules (`remediation.py`, `estate.py`, `markdown_report.py`)
+- God-file campaign: six oversized modules split into focused units with tests landed alongside — `subdomain_takeover/detector.py` (858→470, signature table to `services.py`), `logic/detector.py` (868→11 facade, probes to `probes.py`/`service.py`), `postexploit.py` (854→547, payload tables to `payloads.py`), `core/discovery.py` (820→528, spec/brute-force probes to `api_probes.py`), `deep_audit/prober.py` (826→385, dataclasses to `models.py`, network probes to `cloud_probes.py`), `core/modules_runner.py` (787→367, dispatch to `module_bindings.py`/`module_tracks.py`/`api_dispatch.py`); legacy attribute names preserved via delegators and mixins so engine seams and test monkey-patches keep working
 - Coverage gate raised from 45% to 55% with new unit tests for `CoverageTracker`, `CoverageProof`, `CoverageReportGenerator`, `WAFFingerprinter`, `SpecIngestor`, and `APIDetector`
 - Dead `titan/modules/bizlogic/` package removed (unwired fossil code duplicating the live `logic` module)
 
@@ -31,6 +34,7 @@ All notable changes to Titan Scanner are documented here. The format follows
 - GraphQL batch engine no longer flags servers that reject batched queries
 - Business-logic detector baselines log failures instead of silently continuing
 - Secrets gate no longer fails on a baseline regenerated with `detect-secrets scan`, which silently deleted entries for secrets still present in the tree and, by failing mid-job, prevented `mypy` and `pip-audit` from running at all
+- Deep audit no longer crashes on every Firebase-bearing target: `audit()` called `_enum_firestore`, a method that never existed anywhere — the AttributeError was swallowed by the caller's except and ended the audit with no findings; the enumeration primitive now exists (`CloudProbes.enum_firestore`)
 
 ### Removed
 - Dead `titan/modules/bizlogic/` package (4,400 LOC): never wired into the module matrix, incompatible with the current `Finding` model, and duplicated by the live `logic`, `idor`, `auth`, and `ratelimit` modules. SaaS-specific ideas (credit manipulation, trial abuse, feature gating) are backlog items for the live `logic` module with proper baseline-diff oracles.
