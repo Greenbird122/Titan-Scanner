@@ -10,6 +10,8 @@ aiohttp==3.14.3
     # via titan-scanner (pyproject.toml)
 aiosignal==1.4.0
     # via aiohttp
+annotated-types==0.8.0
+    # via pydantic
 async-timeout==5.0.1
     # via aiohttp
 attrs==26.1.0
@@ -73,6 +75,10 @@ propcache==0.5.2
     #   yarl
 pycparser==3.0
     # via cffi
+pydantic==2.13.5
+    # via titan-scanner (pyproject.toml)
+pydantic-core==2.46.5
+    # via pydantic
 pyee==13.0.1
     # via playwright
 pygments==2.21.0
@@ -100,9 +106,14 @@ typing-extensions==4.16.0
     #   cryptography
     #   exceptiongroup
     #   multidict
+    #   pydantic
+    #   pydantic-core
     #   pyee
     #   pyjwt
     #   pytest-asyncio
+    #   typing-inspection
+typing-inspection==0.4.4
+    # via pydantic
 urllib3==2.7.0
     # via requests
 werkzeug==3.1.8
