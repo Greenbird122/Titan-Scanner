@@ -12,7 +12,10 @@ no gain. Unknown keys pass through untouched, by design.
 
 ---
 
-## 1. Current state (verified facts, with references)
+## 1. Current state before implementation (verified facts, with references)
+
+*Snapshot taken before the change landed. §11 records what actually shipped and
+where this spec turned out to be stale.*
 
 | Fact | Location |
 |---|---|
@@ -91,10 +94,12 @@ class Browser(str, Enum):
 
 class CrawlConfig(_Allow):
     profile: CrawlProfile = CrawlProfile.fast
-    max_pages: int = Field(default=5, ge=1)
     max_apis: int = Field(default=15, ge=0)
-    max_depth: int = Field(default=1, ge=0)
-    timeout: int = Field(default=600, gt=0)
+    # Left un-defaulted on purpose: the engine derives these from the profile.
+    # See §11.1 before "fixing" them back to flat defaults.
+    max_pages: int | None = Field(default=None, ge=1)
+    max_depth: int | None = Field(default=None, ge=0)
+    timeout: int | None = Field(default=None, gt=0)
 
 
 class StealthConfig(_Allow):
@@ -114,7 +119,7 @@ class ExploitConfig(_Allow):
     consent_dir: str = "consent"
 
 
-class TitanConfig(_Allow):
+class ScanConfig(_Allow):  # named ScanConfig, not TitanConfig — see §11.2
     target: str | None = None
     aggression: Aggression = Aggression.passive
     headless: bool = True
@@ -131,7 +136,7 @@ class TitanConfig(_Allow):
 
 def validate_config(data: dict) -> dict:
     try:
-        model = TitanConfig.model_validate(data)
+        model = ScanConfig.model_validate(data)
     except Exception as exc:  # pydantic.ValidationError
         raise ConfigValidationError(str(exc)) from exc
     out = model.model_dump(mode="json", exclude_none=False)
@@ -266,3 +271,53 @@ silently changes what a scan does. After this task, it refuses to start and
 says why. For a consent-gated offensive tool, that is not presentation —
 that is the difference between "the operator chose passive" and "the
 operator typed 'passve' and got active."
+
+---
+
+## 11. Implementation notes (2026-09-19)
+
+Three things in the sketch above turned out to be stale against the code. They
+were adapted when the work landed; the spec's intent was kept in every case.
+
+### 11.1. The three crawl keys are not defaulted (do not "fix" this)
+
+`crawl.max_pages`, `crawl.max_depth` and `crawl.timeout` have *profile-aware*
+defaults inside the engine: `titan/core/engine.py:82` uses 5 pages on the fast
+profile but 20 on deep/hostile, `:84` uses depth 1 or 2, and `:287` uses a 90s or
+300s crawl timeout. The sketch's flat 5 / 1 / 600 would have silently overridden
+those for any config that omits them — and 600 does not even match the fast
+path's 90.
+
+The schema therefore validates these when present and **drops them when
+absent**, leaving the engine's fallbacks in charge. Acceptance criterion §9.1
+("no behaviour change") is what forced this; the flat defaults contradicted it.
+Pinned by `test_profile_aware_keys_left_absent_when_unset` and its companion.
+
+### 11.2. The root model is `ScanConfig`, not `TitanConfig`
+
+`titan/core/config.py` already exports a `TitanConfig` for an unrelated concept
+(a multi-target config file). Two same-named classes inside `titan/core/` is a
+trap for the next reader, so the scan-level model took a distinct name. Nothing
+else about the shape changed: `validate_config`, `ConfigValidationError`, the
+enums and the sub-models are as sketched.
+
+### 11.3. `requirements.in` no longer exists
+
+§6 predates its removal. The lockfile is now resolved straight from
+`pyproject.toml`, which is the single source of truth, and
+`tests/test_dependency_manifest.py` enforces that every declared dependency
+reaches the lock annotated as a direct dependency. The resolved pydantic is
+`2.13.5` (`pydantic>=2.7,<3`).
+
+### 11.4. Notes for whoever picks this up
+
+- All of §9's acceptance criteria are met.
+- The wiring tests (exit code 2, `load_config` raising) live in
+  `tests/test_config_schema.py` next to the schema cases, but landed in the
+  commit *after* them so that every commit in the series stays green on its own.
+- `titan/core/config.py` (`ConfigManager`, its own `TitanConfig`) appears to be
+  imported only by its own test — no production caller. It is untouched here
+  because it is out of scope, but it is a deletion candidate.
+- Unmodelled sections that are still worth modelling later: `modules`,
+  `governance`, `ai`, `deep_audit`, `cloud`, `subdomain_takeover`, `fleet`,
+  `llm`, `clientside`, `reporting`, `proxy`.

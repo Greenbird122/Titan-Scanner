@@ -93,6 +93,25 @@ modules:
 
 See `config.example.yaml` for all options.
 
+The file is validated as it loads, before any network or browser activity. A
+malformed config stops the run with exit code 2 and names the offending field,
+so a typo fails loudly instead of silently degrading the scan to the fast
+profile:
+
+```text
+$ python run.py --config config.yaml
+[!] Invalid configuration in config.yaml:
+1 validation error for ScanConfig
+crawl.profile
+  Input should be 'fast', 'deep' or 'hostile' [type=enum, input_value='depp', input_type=str]
+```
+
+Unknown keys always pass through untouched — every shipped profile carries
+sections the schema does not model, and those reach the modules that read them
+unchanged. The schema covers the settings that change what a scan *does*:
+`target`, `aggression`, `crawl`, `stealth`, `auth`, `exploit`, and the browser
+and output settings. See `titan/core/config_schema.py`.
+
 ## Output
 
 Findings are written to `findings/<site-slug>/`:
