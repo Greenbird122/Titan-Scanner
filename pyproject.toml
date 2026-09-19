@@ -185,7 +185,6 @@ exclude = [
     "titan/modules/deep_audit/prober.py",
     "titan/modules/dns/detector.py",
     "titan/modules/jwt/detector.py",
-    "titan/modules/logic/detector.py",
     "titan/modules/postexploit/chainbuilder.py",
     "titan/modules/postexploit/exploitgen.py",
     "titan/modules/postexploit/killchain.py",

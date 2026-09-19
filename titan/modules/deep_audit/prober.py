@@ -1,7 +1,8 @@
 """Deep Audit Prober — Automated exploitation-grade cloud service probing.
 
-Parses JavaScript for Firebase/Supabase configs, probes cloud services
-directly, tests Security Rules bypass, and maps full attack chains.
+Orchestrates the deep audit: parses JavaScript for Firebase/Supabase
+configs, hands off to the network probes in ``cloud_probes.py``, and
+maps full attack chains from the collected findings.
 
 Usage:
     from titan.modules.deep_audit.prober import DeepAuditor
@@ -12,157 +13,41 @@ Usage:
 
 from __future__ import annotations
 
-import logging
 import re
 import time
-from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
 
 from titan.core.logger import get_logger
+from titan.modules.deep_audit.cloud_probes import CloudProbes
+from titan.modules.deep_audit.models import AuditFinding, AuditResult, CloudConfig
 
 logger = get_logger("prober")
 
-
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class CloudConfig:
-    """Extracted cloud service configuration."""
-
-    provider: str  # "firebase", "supabase", "aws"
-    project_id: str = ""
-    api_key: str = ""
-    auth_domain: str = ""
-    storage_bucket: str = ""
-    messaging_sender_id: str = ""
-    app_id: str = ""
-    region: str = "us-central1"
-    raw: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class AuditFinding:
-    """A finding from the deep audit."""
-
-    id: str
-    severity: str  # "critical", "high", "medium", "low", "info"
-    title: str
-    description: str
-    proof: str  # HTTP request/response or code evidence
-    impact: str
-    remediation: str
-    category: str  # "pii_exposure", "auth_bypass", "misconfiguration", etc.
-    cvss: float = 0.0
-    verified: bool = False
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class AuditResult:
-    """Complete audit results."""
-
-    target: str
-    findings: list[AuditFinding] = field(default_factory=list)
-    cloud_config: CloudConfig | None = None
-    collections: list[dict[str, Any]] = field(default_factory=list)
-    attack_chain: list[str] = field(default_factory=list)
-    positive_controls: list[str] = field(default_factory=list)
-    duration: float = 0.0
+__all__ = ["AuditFinding", "AuditResult", "CloudConfig", "DeepAuditor"]
 
 
 class DeepAuditor:
     """Automated deep auditor for Firebase/Supabase/cloud-backed sites."""
 
-    FIRESTORE_COLLECTION_NAMES = [
-        "users",
-        "farmers",
-        "alerts",
-        "profiles",
-        "sms_logs",
-        "weather_data",
-        "waitlist",
-        "subscriptions",
-        "notifications",
-        "admin",
-        "settings",
-        "logs",
-        "payments",
-        "messaging",
-        "conversations",
-        "messages",
-        "crops",
-        "locations",
-        "counties",
-        "regions",
-        "partners",
-        "feedback",
-        "surveys",
-        "reports",
-        "analytics",
-        "config",
-        "tokens",
-        "devices",
-        "sessions",
-        "api_keys",
-        "secrets",
-        "invoices",
-        "orders",
-        "products",
-        "marketplace",
-        "forum",
-        "posts",
-        "comments",
-        "threads",
-        "consultations",
-        "bookings",
-        "appointments",
-        "radio_stations",
-        "saccos",
-        "ngo_partners",
-    ]
+    # Data tables live on CloudProbes; aliased here because tests and
+    # callers read them off the auditor instance.
+    FIRESTORE_COLLECTION_NAMES = CloudProbes.FIRESTORE_COLLECTION_NAMES
+    SENSITIVE_PATHS = CloudProbes.SENSITIVE_PATHS
+    COMMON_JS_PATTERNS = CloudProbes.COMMON_JS_PATTERNS
 
-    SENSITIVE_PATHS = [
-        "/.env",
-        "/.env.local",
-        "/.env.production",
-        "/.env.development",
-        "/.git/config",
-        "/.git/HEAD",
-        "/.gitignore",
-        "/.well-known/security.txt",
-        "/firebase.json",
-        "/.firebaserc",
-        "/firestore.rules",
-        "/storage.rules",
-        "/vercel.json",
-        "/package.json",
-        "/robots.txt",
-        "/sitemap.xml",
-    ]
+    def __init__(self) -> None:
+        self._cloud_probes = CloudProbes()
 
-    COMMON_JS_PATTERNS = [
-        r"firebaseConfig\s*=\s*\{([^}]+)\}",
-        r"apiKey[\"']?\s*:\s*[\"']([^\"']+)",
-        r"projectId[\"']?\s*:\s*[\"']([^\"']+)",
-        r"authDomain[\"']?\s*:\s*[\"']([^\"']+)",
-        r"storageBucket[\"']?\s*:\s*[\"']([^\"']+)",
-        r"supabase\.createClient\([\"']([^\"']+)[\"'],\s*[\"']([^\"']+)",
-        r"NEXT_PUBLIC_SUPABASE_URL[\"']?\s*:\s*[\"']([^\"']+)",
-        r"AKIA[0-9A-Z]{16}",
-        r"sk_live_[0-9a-zA-Z]+",
-        r"pk_live_[0-9a-zA-Z]+",
-    ]
-
-    async def audit(self, target: str, budget: float = 120.0) -> AuditResult:
+    async def audit(self, target: str, budget: float = 120.0, _session: Any = None) -> AuditResult:
         """Run a full deep audit against a target.
 
         Args:
             target: The target URL (e.g., "https://example.com")
             budget: Wall-clock budget in seconds
+            _session: Pre-built session (test seam; default opens one)
 
         Returns:
             AuditResult with all findings, attack chains, and evidence.
@@ -188,38 +73,46 @@ class DeepAuditor:
             )
             return result
 
-        async with aiohttp.ClientSession() as session:
-            # Phase 1: Parse JavaScript for cloud configs
-            if time.time() < deadline:
-                configs = await self._extract_cloud_configs(session, target)
-                if configs:
-                    result.cloud_config = configs[0]
-                    for cfg in configs:
-                        result.findings.extend(self._audit_cloud_config(cfg, target))
-
-            # Phase 2: Probe sensitive files
-            if time.time() < deadline:
-                result.findings.extend(await self._probe_sensitive_files(session, target))
-
-            # Phase 3: Probe cloud services
-            if time.time() < deadline and result.cloud_config:
-                cfg = result.cloud_config
-                if cfg.provider == "firebase":
-                    result.findings.extend(await self._probe_firebase(session, cfg))
-                    result.collections = await self._enum_firestore(session, cfg)
-                elif cfg.provider == "supabase":
-                    result.findings.extend(await self._probe_supabase(session, cfg))
-
-            # Phase 4: Check security headers
-            if time.time() < deadline:
-                result.findings.extend(await self._check_security_headers(session, target))
-
-            # Phase 5: Build attack chain
-            result.attack_chain = self._build_attack_chain(result)
-            result.positive_controls = self._build_positive_controls(result)
+        session = _session
+        if session is not None:
+            await self._audit_phases(session, target, result, deadline)
+        else:
+            async with aiohttp.ClientSession() as new_session:
+                await self._audit_phases(new_session, target, result, deadline)
 
         result.duration = time.time() - t0
         return result
+
+    async def _audit_phases(self, session: Any, target: str, result: AuditResult, deadline: float) -> None:
+        """Run the five audit phases against an open session."""
+        # Phase 1: Parse JavaScript for cloud configs
+        if time.time() < deadline:
+            configs = await self._extract_cloud_configs(session, target)
+            if configs:
+                result.cloud_config = configs[0]
+                for cfg in configs:
+                    result.findings.extend(self._audit_cloud_config(cfg, target))
+
+        # Phase 2: Probe sensitive files
+        if time.time() < deadline:
+            result.findings.extend(await self._probe_sensitive_files(session, target))
+
+        # Phase 3: Probe cloud services
+        if time.time() < deadline and result.cloud_config:
+            cfg = result.cloud_config
+            if cfg.provider == "firebase":
+                result.findings.extend(await self._probe_firebase(session, cfg))
+                result.collections = await self._enum_firestore(session, cfg)
+            elif cfg.provider == "supabase":
+                result.findings.extend(await self._probe_supabase(session, cfg))
+
+        # Phase 4: Check security headers
+        if time.time() < deadline:
+            result.findings.extend(await self._check_security_headers(session, target))
+
+        # Phase 5: Build attack chain
+        result.attack_chain = self._build_attack_chain(result)
+        result.positive_controls = self._build_positive_controls(result)
 
     async def _extract_cloud_configs(self, session: Any, target: str) -> list[CloudConfig]:
         """Parse JavaScript files for cloud service configurations."""
@@ -391,370 +284,36 @@ class DeepAuditor:
 
         return findings
 
+    # ------------------------------------------------------------------
+    # Delegators to CloudProbes
+    #
+    # audit() dispatches these probes by attribute on self and tests
+    # monkey-patch them on the auditor; the implementations live in
+    # cloud_probes.py. _enum_firestore previously did not exist at all:
+    # audit() called it whenever a Firebase config was found, so the
+    # AttributeError (swallowed by the caller's except) silently ended
+    # the deep audit. Defining it here fixes that call site.
+    # ------------------------------------------------------------------
+
     async def _probe_sensitive_files(self, session: Any, target: str) -> list[AuditFinding]:
-        """Probe for exposed sensitive files."""
-        findings = []
-        parsed = urlparse(target)
-        base = f"{parsed.scheme}://{parsed.netloc}"
-
-        for path in self.SENSITIVE_PATHS:
-            try:
-                async with session.get(
-                    base + path,
-                    timeout=aiohttp.ClientTimeout(total=3),
-                ) as resp:
-                    if resp.status == 200:
-                        body = await resp.text()
-                        findings.append(
-                            AuditFinding(
-                                id=f"DEEP-FILE-{path.replace('/', '-').strip('-')}",
-                                severity="high" if ".env" in path or ".git" in path else "medium",
-                                title=f"Sensitive File Exposed: {path}",
-                                description=(
-                                    f"The file {path} is publicly accessible with {len(body)} bytes of content."
-                                ),
-                                proof=f"GET {base + path} -> 200 ({len(body)} bytes)",
-                                impact=("May contain secrets, credentials, or configuration information."),
-                                remediation=f"Remove or restrict access to {path}",
-                                category="information_disclosure",
-                                verified=True,
-                            )
-                        )
-            except Exception as exc:
-                logger.debug(f"variant failed, continuing: {exc}")
-                continue
-
-        return findings
+        """Delegate to CloudProbes (keeps the legacy attribute name)."""
+        return await self._cloud_probes._probe_sensitive_files(session, target)
 
     async def _probe_firebase(self, session: Any, config: CloudConfig) -> list[AuditFinding]:
-        """Deep probe Firebase services."""
-        findings = []
-
-        # 1. Firestore collection enumeration
-        accessible_collections = []
-        for col in self.FIRESTORE_COLLECTION_NAMES:
-            url = (
-                f"https://firestore.googleapis.com/v1/projects/"
-                f"{config.project_id}/databases/(default)/documents/"
-                f"{col}?key={config.api_key}"
-            )
-            try:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=3)) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        docs = data.get("documents", [])
-                        accessible_collections.append(
-                            {
-                                "name": col,
-                                "count": len(docs),
-                                "fields": list(docs[0].get("fields", {}).keys()) if docs else [],
-                            }
-                        )
-                        findings.append(
-                            AuditFinding(
-                                id=f"DEEP-FIRESTORE-{col.upper()}",
-                                severity="critical"
-                                if col
-                                in (
-                                    "users",
-                                    "admin",
-                                    "secrets",
-                                    "api_keys",
-                                    "tokens",
-                                    "sessions",
-                                )
-                                else "high",
-                                title=f"Firestore Collection Publicly Accessible: /{col}",
-                                description=(
-                                    f"The /{col} collection is accessible without "
-                                    f"authentication. Contains {len(docs)} documents."
-                                ),
-                                proof=(
-                                    f"GET firestore.googleapis.com/v1/projects/"
-                                    f"{config.project_id}/databases/(default)/"
-                                    f"documents/{col}?key=... -> 200"
-                                ),
-                                impact=("Attacker can read all data in this collection without authentication."),
-                                remediation=(
-                                    "Update Firestore Security Rules to require authentication for this collection."
-                                ),
-                                category="pii_exposure",
-                                verified=True,
-                                metadata={"collection": col, "doc_count": len(docs)},
-                            )
-                        )
-                    elif resp.status == 403:
-                        findings.append(
-                            AuditFinding(
-                                id=f"DEEP-FIRESTORE-{col.upper()}-DENIED",
-                                severity="info",
-                                title=f"Firestore Collection Exists (Denied): /{col}",
-                                description=(f"The /{col} collection exists but access is denied."),
-                                proof=(
-                                    f"GET firestore.googleapis.com/v1/projects/"
-                                    f"{config.project_id}/databases/(default)/"
-                                    f"documents/{col}?key=... -> 403"
-                                ),
-                                impact="Collection exists but is protected",
-                                remediation="N/A — access correctly denied",
-                                category="information_disclosure",
-                                verified=True,
-                            )
-                        )
-            except Exception as exc:
-                logger.debug(f"variant failed, continuing: {exc}")
-                continue
-
-        # 2. Firebase Auth probes
-        auth_base = "https://identitytoolkit.googleapis.com/v1"
-
-        # Password login check
-        url = f"{auth_base}/accounts:signInWithPassword?key={config.api_key}"
-        try:
-            async with session.post(
-                url,
-                json={
-                    "email": "test@test.com",
-                    "password": "test",
-                    "returnSecureToken": True,
-                },
-            ) as resp:
-                data = await resp.json()
-                err = data.get("error", {}).get("message", "")
-                if "PASSWORD_LOGIN_DISABLED" in err:
-                    findings.append(
-                        AuditFinding(
-                            id="DEEP-AUTH-PWD-DISABLED",
-                            severity="info",
-                            title="Firebase Auth: Password Login Disabled",
-                            description="Email/password login is disabled.",
-                            proof="signInWithPassword -> PASSWORD_LOGIN_DISABLED",
-                            impact="Positive control — password brute force not possible",
-                            remediation="N/A — correctly configured",
-                            category="positive_control",
-                            verified=True,
-                        )
-                    )
-        except Exception as exc:
-            logger.debug(f"suppressed exception: {exc}")
-            pass
-
-        # Anonymous auth check
-        url = f"{auth_base}/accounts:signUp?key={config.api_key}"
-        try:
-            async with session.post(
-                url,
-                json={
-                    "returnSecureToken": True,
-                },
-            ) as resp:
-                data = await resp.json()
-                if resp.status == 200:
-                    token = data.get("idToken", "")
-                    findings.append(
-                        AuditFinding(
-                            id="DEEP-AUTH-ANONYMOUS",
-                            severity="high",
-                            title="Firebase Auth: Anonymous Authentication Enabled",
-                            description=(
-                                "Anonymous sign-up is enabled. Attacker can get "
-                                "a valid Firebase ID token without credentials."
-                            ),
-                            proof=f"signUp (anonymous) -> 200, token: {token[:30]}...",
-                            impact=(
-                                "Attacker can authenticate and potentially access protected Firestore collections."
-                            ),
-                            remediation="Disable anonymous authentication in Firebase Console",
-                            category="auth_misconfiguration",
-                            verified=True,
-                            metadata={"token_prefix": token[:30]},
-                        )
-                    )
-
-                    # Test token against Firestore
-                    for col in ["users", "admin", "secrets", "marketplace"]:
-                        furl = (
-                            f"https://firestore.googleapis.com/v1/projects/"
-                            f"{config.project_id}/databases/(default)/documents/"
-                            f"{col}?key={config.api_key}"
-                        )
-                        try:
-                            async with session.get(
-                                furl,
-                                headers={"Authorization": f"Bearer {token}"},
-                                timeout=aiohttp.ClientTimeout(total=3),
-                            ) as fresp:
-                                if fresp.status == 200:
-                                    fdata = await fresp.json()
-                                    docs = fdata.get("documents", [])
-                                    findings.append(
-                                        AuditFinding(
-                                            id=f"DEEP-AUTH-TOKEN-{col.upper()}",
-                                            severity="critical",
-                                            title=(f"Anonymous Token Grants Access to /{col}"),
-                                            description=(
-                                                f"A Firebase ID token obtained via anonymous "
-                                                f"sign-up grants read access to /{col} "
-                                                f"({len(docs)} documents)."
-                                            ),
-                                            proof=(f"Bearer token from anonymous sign-up -> 200 on /{col}"),
-                                            impact=(
-                                                "Attacker can read all data in this collection using anonymous auth."
-                                            ),
-                                            remediation=("Update Firestore Security Rules to reject anonymous tokens"),
-                                            category="auth_bypass",
-                                            verified=True,
-                                        )
-                                    )
-                        except Exception as exc:
-                            logger.debug(f"suppressed exception: {exc}")
-                            pass
-                else:
-                    err = data.get("error", {}).get("message", "")
-                    if "ADMIN_ONLY_OPERATION" in err:
-                        findings.append(
-                            AuditFinding(
-                                id="DEEP-AUTH-ANON-DISABLED",
-                                severity="info",
-                                title="Firebase Auth: Anonymous Auth Disabled",
-                                description="Anonymous sign-up is disabled.",
-                                proof="signUp (anonymous) -> ADMIN_ONLY_OPERATION",
-                                impact="Positive control — anonymous auth not possible",
-                                remediation="N/A — correctly configured",
-                                category="positive_control",
-                                verified=True,
-                            )
-                        )
-        except Exception as exc:
-            logger.debug(f"suppressed exception: {exc}")
-            pass
-
-        # 3. Firebase Storage probe
-        url = f"https://firebasestorage.googleapis.com/v0/b/{config.storage_bucket}/o?key={config.api_key}"
-        try:
-            async with session.get(url) as resp:
-                data = await resp.json()
-                items = data.get("items", [])
-                if items:
-                    findings.append(
-                        AuditFinding(
-                            id="DEEP-STORAGE-EXPOSED",
-                            severity="high",
-                            title="Firebase Storage Objects Accessible",
-                            description=(f"Firebase Storage contains {len(items)} accessible objects."),
-                            proof=f"Storage listing -> {len(items)} objects",
-                            impact="Attacker can download stored files",
-                            remediation=("Update Firebase Storage Security Rules to require authentication"),
-                            category="pii_exposure",
-                            verified=True,
-                        )
-                    )
-        except Exception as exc:
-            logger.debug(f"suppressed exception: {exc}")
-            pass
-
-        return findings
+        """Delegate to CloudProbes (keeps the legacy attribute name)."""
+        return await self._cloud_probes._probe_firebase(session, config)
 
     async def _probe_supabase(self, session: Any, config: CloudConfig) -> list[AuditFinding]:
-        """Deep probe Supabase services."""
-        findings = []
-        base = config.raw.get("url", "")
-        key = config.api_key
-
-        if not base:
-            return findings
-
-        # REST API probe
-        headers = {
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-        }
-
-        # Try common tables
-        for table in [
-            "users",
-            "profiles",
-            "orders",
-            "products",
-            "messages",
-            "admin",
-            "settings",
-            "logs",
-            "tokens",
-        ]:
-            url = f"{base}/rest/v1/{table}?select=*&limit=5"
-            try:
-                async with session.get(
-                    url,
-                    headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=3),
-                ) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        if data:
-                            findings.append(
-                                AuditFinding(
-                                    id=f"DEEP-SUPABASE-{table.upper()}",
-                                    severity="high",
-                                    title=f"Supabase Table Accessible: {table}",
-                                    description=(
-                                        f"The {table} table is accessible via "
-                                        f"the Supabase REST API. Contains "
-                                        f"{len(data)} rows."
-                                    ),
-                                    proof=f"GET /rest/v1/{table} -> 200 ({len(data)} rows)",
-                                    impact=("Attacker can read all data in this table."),
-                                    remediation=("Enable Row Level Security (RLS) for this table."),
-                                    category="pii_exposure",
-                                    verified=True,
-                                )
-                            )
-            except Exception as exc:
-                logger.debug(f"variant failed, continuing: {exc}")
-                continue
-
-        return findings
+        """Delegate to CloudProbes (keeps the legacy attribute name)."""
+        return await self._cloud_probes._probe_supabase(session, config)
 
     async def _check_security_headers(self, session: Any, target: str) -> list[AuditFinding]:
-        """Check for missing security headers."""
-        findings = []
+        """Delegate to CloudProbes (keeps the legacy attribute name)."""
+        return await self._cloud_probes._check_security_headers(session, target)
 
-        required_headers = {
-            "strict-transport-security": "HSTS",
-            "x-frame-options": "X-Frame-Options",
-            "x-content-type-options": "X-Content-Type-Options",
-            "content-security-policy": "Content-Security-Policy",
-            "referrer-policy": "Referrer-Policy",
-            "permissions-policy": "Permissions-Policy",
-        }
-
-        try:
-            async with session.get(target) as resp:
-                headers = {k.lower(): v for k, v in resp.headers.items()}
-                missing = [name for header, name in required_headers.items() if header not in headers]
-                if missing:
-                    findings.append(
-                        AuditFinding(
-                            id="DEEP-HEADERS-MISSING",
-                            severity="high",
-                            title=f"Missing Security Headers: {', '.join(missing)}",
-                            description=(
-                                f"The target is missing {len(missing)} security headers: {', '.join(missing)}"
-                            ),
-                            proof=f"GET {target} -> missing headers: {missing}",
-                            impact=(
-                                "Increased risk of XSS, clickjacking, MIME sniffing, and other client-side attacks."
-                            ),
-                            remediation=("Add all missing security headers in your hosting configuration."),
-                            category="misconfiguration",
-                            verified=True,
-                        )
-                    )
-        except Exception as exc:
-            logger.debug(f"suppressed exception: {exc}")
-            pass
-
-        return findings
+    async def _enum_firestore(self, session: Any, config: CloudConfig) -> list[dict[str, Any]]:
+        """Delegate to CloudProbes.enum_firestore (legacy attribute name)."""
+        return await self._cloud_probes.enum_firestore(session, config)
 
     def _build_attack_chain(self, result: AuditResult) -> list[str]:
         """Build a complete attack chain from findings."""

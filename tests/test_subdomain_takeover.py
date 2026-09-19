@@ -14,10 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from titan.modules.subdomain_takeover.detector import (
-    VULNERABLE_SERVICES,
-    SubdomainTakeoverDetector,
-)
+from titan.modules.subdomain_takeover.detector import SubdomainTakeoverDetector
+from titan.modules.subdomain_takeover.services import VULNERABLE_SERVICES
 
 
 class TestRootDomainExtraction:

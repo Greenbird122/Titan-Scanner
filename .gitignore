@@ -50,7 +50,7 @@
 findings/bounties/varonis-h1/fp_*
 Thumbs.db
 __pycache__/
-vendor/H1-auth-helper.js
+# vendor/ covers all engagement-specific probe scripts — see top of file
 arena.log
 arena.log
 arena_lab.log
@@ -64,7 +64,10 @@ consent/
 consent/*.SCOPE.md
 dist/
 docs/archive/
-findings/
+vendor/                        # engagement-specific probe scripts (humo, varonis, dpg)
+intel/                          # proprietary OSINT / research notes
+adversarial_honeypot/           # verifier test fixtures — method disclosure risk
+findings/                       # engagement data, never commit
 local_lab/uploads/
 multi_agent/outbox/
 multi_agent/state.json
