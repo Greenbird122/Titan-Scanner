@@ -47,7 +47,6 @@ ALLOWLIST_PATHS = {
     "MARKET-SCAN.md",
     "LEARNINGS.md",
     "scripts/audit_repo_surface.py",
-    "adversarial_honeypot/",
     # Lockfiles and scanner-internal references that legitimately contain
     # port numbers or API path fragments used as test fixtures.
     "uv.lock",
