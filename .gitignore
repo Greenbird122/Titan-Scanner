@@ -64,10 +64,14 @@ consent/
 consent/*.SCOPE.md
 dist/
 docs/archive/
-vendor/                        # engagement-specific probe scripts (humo, varonis, dpg)
-intel/                          # proprietary OSINT / research notes
-adversarial_honeypot/           # verifier test fixtures — method disclosure risk
-findings/                       # engagement data, never commit
+# engagement-specific probe scripts (humo, varonis, dpg)
+vendor/
+# proprietary OSINT / research notes
+intel/
+# verifier test fixtures — method disclosure risk
+adversarial_honeypot/
+# engagement data, never commit
+findings/
 local_lab/uploads/
 multi_agent/outbox/
 multi_agent/state.json
@@ -92,3 +96,5 @@ tools/sspp-gadgets/
 venv/
 venv_linux/
 coverage.json
+# Third-party platform reference docs (local copy only — never distributed)
+platforms/
