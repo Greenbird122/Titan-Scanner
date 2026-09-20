@@ -37,7 +37,12 @@ All notable changes to Titan Scanner are documented here. The format follows
 - Deep audit no longer crashes on every Firebase-bearing target: `audit()` called `_enum_firestore`, a method that never existed anywhere — the AttributeError was swallowed by the caller's except and ended the audit with no findings; the enumeration primitive now exists (`CloudProbes.enum_firestore`)
 
 ### Removed
+- Engagement-specific scripts and fixtures untracked from the public tree — `vendor/` (23 per-engagement probe scripts against live third parties), `intel/` (4 proprietary research notes), and `adversarial_honeypot/` (the 11-file adversarial calibration app). `SECURITY.md` already listed all three as private and never-committed; the index now matches that claim. Files remain on disk and local deploys are unaffected.
 - Dead `titan/modules/bizlogic/` package (4,400 LOC): never wired into the module matrix, incompatible with the current `Finding` model, and duplicated by the live `logic`, `idor`, `auth`, and `ratelimit` modules. SaaS-specific ideas (credit manipulation, trial abuse, feature gating) are backlog items for the live `logic` module with proper baseline-diff oracles.
+
+### Security
+- Repo-surface audit (`scripts/audit_repo_surface.py`) added — scans tracked files for engagement domains, operator handles, CDP ports, and engagement output paths before a push; wire it into CI to make it a gate rather than a habit.
+- Four `.gitignore` rules repaired: `findings/`, `intel/`, `vendor/`, and `adversarial_honeypot/` each carried a trailing `#` comment, and gitignore only treats `#` as a comment at the start of a line — so the patterns matched nothing and engagement data was one `git add .` away from being published.
 
 ## [1.0.0] - 2026-08-27
 
