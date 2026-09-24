@@ -55,8 +55,9 @@ class PlatformPayloadsMixin:
                     "/auth/v1/admin/users?page=1",
                     # Phone auto-confirm
                     "/auth/v1/signup",
-                    # JWT manipulation
-                    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkbWluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY5MzQwMTYwMH0.fake",  # pragma: allowlist secret
+                    # JWT manipulation — placeholder token for format testing
+                    # only (header.payload.signature shape). Never a real credential.
+                    "Bearer <JWT_PLACEHOLDER>.<JWT_PAYLOAD_PLACEHOLDER>.<JWT_SIG_PLACEHOLDER>",  # pragma: allowlist secret
                 ]
             )
 
