@@ -89,9 +89,7 @@ class ScanParams(BaseModel):
         return out
 
 
-def validate_scan_params(
-    *, target: str, method: str, url: str, params: dict[str, Any] | None
-) -> ScanParams:
+def validate_scan_params(*, target: str, method: str, url: str, params: dict[str, Any] | None) -> ScanParams:
     """Validate attack-module inputs; raise ``TitanValidationError`` on failure.
 
     Wraps pydantic's ``ValidationError`` so the boundary raises one typed,

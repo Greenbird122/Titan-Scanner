@@ -28,7 +28,7 @@ from titan.modules.baas.auth_payloads import (
     AuthPayload,
 )
 
-__all__ = ["AuthServicesTester", "AuthPayload"]
+__all__ = ["AuthPayload", "AuthServicesTester"]
 
 logger = get_logger("authservices")
 

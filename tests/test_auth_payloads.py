@@ -24,9 +24,7 @@ ALL_TABLES = [
 class TestSplitIntegrity:
     """The split must not lose or duplicate catalog entries."""
 
-    @pytest.mark.parametrize(
-        ("attr", "table", "expected_count"), ALL_TABLES, ids=[t[0] for t in ALL_TABLES]
-    )
+    @pytest.mark.parametrize(("attr", "table", "expected_count"), ALL_TABLES, ids=[t[0] for t in ALL_TABLES])
     def test_entry_counts_preserved(self, attr, table, expected_count):
         assert len(table) == expected_count
 
@@ -38,9 +36,7 @@ class TestSplitIntegrity:
         assert AuthServicesTester.SESSION_MANAGEMENT_PAYLOADS is ap.SESSION_MANAGEMENT_PAYLOADS
         assert AuthServicesTester.MFA_BYPASS_PAYLOADS is ap.MFA_BYPASS_PAYLOADS
 
-    @pytest.mark.parametrize(
-        ("attr", "table", "expected_count"), ALL_TABLES, ids=[t[0] for t in ALL_TABLES]
-    )
+    @pytest.mark.parametrize(("attr", "table", "expected_count"), ALL_TABLES, ids=[t[0] for t in ALL_TABLES])
     def test_names_unique_within_catalog(self, attr, table, expected_count):
         names = [p.name for p in table]
         assert len(names) == len(set(names))

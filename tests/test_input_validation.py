@@ -94,9 +94,9 @@ class TestEnginePipelineSeam:
     async def test_run_logic_rejects_bad_input_before_module_logic(self, monkeypatch):
         """_run_logic validates at the boundary: malformed inputs raise before
         the detector is even constructed; valid inputs reach it unchanged."""
+        import titan.modules.logic.detector as logic_detector_module
         from titan.core.module_bindings import AttackModuleBindings
         from titan.core.scan_params import TitanValidationError
-        import titan.modules.logic.detector as logic_detector_module
 
         calls = []
 
@@ -117,8 +117,6 @@ class TestEnginePipelineSeam:
             await bindings._run_logic(None, "not-a-target", "GET", "/x", {}, {})
         assert calls == [], "detector must not run when validation fails"
 
-        result = await bindings._run_logic(
-            None, "https://app.example.com", "GET", "/x", {"a": "1"}, {}
-        )
+        result = await bindings._run_logic(None, "https://app.example.com", "GET", "/x", {"a": "1"}, {})
         assert result == []
         assert calls == [("https://app.example.com", "GET", "/x", {"a": "1"})]

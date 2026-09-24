@@ -191,9 +191,7 @@ _FRAMEWORK_SINK_PAYLOADS: tuple[str, ...] = (
 )
 
 
-def build_context_suite(
-    param_name: str, param_val: str, generic_payloads: list[str]
-) -> list[str]:
+def build_context_suite(param_name: str, param_val: str, generic_payloads: list[str]) -> list[str]:
     """
     Prepend the most likely context-specific payloads based on what
     we know about the parameter, then append the full generic pool.
