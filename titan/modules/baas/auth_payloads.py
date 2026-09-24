@@ -103,7 +103,7 @@ AUTH0_PAYLOADS = [
             "grant_type": "password",
             "client_id": "test",
             "username": "test@test.com",
-            "password": "test123",
+            "password": "test123",  # pragma: allowlist secret — decoy probe credential
             "scope": "openid",
         },
         expected_effect="token_exchange",
@@ -118,7 +118,7 @@ AUTH0_PAYLOADS = [
         payload={
             "grant_type": "client_credentials",
             "client_id": "test",
-            "client_secret": "test",
+            "client_secret": "test",  # pragma: allowlist secret — decoy probe credential
             "audience": "https://api.example.com",
         },
         expected_effect="client_credentials_abuse",
@@ -206,7 +206,7 @@ CLERK_PAYLOADS = [
         category="clerk_user",
         endpoint="/v1/users",
         method="POST",
-        payload={"email_address": ["admin@evil.com"], "password": "hacked123"},
+        payload={"email_address": ["admin@evil.com"], "password": "hacked123"},  # pragma: allowlist secret
         expected_effect="user_creation",
         severity=Severity.CRITICAL,
         confidence=0.90,
