@@ -1,9 +1,18 @@
 version: 2
 updates:
-  # Keep the committed pip lockfile (requirements.txt) current.
-  - package-ecosystem: "pip"
+  # Keep the committed native lockfile current.
+  # requirements.txt is a generated pip-compile export of uv.lock + pyproject.toml
+  # (see scripts and commit b63f31c) and is refreshed when the lock moves —
+  # dependabot must NOT bump it independently or the two drift apart.
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
-    # Bump the lockfile in one PR per update; no unrelated churn.
+    open-pull-requests-limit: 5
+
+  # Keep the GitHub Actions versions pinned in workflows current.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
     open-pull-requests-limit: 5
