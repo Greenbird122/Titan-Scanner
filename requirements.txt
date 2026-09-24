@@ -59,7 +59,7 @@ markupsafe==3.0.3
     #   flask
     #   jinja2
     #   werkzeug
-multidict==6.7.1
+multidict==6.9.0
     # via
     #   aiohttp
     #   yarl
