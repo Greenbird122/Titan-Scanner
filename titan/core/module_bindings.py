@@ -80,8 +80,10 @@ class AttackModuleBindings:
         return await UploadDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_logic(self, ctx, t, m, u, p, fp):
+        from titan.core.scan_params import validate_scan_params
         from titan.modules.logic.detector import LogicDetector
 
+        validate_scan_params(target=t, method=m, url=u, params=p)
         return await LogicDetector(self.engine.payload_smith, fp).scan(ctx, t, m, u, p)
 
     async def _run_cors(self, ctx, t, m, u, p, fp):
