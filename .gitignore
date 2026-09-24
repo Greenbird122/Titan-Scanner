@@ -98,3 +98,4 @@ venv_linux/
 coverage.json
 # Third-party platform reference docs (local copy only — never distributed)
 platforms/
+.originkit/
