@@ -92,6 +92,22 @@ def host_is_practice(host: str, hosts: set[str]) -> bool:
     return host in hosts or any(host.endswith("." + h) for h in hosts)
 
 
+def _is_scanning_policy_denial(exc: BaseException) -> bool:
+    """True when a consent refuses *automated* scanning rather than being absent.
+
+    Imported lazily and guarded for the same reason ``verify_consent`` is:
+    ``titan.exploit`` pulls in the exploitation stack, which is not always
+    importable (e.g. vault not built). If it cannot be imported there is no
+    consent doc to consult, so this reports False and the caller keeps its
+    previous fallthrough behaviour.
+    """
+    try:
+        from titan.exploit.consent import ScanningPolicyError
+    except Exception:
+        return False
+    return isinstance(exc, ScanningPolicyError)
+
+
 def authorize_target(
     target: str,
     consent_dir: str = "consent",
@@ -120,12 +136,23 @@ def authorize_target(
         return None
     if verify_consent is not None:
         try:
-            verify_consent(
-                target,
-                consent_dir=consent_dir,
-                key_path=Path(key_path) if key_path else DEFAULT_KEY_PATH,
-            )
-            return None
+            from titan.exploit.consent import require_automation
+
+            try:
+                require_automation(
+                    target,
+                    consent_dir=consent_dir,
+                    key_path=Path(key_path) if key_path else DEFAULT_KEY_PATH,
+                )
+                return None
+            except Exception as exc:
+                # This is the *automated* scan path, so a consent that exists
+                # but forbids automated scanning is a deliberate declaration
+                # about the source of authorization. It outranks the practice
+                # manifest and must not be washed away by the fallthrough below.
+                if _is_scanning_policy_denial(exc):
+                    return f"scan denied: {exc}"
+                raise
         except Exception as exc:
             logger.debug(f"suppressed exception: {exc}")
             pass

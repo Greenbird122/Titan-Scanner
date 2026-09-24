@@ -220,13 +220,15 @@ class SiteReportWriter:
         """Authorization story for the target, if a consent file exists.
 
         Reads the consent ledger and returns a one-line summary: basis + flags
-        + expiry. Returns None when no consent covers the target (read-only
+        + scanning policy + expiry. Returns None when no consent covers the
+        target (read-only
         path may still be authorized by the practice manifest — the report
         simply omits the consent row in that case).
         """
         try:
             from titan.exploit.consent import (
                 DEFAULT_CONSENT_DIR,
+                SCANNING_PROHIBITED,
                 consent_filename,
                 verify_consent,
             )
@@ -241,7 +243,19 @@ class SiteReportWriter:
             expiry = doc.get("expires_at")
             exp = self._iso(expiry) if expiry else "n/a"
             flag_txt = ", ".join(flags) if flags else "read-only"
-            return f"basis={basis} · flags={flag_txt} · expires {exp}"
+            declared = doc.get("scanning")
+            if declared:
+                scanning = f"scanning={declared}"
+                if declared == SCANNING_PROHIBITED:
+                    # The one value where a misreading is dangerous: the source
+                    # of authorization forbids automated tooling outright.
+                    scanning += " (automated tooling forbidden by the source)"
+            else:
+                # No declaration on file. Render that honestly rather than
+                # "allowed" — the report must not claim a permission the
+                # consent never made.
+                scanning = "scanning=(unset)"
+            return f"basis={basis} · flags={flag_txt} · {scanning} · expires {exp}"
         except Exception:
             # Consent missing, expired, or invalid — the report shouldn't
             # crash over the authorization row; it just omits it.
