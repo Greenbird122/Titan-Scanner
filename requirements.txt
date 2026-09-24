@@ -65,7 +65,7 @@ multidict==6.7.1
     #   yarl
 packaging==26.3
     # via pytest
-playwright==1.62.0
+playwright==1.63.0
     # via titan-scanner (pyproject.toml)
 pluggy==1.6.0
     # via pytest
