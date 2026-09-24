@@ -83,7 +83,7 @@ pyee==13.0.1
     # via playwright
 pygments==2.21.0
     # via pytest
-pyjwt==2.13.0
+pyjwt==2.14.0
     # via titan-scanner (pyproject.toml)
 pytest==9.1.1
     # via
