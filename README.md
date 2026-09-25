@@ -89,6 +89,15 @@ The coverage gate (55%) fails the run if the suite drops below the floor. The
 same command is what CI runs on every push (lint, typecheck, and the test
 matrix are in `.github/workflows/tests.yml`).
 
+**The default suite is fully offline and self-contained:** zero external
+accounts, zero network access, and zero API keys are required — every server a
+test talks to is an in-process aiohttp/Flask server on loopback, and the only
+local dependency is the optional `python local_lab/app.py` lab. This is
+enforced, not aspirational: an autouse guard in `tests/conftest.py` blocks any
+non-loopback socket from every test (escape hatch:
+`@pytest.mark.allow_network`), and `tests/test_offline_guard.py` pins the guard
+itself. The ~4 environment-optional skips are capability checks, not failures.
+
 ## Antivirus note (Windows)
 
 Windows Defender (and similar AV engines) may quarantine
@@ -216,7 +225,9 @@ Titan is a consent-gated testing tool: active scanning and exploitation require 
 signed consent file for the target. See [SECURITY.md](SECURITY.md) for the full
 security policy — vulnerability disclosure, the tool's threat model (consent &
 authorization, credential handling, network safety, data handling, payload at-rest
-protection), and scope. Exploit-artifact templates are kept base64-encoded on
+protection), and scope. A structured threat model (assets, actors, trust
+boundaries, mitigations mapped to code) lives in
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md). Exploit-artifact templates are kept base64-encoded on
 disk ([vault](titan/exploit/atrest.py)); API keys and tokens are supplied via
 environment variables only (see `.env.example`); nothing sensitive is committed.
 

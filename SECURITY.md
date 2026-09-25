@@ -42,6 +42,11 @@ runs detect-secrets, mypy, and ruff on every push to catch regressions early.
 
 ## Threat Model
 
+A structured, standalone threat model — assets, actors, trust boundaries,
+mitigations mapped to code, and accepted residual risks — lives in
+[docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and is kept honest by
+`tests/test_threat_model_doc.py`.
+
 Titan Scanner is a security testing tool. Key security considerations:
 
 ### Consent & Authorization
@@ -55,6 +60,25 @@ Titan Scanner is a security testing tool. Key security considerations:
   should source secrets from a secret manager (e.g. Vault, AWS Secrets Manager)
   rather than committed files
 - See `.env.example` for required variables
+
+### Secrets Management
+
+- Operator-facing secrets are supplied exclusively via environment variables
+  (see [.env.example](.env.example)); `.env` is git-ignored and is never
+  committed.
+
+| Variable | Guards | Local development | Production guidance |
+|---|---|---|---|
+| `DEEPSEEK_API_KEY` / `DEEPSEEK_AUTH_TOKEN` | AI payload mutation provider | `.env` (git-ignored) | Secret manager (AWS Secrets Manager, HashiCorp Vault, cloud KMS); never committed, never baked into images |
+| `FIREBASE_API_KEY` / `FIREBASE_PROJECT` | BaaS deep-audit probes | `.env` (git-ignored) | Secret manager; rotate on staff change and on disclosure |
+| `LOCAL_LAB_SECRET_KEY` | Local lab Flask sessions | generated per run if unset | Not needed in production (the lab is a local test fixture) |
+| `TITAN_SENTRY_DSN` | Opt-in error reporting (planned integration) | leave unset | Set only if you accept third-party crash reporting; a security tool must not phone home by default |
+
+- Titan never transmits operator secrets to scan targets; payloads at rest are
+  protected by the base64 vault (`titan/exploit/atrest.py`), and the vault
+  never stores API keys or tokens.
+- Rotation: revoke-and-rotate any credential on disclosure, per the
+  Vulnerability Disclosure Policy above.
 
 ### Network Safety
 - Stealth engine rate-limits requests to avoid denial-of-service
