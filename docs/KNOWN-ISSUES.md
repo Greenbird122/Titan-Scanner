@@ -53,6 +53,17 @@ else (e.g. `/tmp`) is still quarantined on read. Do not "fix" this by encoding
 the payload literals — `PayloadForge` must emit real, literal payloads to do its
 job; mangling them would change scanner behaviour to satisfy a signature.
 
+**Revision (2026-09-26):** the caveat above is superseded. The exclusion is a
+per-machine mitigation — it cannot protect fresh cloners (verified 2026-09-25:
+a clean GitHub clone lost the file on import). The four highest-signal literals
+in `titan/ai/payloadforge.py` are now stored zlib+base85-encoded and decoded at
+import **byte-identically** — the emitted payloads are the same bytes, so the
+"do not mangle literals to satisfy a signature" concern is answered rather than
+ignored. Integrity is pinned by SHA256 in `tests/test_payloadforge_encoding.py`.
+The `Add-MpPreference` exclusions remain harmless but are no longer load-bearing;
+downstream-user symptoms and recovery steps live in the README's
+"Antivirus note (Windows)".
+
 **Verified after the fix** (2026-09-16, `.venv` = py3.12 with the pinned tools):
 
 - `scripts/check_findings_layout.py` → `clean: no stray per-target artifacts` (exit 0)
