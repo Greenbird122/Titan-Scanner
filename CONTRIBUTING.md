@@ -26,9 +26,15 @@ local configuration. Never commit either file.
 python -m pytest tests/ -q --cov=titan --cov-report=term --cov-fail-under=55
 ```
 
-The suite must pass with coverage at or above the 45% floor. Tests that need
-a real browser or network are marked/skipped accordingly — do not add tests
-that reach live hosts.
+The suite must pass with coverage at or above the 55% floor, and it must do so
+**fully offline**: no external accounts, no network access, no API keys. An
+autouse guard in `tests/conftest.py` blocks any non-loopback socket from every
+test (if a test genuinely needs the internet, mark it
+`@pytest.mark.allow_network` — and expect scrutiny). `tests/test_offline_guard.py`
+pins the guard itself. The only local dependency a test may need is the
+deliberately vulnerable lab, `python local_lab/app.py` (loopback-bound); no
+external service — no live target, no Ollama, no DeepSeek key — is ever required
+ to pass the suite.
 
 ## Pre-push checklist
 

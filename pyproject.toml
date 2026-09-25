@@ -416,6 +416,9 @@ follow_imports = "skip"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "allow_network: test may reach external hosts (the conftest hermeticity guard is disabled for it)",
+]
 
 # ---------------------------------------------------------------------------
 # Coverage
