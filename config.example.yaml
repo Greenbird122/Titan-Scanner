@@ -66,9 +66,9 @@ auth:
   cookies: ""
   url: ""
   username: ""
-  password: ""
+  password: ""  # pragma: allowlist secret
   username_selector: 'input[name="identifier"], input[type="text"], input[name*="user"], input[name*="email"], input[name*="phone"]'
-  password_selector: 'input[type="password"], input[name*="pass"]'
+  password_selector: 'input[type="password"], input[name*="pass"]'  # pragma: allowlist secret
   submit_selector: 'button[type="submit"], input[type="submit"], button'
   roles: []
 ai:

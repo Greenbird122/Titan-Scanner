@@ -59,6 +59,7 @@ bench/results/
 bench/targets/
 build/
 config.*.yaml
+!config.example.yaml
 config.yaml
 consent/
 consent/*.SCOPE.md
