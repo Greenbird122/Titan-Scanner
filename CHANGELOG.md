@@ -25,7 +25,10 @@ All notable changes to Titan Scanner are documented here. The format follows
 - `config.example.yaml` ships in the repo again — the `config.*.yaml` gitignore rule had been matching the example itself, so the README's `cp config.example.yaml config.yaml` step failed on every fresh clone; a `!config.example.yaml` negation unblocks it and the committed file validates against `config_schema` (23 top-level sections)
 - `TITAN_SENTRY_DSN` documented in `.env.example` (opt-in error reporting, unset by default; the integration itself is a planned readiness item)
 - README "Antivirus note (Windows)" — documents the Defender false-positive mode (symptom, mechanism, recovery steps) for downstream users of the repo
-- `specs/titan-v2-skeleton-spec.md` — contracts-first greenfield design contract for the from-scratch v2 track (envelope schema as M0, consent as a first-class field, one-box profile, M0–M5 build order)
+- `specs/titan-v2-skeleton-spec.md` — contracts-first greenfield design contract for the from-scratch v2 track (envelope schema as M0, consent as a first-class field, one-box profile, M0–M5 build order)- Structured standalone threat model (`docs/THREAT_MODEL.md`) — assets, actors, trust boundaries, mitigations mapped to code, and accepted residual risks; kept honest by `tests/test_threat_model_doc.py`, which fails the suite if the artifact or its cross-links from `SECURITY.md`/`README.md` rot
+- `tests/test_offline_guard.py` pins the hermetic-suite guarantee: the autouse conftest guard blocks non-loopback sockets for every test, loopback stays allowed, and `@pytest.mark.allow_network` is the only escape hatch (marker registered in `pyproject.toml`)
+- README and CONTRIBUTING now state the offline guarantee explicitly — zero external accounts, zero network, zero API keys; CONTRIBUTING's coverage-floor number corrected to the enforced 55%
+- SECURITY.md gains a Secrets Management section (env-var table with production secret-manager guidance, rotation policy) and links the threat model
 
 ### Changed
 - Silent exception swallows eliminated repo-wide; ruff `S110`/`S112` now enforced instead of ignored
