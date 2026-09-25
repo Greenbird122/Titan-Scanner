@@ -174,6 +174,16 @@ class TrafficShaper:
         for i in range(1, len(timeline)):
             delays.append(timeline[i] - timeline[i - 1])
 
+        # Scaling the timeline is a float round-trip: sum(delays) can land a
+        # few ulps above budget (worst observed ~4e-15), which flaked an
+        # exact "sum <= budget" assertion. Clamp the residue onto the last
+        # delay; two passes absorb any residual rounding of the clamp itself.
+        for _ in range(2):
+            overflow = sum(delays) - budget
+            if overflow <= 0:
+                break
+            delays[-1] = max(delays[-1] - overflow, 0.0)
+
         return delays
 
 
