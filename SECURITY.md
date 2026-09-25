@@ -77,6 +77,14 @@ Titan Scanner is a security testing tool. Key security considerations:
   inspecting and updating entries.
 - Secrets and API keys are never stored in the vault or in source control;
   they are supplied via environment variables only (see `.env.example`).
+- The DAST payload corpus (e.g. `titan/ai/payloadforge.py`) intentionally
+  contains inert detection-test strings, some byte-identical to exploit and
+  malware families — that is what lets a scanner recognize vulnerabilities.
+  These strings are data, never executed locally; the highest-signal literals
+  are stored zlib+base85 encoded, decoded to byte-identical values at import,
+  and pinned by `tests/test_payloadforge_encoding.py`. Antivirus engines may
+  still quarantine such files heuristically — see the README "Antivirus note
+  (Windows)" for the restore/verify procedure.
 
 ## Repository Surface Policy
 
