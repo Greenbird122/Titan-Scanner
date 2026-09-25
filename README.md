@@ -30,11 +30,26 @@ playwright install chromium
 cp config.example.yaml config.yaml
 
 # 5. Start the local test lab (optional, but recommended for first run)
-python -m titan lab start
+python local_lab/app.py
 
-# 6. In another terminal, scan the lab
+# 6. In another terminal, scan the lab (loopback targets are always authorized)
 python -m titan scan http://localhost:5000
 ```
+
+### Before scanning a real target: record a consent
+
+Anything outside loopback requires a signed consent file for that target —
+active scanning of an unauthorized target is refused by design. Add one with
+the consent CLI:
+
+```bash
+python titan_exploit_cli.py consent add <target> --basis <ownership|authorization|program> \
+    --scanning <allowed|bounded|prohibited>
+```
+
+See `SECURITY.md` for the consent model and the scanning policy (`--scanning`
+covers the bug-bounty case where a brief authorizes testing but forbids
+automated tooling).
 
 ## Architecture
 
@@ -45,6 +60,21 @@ XSS, SSRF, BaaS, business-logic, and more) that run against discovered endpoints
 and `titan/verify` grades evidence and applies negative controls so only findings
 with proof survive. `titan/reporting` writes the final findings/report artifacts,
 and `titan/transport` abstracts the HTTP layer behind pluggable transports.
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the full architecture — layer
+descriptions, the consent/authorization model, and the v2 distributed design.
+
+## Docker
+
+```bash
+docker build -t titan .
+docker run --rm titan --target http://host.docker.internal:5000
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the test gates (ruff, mypy,
+detect-secrets, pip-audit), and how to add a detector module.
 
 ## Running the tests
 
@@ -102,14 +132,16 @@ If your engine flags this file, please also report it to Microsoft
 Titan ships with a deliberately vulnerable Flask app for testing. Start it with:
 
 ```bash
-python -m titan lab start
+python local_lab/app.py
 ```
 
-Then scan `http://localhost:5000`. The lab contains SQL injection, XSS, SSRF, upload, and business-logic flaws.
+It binds `127.0.0.1:5000` by default (override with `TITAN_LAB_HOST` /
+`TITAN_LAB_PORT`, see `.env.example`). Then scan `http://localhost:5000`. The
+lab contains SQL injection, XSS, SSRF, upload, and business-logic flaws.
 
 Check if the lab is already running:
 ```bash
-python -m titan lab status
+curl http://localhost:5000    # responds when the lab is up
 ```
 
 ## Configuration
@@ -129,7 +161,8 @@ modules:
     enabled: true
 ```
 
-See `config.example.yaml` for all options.
+See `config.example.yaml` for all options — it ships with every module and
+section the schema passes through, ready to trim down.
 
 The file is validated as it loads, before any network or browser activity. A
 malformed config stops the run with exit code 2 and names the offending field,
